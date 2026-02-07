@@ -11,8 +11,54 @@ class Principal extends StatefulWidget {
 }
 
 class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _selectedIndex = 1;
   String _title = 'Inicio';
+
+  // Variables para el Chatbot
+  final TextEditingController _chatController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final List<Map<String, String>> _messages = [
+    {'sender': 'bot', 'text': '¡Hola! Soy tu asistente emocional.\n¿Cómo te sientes hoy?'},
+  ];
+
+  @override
+  void dispose() {
+    _chatController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _sendMessage() {
+    if (_chatController.text.trim().isEmpty) return;
+    setState(() {
+      _messages.add({'sender': 'user', 'text': _chatController.text});
+    });
+    _chatController.clear();
+    _scrollToBottom();
+    
+    // Simular respuesta simple
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() {
+          _messages.add({'sender': 'bot', 'text': 'Gracias por compartirlo. Estoy aquí para escucharte.'});
+        });
+        _scrollToBottom();
+      }
+    });
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
   
   void _onItemTapped(int index) {
     setState(() {
@@ -44,9 +90,10 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
     final backgroundColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFFAFAFA);
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: backgroundColor, 
       resizeToAvoidBottomInset: false,
-      drawer: _buildDrawer(context),
+      endDrawer: _buildDrawer(context),
       extendBodyBehindAppBar: false, // Desactivado para fondo plano
       extendBody: true,
       appBar: AppBar(
@@ -72,6 +119,10 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
             ),
             onPressed: () => themeProvider.toogleTheme(!isDarkMode),
           ),
+          IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+          ),
           const SizedBox(width: 10),
         ],
       ),
@@ -88,12 +139,130 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
   Widget _buildBody() {
     switch (_selectedIndex) {
       case 0:
-         return const Center(child: Text("Chatbot Proxy")); 
+         return _buildChatbot(); 
       case 1:
         return SingleChildScrollView(child: _buildInicio(context));
       default:
         return Container();
     }
+  }
+
+  Widget _buildChatbot() {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+    final primaryGreen = const Color(0xFF43A047);
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            itemCount: _messages.length,
+            itemBuilder: (context, index) {
+              final msg = _messages[index];
+              final isUser = msg['sender'] == 'user';
+              return Align(
+                alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: isUser ? primaryGreen : (isDarkMode ? const Color(0xFF2C2C2C) : Colors.white),
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(24),
+                      topRight: const Radius.circular(24),
+                      bottomLeft: isUser ? const Radius.circular(24) : const Radius.circular(4),
+                      bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(24),
+                    ),
+                     boxShadow: [
+                      if (!isDarkMode)
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                    ],
+                  ),
+                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                  child: Text(
+                    msg['text']!,
+                    style: TextStyle(
+                      color: isUser ? Colors.white : (isDarkMode ? Colors.white : Colors.black87),
+                      fontSize: 16,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 15,
+                offset: const Offset(0, -5),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _chatController,
+                    style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
+                    decoration: InputDecoration(
+                      hintText: "Escribe un mensaje...",
+                      hintStyle: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[500]),
+                      filled: true,
+                      fillColor: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFF5F5F5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    ),
+                    onSubmitted: (_) => _sendMessage(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _sendMessage,
+                  child: Container(
+                    height: 50,
+                    width: 50,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [primaryGreen, const Color(0xFF66BB6A)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryGreen.withOpacity(0.4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.send_rounded, color: Colors.white, size: 24),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildInicio(BuildContext context) {
@@ -279,67 +448,182 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
   Widget _buildDrawer(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    // Drawer minimalista
+    final primaryGreen = const Color(0xFF43A047);
+    
     return Drawer(
-      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white, // Fondo neutro en dark
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(30),
+          bottomLeft: Radius.circular(30),
+        ),
+      ),
+      backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
       child: Column(
         children: [
-          // Header personalizado para evitar overflows de la imagen
+          // Header con diseño curvo y degradado
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(top: 60, bottom: 20), // Espacio seguro superior
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide.none),
+            padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDarkMode 
+                    ? [const Color(0xFF1B5E20), const Color(0xFF2E7D32)]
+                    : [const Color(0xFF43A047), const Color(0xFF66BB6A)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+              ),
             ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Imagen directa sin recorte circular
-                Image.asset(
-                  'assets/imagenes/quetzal_1.png',
-                  height: 140, // Un poco más grande ahora que tenemos espacio
-                  fit: BoxFit.contain, 
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: CircleAvatar(
+                    radius: 35,
+                    backgroundColor: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(5.0),
+                      child: Image.asset(
+                        'assets/imagenes/quetzal_1.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 10),
-                 Text(
-                  'Usuario',
+                const SizedBox(height: 15),
+                const Text(
+                  'Hola, Usuario',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.black87,
+                    color: Colors.white,
+                  ),
+                ),
+                const Text(
+                  'Bienvenido de nuevo',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white70,
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(indent: 10, endIndent: 10),
-          _buildDrawerItem(Icons.settings, "Configuración", () => Navigator.pop(context)),
-          _buildDrawerItem(Icons.info_outline, "Acerca de", () => Navigator.pop(context)),
-          const Spacer(),
-          _buildDrawerItem(Icons.logout, "Cerrar Sesión", () {
-             Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const Login()),
-                (Route<dynamic> route) => false,
-              );
-          }, isDestructive: true),
-          const SizedBox(height: 40),
+          
+          const SizedBox(height: 20),
+          
+          // Items del menú
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _buildDrawerItem(
+                  icon: Icons.person_outline_rounded, 
+                  title: "Mi Perfil", 
+                  onTap: () => Navigator.pop(context),
+                  color: primaryGreen,
+                ),
+                _buildDrawerItem(
+                  icon: Icons.settings_outlined, 
+                  title: "Configuración", 
+                  onTap: () => Navigator.pop(context),
+                  color: Colors.orange,
+                ),
+                _buildDrawerItem(
+                  icon: Icons.notifications_none_rounded, 
+                  title: "Notificaciones", 
+                  onTap: () => Navigator.pop(context),
+                  color: Colors.blue,
+                ),
+                Divider(color: isDarkMode ? Colors.grey[800] : Colors.grey[200], height: 30),
+                _buildDrawerItem(
+                  icon: Icons.info_outline_rounded, 
+                  title: "Acerca de", 
+                  onTap: () => Navigator.pop(context),
+                  color: Colors.purple,
+                ),
+              ],
+            ),
+          ),
+          
+          // Botón de Cerrar Sesión
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+            child: Container(
+              decoration: BoxDecoration(
+                color: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFFFEBEE),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.logout_rounded, color: Color(0xFFD32F2F)),
+                title: const Text(
+                  "Cerrar Sesión",
+                  style: TextStyle(
+                    color: Color(0xFFD32F2F),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () {
+                   Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (context) => const Login()),
+                      (Route<dynamic> route) => false,
+                    );
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDrawerItem(IconData icon, String title, VoidCallback onTap, {bool isDestructive = false}) {
+  Widget _buildDrawerItem({
+    required IconData icon, 
+    required String title, 
+    required VoidCallback onTap,
+    required Color color,
+  }) {
      final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
-     final color = isDestructive ? const Color(0xFFEF5350) : (isDarkMode ? Colors.white70 : Colors.black87);
      
-     return ListTile(
-       leading: Icon(icon, color: color),
-       title: Text(
-         title,
-         style: TextStyle(color: color, fontWeight: FontWeight.w500),
+     return Container(
+       margin: const EdgeInsets.only(bottom: 8),
+       decoration: BoxDecoration(
+         color: isDarkMode ? Colors.transparent : Colors.transparent,
+         borderRadius: BorderRadius.circular(15),
        ),
-       onTap: onTap,
-       contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+       child: ListTile(
+         leading: Container(
+           padding: const EdgeInsets.all(8),
+           decoration: BoxDecoration(
+             color: color.withOpacity(0.1),
+             borderRadius: BorderRadius.circular(10),
+           ),
+           child: Icon(icon, color: color, size: 22),
+         ),
+         title: Text(
+           title,
+           style: TextStyle(
+             color: isDarkMode ? Colors.white : Colors.black87,
+             fontWeight: FontWeight.w500,
+             fontSize: 16,
+           ),
+         ),
+         trailing: Icon(
+           Icons.chevron_right_rounded, 
+           color: isDarkMode ? Colors.grey[600] : Colors.grey[400], 
+           size: 20
+         ),
+         onTap: onTap,
+         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+       ),
      );
   }
 

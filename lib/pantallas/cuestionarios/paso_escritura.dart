@@ -75,7 +75,7 @@ class _PasoEscrituraState extends State<PasoEscritura> {
               isDarkMode: isDarkMode,
             ),
             const SizedBox(height: 40),
-
+            
             ElevatedButton(
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
