@@ -51,7 +51,7 @@ class _PasoEscrituraState extends State<PasoEscritura> {
             const SizedBox(height: 10),
             _buildTextField(
               controller: _sentimientosController,
-              hint: "Ej: Me siento un poco ansioso por el trabajo...",
+              hint: "Ej: Me siento un poco ansioso por la escuela...",
               isDarkMode: isDarkMode,
               maxLines: 4,
             ),
@@ -67,11 +67,11 @@ class _PasoEscrituraState extends State<PasoEscritura> {
             ),
             const SizedBox(height: 25),
 
-            _buildLabel("Datos Generales (Edad, Ocupación)", isDarkMode),
+            _buildLabel("Datos Generales (Edad, pasatiempos, gustos)", isDarkMode),
             const SizedBox(height: 10),
             _buildTextField(
               controller: _datosController,
-              hint: "Ej: 25 años, Estudiante de Derecho...",
+              hint: "Ej: 15 años, Estudiante, escuchar música...",
               isDarkMode: isDarkMode,
             ),
             const SizedBox(height: 40),

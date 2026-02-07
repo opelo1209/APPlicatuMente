@@ -70,6 +70,7 @@ flutter:
     - assets/imagenes/quetzal_4.png
     - assets/imagenes/quetzal_5.png
     - assets/imagenes/quetzal_6.png
+    - assets/gif/swipe.gif
 
   # To add assets to your application, add an assets section, like this:
   # assets:

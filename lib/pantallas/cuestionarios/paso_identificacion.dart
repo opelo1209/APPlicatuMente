@@ -27,6 +27,114 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
   bool _isFinished = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showInstructions();
+    });
+  }
+
+  void _showInstructions() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Obliga a dar click en Entendido
+      builder: (context) {
+        // En dialogs, necesitamos obtener el provider con listen:false o usar un Consumer si queremos reactividad,
+        // pero para leer solo el modo actual basta con listen: false.
+        final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+        final isDarkMode = themeProvider.isDarkMode;
+        
+        return AlertDialog(
+          backgroundColor: isDarkMode ? const Color(0xFF1E272E) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            "¿Cómo responder?",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Gif de Swipe
+              Container(
+                height: 150,
+                width: 200,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  color: Colors.grey[200], // Fondo por si tarda en cargar
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: Image.asset(
+                    'assets/gif/swipe.gif', 
+                    fit: BoxFit.contain, // Ajuste para que se vea completo
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                "Desliza las tarjetas así:",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _buildInstructionRow(Icons.arrow_forward, "DERECHA", "Te identifica", const Color(0xFF43A047), isDarkMode),
+              const SizedBox(height: 5),
+              _buildInstructionRow(Icons.arrow_back, "IZQUIERDA", "No te identifica", Colors.redAccent, isDarkMode),
+            ],
+          ),
+          actions: [
+            Center(
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF43A047),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                ),
+                child: const Text("¡Entendido!"),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+        );
+      },
+    );
+  }
+  
+  Widget _buildInstructionRow(IconData icon, String direction, String meaning, Color color, bool isDarkMode) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          "$direction: ",
+          style: TextStyle(
+            fontWeight: FontWeight.bold, 
+            fontSize: 12,
+            color: color
+          )
+        ),
+        Expanded(
+          child: Text(
+            meaning,
+            style: TextStyle(
+              fontSize: 14,
+              color: isDarkMode ? Colors.white70 : Colors.black87
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
@@ -65,16 +173,16 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
         const SizedBox(height: 10),
         
         // --- Leyenda de Instrucciones Mejorada ---
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildLegendItem(Icons.arrow_back, "No me identifica", Colors.redAccent, isDarkMode),
-              _buildLegendItem(Icons.arrow_forward, "Me identifica", primaryGreen, isDarkMode, isRight: true),
-            ],
-          ),
-        ),
+        // Padding(
+        //   padding: const EdgeInsets.symmetric(horizontal: 20),
+        //   child: Row(
+        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        //     children: [
+        //       _buildLegendItem(Icons.arrow_back, "No me identifica", Colors.redAccent, isDarkMode),
+        //       _buildLegendItem(Icons.arrow_forward, "Me identifica", primaryGreen, isDarkMode, isRight: true),
+        //     ],
+        //   ),
+        // ),
         
         const Spacer(),
         
