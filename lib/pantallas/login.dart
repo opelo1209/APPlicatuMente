@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Importar SharedPreferences
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'theme_provider.dart';
 import 'registro.dart';
 import 'principal.dart';
-import 'cuestionarios/cuestionario_wrapper.dart'; // Importar Cuestionarios
+import 'cuestionarios/cuestionario_wrapper.dart';
+// Importar con los nombres CORRECTOS
+import 'servicios/auth.dart';
+import 'servicios/user.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -16,6 +19,104 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  
+  // Controladores para los campos de texto
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  
+  // Servicios con los nombres CORRECTOS: Auth y User
+  final Auth _auth = Auth();
+  final User _user = User();
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  // Función para mostrar mensajes
+  void _showMessage(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  // Función de login
+  Future<void> _handleLogin() async {
+    // Validar campos
+    if (_usernameController.text.trim().isEmpty || 
+        _passwordController.text.trim().isEmpty) {
+      _showMessage('Por favor completa todos los campos', isError: true);
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 1. Hacer login usando _auth (NO _authService)
+      final loginResult = await _auth.login(
+        username: _usernameController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      if (!loginResult['success']) {
+        _showMessage(loginResult['message'] ?? 'Error al iniciar sesión', isError: true);
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // 2. Obtener información del usuario usando _user (NO _userService)
+      final userResult = await _user.getUserMe();
+      
+      if (!userResult['success']) {
+        _showMessage('Error al obtener información del usuario', isError: true);
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // 3. Verificar si completó el cuestionario
+      final prefs = await SharedPreferences.getInstance();
+      final bool cuestionarioCompletado = prefs.getBool('cuestionario_completado') ?? false;
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      // 4. Navegar a la pantalla correspondiente
+      if (cuestionarioCompletado) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Principal()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const CuestionarioWrapper()),
+        );
+      }
+
+    } catch (e) {
+      print('Error en login: $e');
+      _showMessage('Error de conexión. Verifica tu red', isError: true);
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,10 +127,10 @@ class _LoginState extends State<Login> {
 
     // Colores basados en la imagen (Verdes)
     final primaryGreen = const Color(0xFF43A047); 
-    final buttonColor = const Color(0xFF2E7D32); // Verde más oscuro para contraste
+    final buttonColor = const Color(0xFF2E7D32);
 
     return Scaffold(
-      resizeToAvoidBottomInset: false, // Evita que el teclado empuje el diseño (Fixed Layout)
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // 1. Imagen de Fondo (Full Screen)
@@ -40,7 +141,7 @@ class _LoginState extends State<Login> {
             ),
           ),
 
-          // 1.1 Overlay para modo oscuro (oscurece y tiñe con el verde principal)
+          // 1.1 Overlay para modo oscuro
           Positioned.fill(
             child: IgnorePointer(
               child: AnimatedContainer(
@@ -61,18 +162,18 @@ class _LoginState extends State<Login> {
             ),
           ),
 
-          // 2. Contenedor del Formulario con forma curva
+          // 2. Contenedor del Formulario
           Align(
             alignment: Alignment.bottomCenter,
             child: ClipPath(
               clipper: WaveClipper(),
               child: Container(
-                height: size.height * 0.75, // Altura fija del panel
+                height: size.height * 0.75,
                 width: double.infinity,
                 color: isDarkMode
                     ? Color.fromARGB(255, 29, 54, 39)
                     : Colors.white.withOpacity(0.95),
-                padding: const EdgeInsets.only(top: 80, left: 30, right: 30, bottom: 20), // Padding fijo
+                padding: const EdgeInsets.only(top: 80, left: 30, right: 30, bottom: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -110,7 +211,7 @@ class _LoginState extends State<Login> {
                       ],
                     ),
                     
-                    const Spacer(flex: 2), // Espacio flexible
+                    const Spacer(flex: 2),
 
                     // Input Usuario
                     _buildModernInput(
@@ -119,6 +220,7 @@ class _LoginState extends State<Login> {
                       label: "Usuario",
                       icon: Icons.person_outline,
                       accentColor: primaryGreen,
+                      controller: _usernameController,
                     ),
                     
                     const SizedBox(height: 15),
@@ -132,6 +234,7 @@ class _LoginState extends State<Login> {
                       isPassword: true,
                       isObscure: _obscurePassword,
                       accentColor: primaryGreen,
+                      controller: _passwordController,
                       onToggleVisibility: () {
                         setState(() {
                           _obscurePassword = !_obscurePassword;
@@ -162,26 +265,7 @@ class _LoginState extends State<Login> {
 
                     // Botón Principal
                     ElevatedButton(
-                      onPressed: () async {
-                        // 1. Verificar si ya contestó el cuestionario
-                        final prefs = await SharedPreferences.getInstance();
-                        final bool cuestionarioCompletado = prefs.getBool('cuestionario_completado') ?? false;
-
-                        if (!mounted) return;
-
-                        // 2. Navegar a la pantalla correspondiente
-                        if (cuestionarioCompletado) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => const Principal()),
-                          );
-                        } else {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => const CuestionarioWrapper()),
-                          );
-                        }
-                      },
+                      onPressed: _isLoading ? null : _handleLogin,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: buttonColor,
                         foregroundColor: Colors.white,
@@ -192,14 +276,23 @@ class _LoginState extends State<Login> {
                         elevation: 8,
                         shadowColor: buttonColor.withOpacity(0.5),
                       ),
-                      child: const Text(
-                        "Iniciar Sesión",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              "Iniciar Sesión",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1,
+                              ),
+                            ),
                     ),
 
                     const Spacer(flex: 1),
@@ -285,7 +378,7 @@ class _LoginState extends State<Login> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10), // Padding inferior
+                    const SizedBox(height: 10),
                   ],
                 ),
               ),
@@ -296,13 +389,13 @@ class _LoginState extends State<Login> {
     );
   }
 
-  // Widget helper para los inputs
   Widget _buildModernInput(
     ThemeData theme,
     bool isDarkMode, {
     required String label,
     required IconData icon,
     required Color accentColor,
+    required TextEditingController controller,
     bool isPassword = false,
     bool isObscure = false,
     VoidCallback? onToggleVisibility,
@@ -310,6 +403,7 @@ class _LoginState extends State<Login> {
     final fillColor = isDarkMode ? const Color(0xFF1C222B) : const Color(0xFFF1F8E9);
 
     return TextField(
+      controller: controller,
       obscureText: isPassword ? isObscure : false,
       style: TextStyle(color: theme.colorScheme.onSurface),
       decoration: InputDecoration(
@@ -388,9 +482,8 @@ class WaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     var path = Path();
-    path.moveTo(0, 40); // Empieza un poco abajo
+    path.moveTo(0, 40);
     
-    // Curva Bezier suave hacia arriba y luego plana
     var firstControlPoint = Offset(size.width / 4, 0);
     var firstEndPoint = Offset(size.width / 2.25, 30);
     path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy,

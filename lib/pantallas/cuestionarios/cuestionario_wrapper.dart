@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme_provider.dart';
 import '../principal.dart';
 import 'paso_identificacion.dart';
+import 'paso_preferencias.dart';
+import 'paso_escala_suicida.dart';
 import 'paso_escritura.dart';
 
 class CuestionarioWrapper extends StatefulWidget {
@@ -16,11 +18,13 @@ class CuestionarioWrapper extends StatefulWidget {
 class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 2; // Identificación + Escritura
+  final int _totalPages = 4; // Identificación + Preferencias + Escala Suicida + Escritura
 
   // Estado compartido (Se podría usar Provider, pero localmente funciona para este flujo)
   final Map<String, dynamic> _respuestas = {
     'identificacion': <String, bool>{},
+    'preferencias': <String, dynamic>{},
+    'escala_suicida': <String, int>{},
     'sentimientos': '',
     'gustos': '',
     'datos': '',
@@ -63,7 +67,7 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
       backgroundColor: backgroundColor,
       appBar: AppBar(
         title: Text(
-          "Conociéndote ($_currentPage/$_totalPages)",
+          "Conociéndote (${_currentPage + 1}/$_totalPages)",
           style: TextStyle(
              color: isDarkMode ? Colors.white : Colors.black87,
              fontWeight: FontWeight.bold,
@@ -100,7 +104,23 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
             },
           ),
           
-          // Paso 2: Escritura
+          // Paso 2: Preferencias y Gustos (NUEVO)
+          PasoPreferencias(
+            onCompleted: (resultados) {
+              _respuestas['preferencias'] = resultados;
+              _nextPage();
+            },
+          ),
+          
+          // Paso 3: Escala de Gravedad Suicida
+          PasoEscalaSuicida(
+            onCompleted: (resultados) {
+              _respuestas['escala_suicida'] = resultados;
+              _nextPage();
+            },
+          ),
+          
+          // Paso 4: Escritura
           PasoEscritura(
             onCompleted: (sentimientos, gustos, datos) {
               _respuestas['sentimientos'] = sentimientos;

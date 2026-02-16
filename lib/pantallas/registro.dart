@@ -2,19 +2,135 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'theme_provider.dart';
-import 'cuestionarios/cuestionario_wrapper.dart'; // Importar Cuestionarios
+import 'login.dart';
+// Importar con el nombre CORRECTO
+import 'servicios/auth.dart';
 
 class Registro extends StatefulWidget {
   const Registro({super.key});
 
   @override
-  _RegistroState createState() => _RegistroState();
+  State<Registro> createState() => _RegistroState();
 }
 
 class _RegistroState extends State<Registro> {
-  final _formKey = GlobalKey<FormState>();
-  bool _passwordVisible = false;
-  bool _confirmPasswordVisible = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
+  
+  // Controladores para los campos
+  final TextEditingController _nombreUsuarioController = TextEditingController();
+  final TextEditingController _correoController = TextEditingController();
+  final TextEditingController _nombresController = TextEditingController();
+  final TextEditingController _apellidoPaternoController = TextEditingController();
+  final TextEditingController _apellidoMaternoController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+  
+  // Servicio con el nombre CORRECTO: Auth (NO AuthService)
+  final Auth _auth = Auth();
+
+  @override
+  void dispose() {
+    _nombreUsuarioController.dispose();
+    _correoController.dispose();
+    _nombresController.dispose();
+    _apellidoPaternoController.dispose();
+    _apellidoMaternoController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  // Función para mostrar mensajes
+  void _showMessage(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  // Validar email
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    return emailRegex.hasMatch(email);
+  }
+
+  // Función de registro
+  Future<void> _handleRegistro() async {
+    // Validaciones
+    if (_nombreUsuarioController.text.trim().isEmpty ||
+        _correoController.text.trim().isEmpty ||
+        _nombresController.text.trim().isEmpty ||
+        _apellidoPaternoController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty ||
+        _confirmPasswordController.text.trim().isEmpty) {
+      _showMessage('Por favor completa todos los campos obligatorios', isError: true);
+      return;
+    }
+
+    if (!_isValidEmail(_correoController.text.trim())) {
+      _showMessage('Por favor ingresa un correo válido', isError: true);
+      return;
+    }
+
+    if (_passwordController.text.trim().length < 6) {
+      _showMessage('La contraseña debe tener al menos 6 caracteres', isError: true);
+      return;
+    }
+
+    if (_passwordController.text.trim() != _confirmPasswordController.text.trim()) {
+      _showMessage('Las contraseñas no coinciden', isError: true);
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Usar _auth (NO _authService)
+      final result = await _auth.register(
+        nombreUsuario: _nombreUsuarioController.text.trim(),
+        correo: _correoController.text.trim(),
+        password: _passwordController.text.trim(),
+        nombres: _nombresController.text.trim(),
+        apellidoPaterno: _apellidoPaternoController.text.trim(),
+        apellidoMaterno: _apellidoMaternoController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (result['success']) {
+        _showMessage('¡Registro exitoso! Ahora puedes iniciar sesión');
+        
+        // Esperar un momento y regresar al login
+        await Future.delayed(const Duration(seconds: 2));
+        if (!mounted) return;
+        
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Login()),
+        );
+      } else {
+        _showMessage(result['message'] ?? 'Error al registrar usuario', isError: true);
+      }
+
+    } catch (e) {
+      print('Error en registro: $e');
+      _showMessage('Error de conexión. Verifica tu red', isError: true);
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,25 +139,14 @@ class _RegistroState extends State<Registro> {
     final isDarkMode = themeProvider.isDarkMode;
     final size = MediaQuery.of(context).size;
 
-    // Colores basados en la imagen (Igual que Login)
     final primaryGreen = const Color(0xFF43A047);
     final buttonColor = const Color(0xFF2E7D32);
 
-    // Ajustes de color para un dark mode más agradable (menos morado)
-    final panelColor = isDarkMode
-      ? const Color.fromARGB(255, 29, 54, 39)
-      : Colors.white.withOpacity(0.95);
-    final inputFillColor =
-      isDarkMode ? const Color(0xFF1C222B) : const Color(0xFFF1F8E9);
-    final inputBorderColor = isDarkMode
-      ? primaryGreen.withOpacity(0.25)
-      : primaryGreen.withOpacity(0.20);
-
     return Scaffold(
-      resizeToAvoidBottomInset: false, // Layout fijo similar al Login
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // 1. Imagen de Fondo (Full Screen)
+          // Imagen de Fondo
           Positioned.fill(
             child: Image.asset(
               'assets/imagenes/fondoLogin.png',
@@ -49,7 +154,7 @@ class _RegistroState extends State<Registro> {
             ),
           ),
 
-          // 1.1 Overlay para modo oscuro (oscurece y tiñe con el verde principal)
+          // Overlay para modo oscuro
           Positioned.fill(
             child: IgnorePointer(
               child: AnimatedContainer(
@@ -70,218 +175,228 @@ class _RegistroState extends State<Registro> {
             ),
           ),
 
-          // 2. Botón Atrás (Personalizado para visibilidad)
-          Positioned(
-            top: 50,
-            left: 20,
-            child: Container(
-              decoration: BoxDecoration(
-                color: (isDarkMode ? const Color(0xFF0F1D15) : Colors.white)
-                    .withOpacity(0.22),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: Icon(Icons.arrow_back_ios_new, color: isDarkMode ? Colors.white : Colors.black),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-          ),
-
-          // 3. Panel Inferior con WaveClipper
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: ClipPath(
-              clipper: WaveClipper(),
+          // Contenido Principal
+          SafeArea(
+            child: SingleChildScrollView(
               child: Container(
-                height: size.height * 0.85, // Un poco más alto que el Login para los campos extra
-                width: double.infinity,
-                color: panelColor,
-                padding: const EdgeInsets.only(top: 60, left: 30, right: 30, bottom: 20),
+                constraints: BoxConstraints(
+                  minHeight: size.height - MediaQuery.of(context).padding.top,
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Crear Cuenta",
-                              style: TextStyle(
-                                fontSize: 30,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.onSurface,
-                              ),
-                            ),
-                            Text(
-                              "Empieza tu viaje con nosotros",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: theme.colorScheme.onSurface.withOpacity(0.7),
-                              ),
-                            ),
-                          ],
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                            color: primaryGreen,
-                          ),
-                          onPressed: () => themeProvider.toogleTheme(!isDarkMode),
-                        ),
-                      ],
-                    ),
-
-                    const Spacer(flex: 2),
-
-                    Form(
-                      key: _formKey,
-                      child: Column(
+                    // Header
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildModernInput(
-                            theme,
-                            isDarkMode,
-                            label: "Nombre Completo",
-                            icon: Icons.person_outline,
-                            accentColor: primaryGreen,
-                            fillColor: inputFillColor,
-                            borderColor: inputBorderColor,
-                            
+                          IconButton(
+                            icon: Icon(
+                              Icons.arrow_back,
+                              color: isDarkMode ? Colors.white : primaryGreen,
+                            ),
+                            onPressed: () => Navigator.pop(context),
                           ),
-                          const SizedBox(height: 12),
-                          _buildModernInput(
-                            theme,
-                            isDarkMode,
-                            label: "Correo Electrónico",
-                            icon: Icons.email_outlined,
-                            accentColor: primaryGreen,
-                            keyboardType: TextInputType.emailAddress,
-                            fillColor: inputFillColor,
-                            borderColor: inputBorderColor,
-                          ),
-                          const SizedBox(height: 12),
-                          _buildModernInput(
-                            theme,
-                            isDarkMode,
-                            label: "Contraseña",
-                            icon: Icons.lock_outline,
-                            isPassword: true,
-                            isObscure: !_passwordVisible,
-                            accentColor: primaryGreen,
-                            fillColor: inputFillColor,
-                            borderColor: inputBorderColor,
-                            onToggleVisibility: () {
-                              setState(() {
-                                _passwordVisible = !_passwordVisible;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          _buildModernInput(
-                            theme,
-                            isDarkMode,
-                            label: "Confirmar Contraseña",
-                            icon: Icons.lock_reset,
-                            isPassword: true,
-                            isObscure: !_confirmPasswordVisible,
-                            accentColor: primaryGreen,
-                            fillColor: inputFillColor,
-                            borderColor: inputBorderColor,
-                            onToggleVisibility: () {
-                              setState(() {
-                                _confirmPasswordVisible = !_confirmPasswordVisible;
-                              });
-                            },
+                          IconButton(
+                            icon: Icon(
+                              isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                              color: primaryGreen,
+                            ),
+                            onPressed: () => themeProvider.toogleTheme(!isDarkMode),
                           ),
                         ],
                       ),
                     ),
 
-                    const Spacer(flex: 2),
-
-                    ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          // Navegar directamente al cuestionario tras registro exitoso
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => const CuestionarioWrapper()),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: buttonColor,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 55),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        elevation: 6,
-                        shadowColor: buttonColor.withOpacity(0.45),
-                      ),
-                      child: const Text(
-                        "Continuar",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Divider(
-                            color: isDarkMode
-                                ? Colors.white.withOpacity(0.12)
-                                : Colors.grey[300],
+                    // Formulario
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 30),
+                      padding: const EdgeInsets.all(30),
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? Color.fromARGB(255, 29, 54, 39).withOpacity(0.9)
+                            : Colors.white.withOpacity(0.95),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: Text(
-                            "o regístrate con",
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Título
+                          Text(
+                            "Crear Cuenta",
                             style: TextStyle(
-                              color: theme.colorScheme.onSurface.withOpacity(0.55),
-                              fontSize: 12,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
                             ),
                           ),
-                        ),
-                        Expanded(
-                          child: Divider(
-                            color: isDarkMode
-                                ? Colors.white.withOpacity(0.12)
-                                : Colors.grey[300],
+                          const SizedBox(height: 10),
+                          Text(
+                            "Completa tus datos para registrarte",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 30),
+
+                          // Campos del formulario
+                          _buildInput(
+                            theme,
+                            isDarkMode,
+                            label: "Nombre de usuario *",
+                            icon: Icons.person_outline,
+                            accentColor: primaryGreen,
+                            controller: _nombreUsuarioController,
+                          ),
+                          const SizedBox(height: 15),
+
+                          _buildInput(
+                            theme,
+                            isDarkMode,
+                            label: "Correo electrónico *",
+                            icon: Icons.email_outlined,
+                            accentColor: primaryGreen,
+                            controller: _correoController,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          const SizedBox(height: 15),
+
+                          _buildInput(
+                            theme,
+                            isDarkMode,
+                            label: "Nombre(s) *",
+                            icon: Icons.badge_outlined,
+                            accentColor: primaryGreen,
+                            controller: _nombresController,
+                          ),
+                          const SizedBox(height: 15),
+
+                          _buildInput(
+                            theme,
+                            isDarkMode,
+                            label: "Apellido Paterno *",
+                            icon: Icons.family_restroom_outlined,
+                            accentColor: primaryGreen,
+                            controller: _apellidoPaternoController,
+                          ),
+                          const SizedBox(height: 15),
+
+                          _buildInput(
+                            theme,
+                            isDarkMode,
+                            label: "Apellido Materno",
+                            icon: Icons.family_restroom_outlined,
+                            accentColor: primaryGreen,
+                            controller: _apellidoMaternoController,
+                          ),
+                          const SizedBox(height: 15),
+
+                          _buildInput(
+                            theme,
+                            isDarkMode,
+                            label: "Contraseña *",
+                            icon: Icons.lock_outline,
+                            isPassword: true,
+                            isObscure: _obscurePassword,
+                            accentColor: primaryGreen,
+                            controller: _passwordController,
+                            onToggleVisibility: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 15),
+
+                          _buildInput(
+                            theme,
+                            isDarkMode,
+                            label: "Confirmar contraseña *",
+                            icon: Icons.lock_outline,
+                            isPassword: true,
+                            isObscure: _obscureConfirmPassword,
+                            accentColor: primaryGreen,
+                            controller: _confirmPasswordController,
+                            onToggleVisibility: () {
+                              setState(() {
+                                _obscureConfirmPassword = !_obscureConfirmPassword;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 30),
+
+                          // Botón de registro
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _handleRegistro,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: buttonColor,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(double.infinity, 55),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              elevation: 8,
+                              shadowColor: buttonColor.withOpacity(0.5),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    "Registrarse",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Link a login
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "¿Ya tienes cuenta? ",
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const Login()),
+                                  );
+                                },
+                                child: Text(
+                                  "Inicia sesión",
+                                  style: TextStyle(
+                                    color: primaryGreen,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-
-                    const SizedBox(height: 12),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _socialButton(
-                          icon: FontAwesomeIcons.google,
-                          color: const Color(0xFFDB4437),
-                          isDarkMode: isDarkMode,
-                          onTap: () {},
-                        ),
-                        const SizedBox(width: 20),
-                        _socialButton(
-                          icon: FontAwesomeIcons.facebookF,
-                          color: const Color(0xFF4267B2),
-                          isDarkMode: isDarkMode,
-                          onTap: () {},
-                        ),
-                      ],
-                    ),
-
-                    const Spacer(flex: 1),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
@@ -292,37 +407,38 @@ class _RegistroState extends State<Registro> {
     );
   }
 
-  Widget _buildModernInput(
+  Widget _buildInput(
     ThemeData theme,
     bool isDarkMode, {
     required String label,
     required IconData icon,
     required Color accentColor,
+    required TextEditingController controller,
     bool isPassword = false,
     bool isObscure = false,
-    TextInputType? keyboardType,
-    Color? fillColor,
-    Color? borderColor,
     VoidCallback? onToggleVisibility,
+    TextInputType? keyboardType,
   }) {
-    final resolvedFill =
-        fillColor ?? (isDarkMode ? const Color(0xFF1C222B) : const Color(0xFFF1F8E9));
-    final resolvedBorder = borderColor ??
-        (isDarkMode ? accentColor.withOpacity(0.25) : accentColor.withOpacity(0.20));
+    final fillColor = isDarkMode ? const Color(0xFF1C222B) : const Color(0xFFF1F8E9);
 
-    return TextFormField(
+    return TextField(
+      controller: controller,
       obscureText: isPassword ? isObscure : false,
       keyboardType: keyboardType,
       style: TextStyle(color: theme.colorScheme.onSurface),
       decoration: InputDecoration(
         filled: true,
-        fillColor: resolvedFill,
+        fillColor: fillColor,
         labelText: label,
         labelStyle: TextStyle(
           color: isDarkMode ? Colors.white70 : accentColor.withOpacity(0.8),
           fontSize: 14,
         ),
-        prefixIcon: Icon(icon, color: accentColor, size: 20),
+        prefixIcon: Icon(
+          icon,
+          color: accentColor,
+          size: 20,
+        ),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -341,73 +457,12 @@ class _RegistroState extends State<Registro> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
           borderSide: BorderSide(
-            color: resolvedBorder.withOpacity(0.7),
+            color: accentColor.withOpacity(0.55),
             width: 2,
           ),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) return 'Campo requerido';
-        return null;
-      },
     );
   }
-
-  Widget _socialButton({
-    required IconData icon,
-    required Color color,
-    required bool isDarkMode,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(50),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isDarkMode ? Colors.white.withOpacity(0.10) : Colors.grey[300]!,
-          ),
-          color: isDarkMode ? const Color(0xFF1C222B) : Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDarkMode ? 0.25 : 0.05),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Icon(icon, color: color, size: 22),
-      ),
-    );
-  }
-}
-
-// Reutilizamos el Clipper para consistencia visual
-class WaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    var path = Path();
-    path.moveTo(0, 40);
-    
-    var firstControlPoint = Offset(size.width / 4, 0);
-    var firstEndPoint = Offset(size.width / 2.25, 30);
-    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy,
-        firstEndPoint.dx, firstEndPoint.dy);
-
-    var secondControlPoint = Offset(size.width - (size.width / 3.25), 65);
-    var secondEndPoint = Offset(size.width, 20);
-    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy,
-        secondEndPoint.dx, secondEndPoint.dy);
-
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
