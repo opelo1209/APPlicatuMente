@@ -30,13 +30,28 @@ class _PasoPreferenciasState extends State<PasoPreferencias> {
   final _nombreController = TextEditingController();
   final _edadController = TextEditingController();
   final _ocupacionController = TextEditingController();
+  
+  // Mapa para controladores de inputs dinámicos
+  final Map<String, TextEditingController> _textControllers = {};
 
   final List<Map<String, dynamic>> _secciones = [];
+
+  @override
+  void dispose() {
+    _nombreController.dispose();
+    _edadController.dispose();
+    _ocupacionController.dispose();
+    for (var controller in _textControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
     _initializeSecciones();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showIntroDialog();
     });
@@ -752,7 +767,7 @@ class _PasoPreferenciasState extends State<PasoPreferencias> {
     final key = seccion['key'] as String;
     final opciones = seccion['opciones'] as List<Map<String, dynamic>>;
     final seleccionadas = _respuestas[key] as List<String>;
-    const maxSeleccion = 3;
+    const maxSeleccion = 4;
 
     return Column(
       children: [
@@ -782,6 +797,7 @@ class _PasoPreferenciasState extends State<PasoPreferencias> {
                 setState(() {
                   if (isSelected) {
                     seleccionadas.remove(valor);
+                    
                   } else if (seleccionadas.length < maxSeleccion) {
                     seleccionadas.add(valor);
                   }
@@ -838,11 +854,17 @@ class _PasoPreferenciasState extends State<PasoPreferencias> {
     final key = seccion['key'] as String;
     final hint = seccion['hint'] as String;
 
+    // Inicializamos o recuperamos el controlador para esta sección específica
+    if (!_textControllers.containsKey(key)) {
+      _textControllers[key] = TextEditingController(text: _respuestas[key] as String? ?? '');
+    }
+
     return TextField(
+      key: ValueKey(key),
+      controller: _textControllers[key],
       onChanged: (value) {
-        setState(() {
-          _respuestas[key] = value;
-        });
+        _respuestas[key] = value;
+        setState(() {});
       },
       maxLines: 3,
       style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),

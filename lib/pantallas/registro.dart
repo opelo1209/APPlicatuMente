@@ -92,6 +92,14 @@ class _RegistroState extends State<Registro> {
     });
 
     try {
+
+  //       if (_nombreUsuarioController.text.trim() == "said"){
+  //           Navigator.pushReplacement(
+  //         context,
+  //         MaterialPageRoute(builder: (context) => const Login()),
+  //       );
+  //           return;
+  // }
       // Usar _auth (NO _authService)
       final result = await _auth.register(
         nombreUsuario: _nombreUsuarioController.text.trim(),

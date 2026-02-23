@@ -56,7 +56,6 @@ class _PasoEscrituraState extends State<PasoEscritura> {
               maxLines: 4,
             ),
             const SizedBox(height: 25),
-
             _buildLabel("¿Qué cosas te gustan o te relajan?", isDarkMode),
             const SizedBox(height: 10),
             _buildTextField(

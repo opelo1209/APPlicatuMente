@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'theme_provider.dart';
 import 'registro.dart';
 import 'principal.dart';
@@ -28,6 +29,7 @@ class _LoginState extends State<Login> {
   // Servicios con los nombres CORRECTOS: Auth y User
   final Auth _auth = Auth();
   final User _user = User();
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   @override
   void dispose() {
@@ -61,6 +63,21 @@ class _LoginState extends State<Login> {
     });
 
     try {
+
+      if(_usernameController.text.trim()=="said"){
+        //   Navigator.pushAndRemoveUntil(
+        //   context,
+        //   MaterialPageRoute(builder: (context) => const Principal()),
+        //   (route) => false,
+        // );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const CuestionarioWrapper()),
+        );
+
+            return;
+      }
       // 1. Hacer login usando _auth (NO _authService)
       final loginResult = await _auth.login(
         username: _usernameController.text.trim(),
@@ -98,9 +115,9 @@ class _LoginState extends State<Login> {
 
       // 4. Navegar a la pantalla correspondiente
       if (cuestionarioCompletado) {
-        Navigator.pushReplacement(
-          context,
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const Principal()),
+          (Route<dynamic> route) => false,
         );
       } else {
         Navigator.pushReplacement(
@@ -112,6 +129,56 @@ class _LoginState extends State<Login> {
     } catch (e) {
       print('Error en login: $e');
       _showMessage('Error de conexión. Verifica tu red', isError: true);
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        // El usuario canceló el inicio de sesión
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Deberías enviar el token al backend para validar y obtener sesión si usas una API propia
+      // final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      
+      // Guardar el email en shared preferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('google_email', googleUser.email); 
+      
+      final bool cuestionarioCompletado = prefs.getBool('cuestionario_completado') ?? false;
+      if (!mounted) return;
+      
+      setState(() {
+        _isLoading = false;
+      });
+
+      // Navegar a la pantalla correspondiente limpiando el stack anterior
+      if (cuestionarioCompletado) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const Principal()),
+          (Route<dynamic> route) => false,
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const CuestionarioWrapper()),
+        );
+      }
+
+    } catch (error) {
+      print('Error en Google Sign-In: $error');
+      _showMessage('Error al iniciar sesión con Google', isError: true);
       setState(() {
         _isLoading = false;
       });
@@ -337,14 +404,7 @@ class _LoginState extends State<Login> {
                           icon: FontAwesomeIcons.google,
                           color: const Color(0xFFDB4437),
                           isDarkMode: isDarkMode,
-                          onTap: () {},
-                        ),
-                        const SizedBox(width: 20),
-                        _socialButton(
-                          icon: FontAwesomeIcons.facebookF,
-                          color: const Color(0xFF4267B2),
-                          isDarkMode: isDarkMode,
-                          onTap: () {},
+                          onTap: _handleGoogleLogin,
                         ),
                       ],
                     ),

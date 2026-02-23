@@ -107,6 +107,7 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
           // Paso 2: Preferencias y Gustos (NUEVO)
           PasoPreferencias(
             onCompleted: (resultados) {
+              print("Guatemal: $resultados");
               _respuestas['preferencias'] = resultados;
               _nextPage();
             },
