@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
 import 'login.dart';
+import 'modulos/selector_modulo_crisis.dart';
 
 class Principal extends StatefulWidget {
   const Principal({super.key});
@@ -81,9 +82,6 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
     
-    // Paleta Verde (Solo para elementos activos light, no para fondos oscuros)
-    final primaryGreen = const Color(0xFF43A047); 
-    
     // Configuración de fondo plano (Flat Colors)
     // Dark Mode: Gris Oscuro Material (Neutral) para evitar tonos verdes
     // Light Mode: Blanco puro o gris muy suave
@@ -94,7 +92,7 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
       backgroundColor: backgroundColor, 
       resizeToAvoidBottomInset: false,
       endDrawer: _buildDrawer(context),
-      extendBodyBehindAppBar: false, // Desactivado para fondo plano
+      extendBodyBehindAppBar: false,
       extendBody: true,
       appBar: AppBar(
         title: Text(
@@ -112,21 +110,12 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
         ),
         actions: [
           IconButton(
-            icon: Icon(
-              isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-              color: isDarkMode ? Colors.white : primaryGreen, 
-              size: 26,
-            ),
-            onPressed: () => themeProvider.toogleTheme(!isDarkMode),
-          ),
-          IconButton(
             icon: const Icon(Icons.menu),
             onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
           ),
           const SizedBox(width: 10),
         ],
       ),
-      // Cuerpo directo, sin Stack ni Imagen de fondo
       body: SafeArea(
         child: _buildBody(),
       ),
@@ -307,18 +296,23 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
           // Lista de opciones
           _buildOptionCard(
             context,
-            imagePath: 'assets/imagenes/quetzal_2.png', // Quetzal preocupado/triste
-            title: "Últimamente me siento abrumado",
+            imagePath: 'assets/imagenes/quetzal_4.png', // Quetzal preocupado/triste
+            title: "¿Pensamientos suicidas?",
             subtitle: "Vamos a entender qué está pasando",
             color: const Color(0xFF66BB6A), // Verde medio
             onTap: () {
-              // Navegar al cuestionario correspondiente
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SelectorModuloCrisis(),
+                ),
+              );
             },
           ),
           
           _buildOptionCard(
             context,
-            imagePath: 'assets/imagenes/quetzal_4.png', // Quetzal pensando
+            imagePath: 'assets/imagenes/quetzal_2.png', // Quetzal pensando
             title: "Mis pensamientos me preocupan",
             subtitle: "Hablemos de lo que ronda por tu cabeza",
             color: const Color(0xFFA5D6A7), // Verde claro
@@ -370,10 +364,11 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
 
-    // Ajuste de colores para modo oscuro si es necesario
-    final cardColor = isDarkMode ? color.withOpacity(0.2) : color;
-    final titleColor = isDarkMode ? Colors.white : (textColor == Colors.white ? Colors.white : const Color(0xFF1B5E20));
-    final subTitleColor = isDarkMode ? Colors.white70 : (textColor == Colors.white ? Colors.white70 : const Color(0xFF2E7D32));
+    // Usamos el textColor para decidir colores en modo claro, en modo oscuro siempre blanco
+    final cardColor = isDarkMode ? color.withOpacity(0.25) : color;
+    final resolvedTitleColor = isDarkMode ? Colors.white : (textColor == Colors.white ? Colors.white : Colors.black87);
+    final resolvedSubtitleColor = isDarkMode ? Colors.white70 : (textColor == Colors.white ? Colors.white.withOpacity(0.85) : Colors.black54);
+    final resolvedArrowColor = isDarkMode ? Colors.white54 : (textColor == Colors.white ? Colors.white.withOpacity(0.7) : Colors.black38);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -382,8 +377,8 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
         borderRadius: BorderRadius.circular(20),
         boxShadow: isDarkMode ? [] : [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: color.withOpacity(0.25),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
@@ -397,7 +392,6 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                // Imagen del quetzal
                 Image.asset(
                   imagePath,
                   height: 70,
@@ -405,8 +399,6 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(width: 16),
-                
-                // Textos
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -414,28 +406,26 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
                       Text(
                         title,
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: titleColor,
+                          color: resolvedTitleColor,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
                         style: TextStyle(
-                          fontSize: 13,
-                          color: subTitleColor,
+                          fontSize: 14,
+                          color: resolvedSubtitleColor,
                         ),
                       ),
                     ],
                   ),
                 ),
-                
-                // Flecha
                 Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: titleColor.withOpacity(0.5),
-                  size: 18,
+                  Icons.arrow_forward_ios,
+                  color: resolvedArrowColor,
+                  size: 16,
                 ),
               ],
             ),
@@ -460,13 +450,12 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
       backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
       child: Column(
         children: [
-          // Header con diseño curvo y degradado
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: isDarkMode 
+                colors: isDarkMode
                     ? [const Color(0xFF1B5E20), const Color(0xFF2E7D32)]
                     : [const Color(0xFF43A047), const Color(0xFF66BB6A)],
                 begin: Alignment.topLeft,
@@ -485,13 +474,13 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
                     color: Colors.white.withOpacity(0.3),
                     shape: BoxShape.circle,
                   ),
-                  child: CircleAvatar(
+                  child: const CircleAvatar(
                     radius: 35,
                     backgroundColor: Colors.white,
                     child: Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: Image.asset(
-                        'assets/imagenes/quetzal_1.png',
+                      padding: EdgeInsets.all(5.0),
+                      child: Image(
+                        image: AssetImage('assets/imagenes/quetzal_1.png'),
                         fit: BoxFit.contain,
                       ),
                     ),

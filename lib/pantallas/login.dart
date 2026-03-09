@@ -29,7 +29,14 @@ class _LoginState extends State<Login> {
   // Servicios con los nombres CORRECTOS: Auth y User
   final Auth _auth = Auth();
   final User _user = User();
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  late final Future<void> _googleSignInInitialization;
+
+  @override
+  void initState() {
+    super.initState();
+    _googleSignInInitialization = _googleSignIn.initialize();
+  }
 
   @override
   void dispose() {
@@ -140,14 +147,8 @@ class _LoginState extends State<Login> {
       _isLoading = true;
     });
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        // El usuario canceló el inicio de sesión
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
+      await _googleSignInInitialization;
+      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
 
       // Deberías enviar el token al backend para validar y obtener sesión si usas una API propia
       // final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -176,6 +177,20 @@ class _LoginState extends State<Login> {
         );
       }
 
+    } on GoogleSignInException catch (error) {
+      if (error.code == GoogleSignInExceptionCode.canceled ||
+          error.code == GoogleSignInExceptionCode.interrupted) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      print('Error en Google Sign-In: $error');
+      _showMessage('Error al iniciar sesión con Google', isError: true);
+      setState(() {
+        _isLoading = false;
+      });
     } catch (error) {
       print('Error en Google Sign-In: $error');
       _showMessage('Error al iniciar sesión con Google', isError: true);

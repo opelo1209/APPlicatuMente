@@ -3,9 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme_provider.dart';
 import '../principal.dart';
-import 'paso_identificacion.dart';
 import 'paso_preferencias.dart';
-import 'paso_escala_suicida.dart';
 import 'paso_escritura.dart';
 
 class CuestionarioWrapper extends StatefulWidget {
@@ -18,13 +16,11 @@ class CuestionarioWrapper extends StatefulWidget {
 class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 4; // Identificación + Preferencias + Escala Suicida + Escritura
+  final int _totalPages = 2; // Preferencias + Escritura
 
-  // Estado compartido (Se podría usar Provider, pero localmente funciona para este flujo)
+  // Estado compartido
   final Map<String, dynamic> _respuestas = {
-    'identificacion': <String, bool>{},
     'preferencias': <String, dynamic>{},
-    'escala_suicida': <String, int>{},
     'sentimientos': '',
     'gustos': '',
     'datos': '',
@@ -33,8 +29,8 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
   void _nextPage() {
     if (_currentPage < _totalPages - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutQuart,
       );
     } else {
       _finishQuestionnaire();
@@ -42,16 +38,19 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
   }
 
   Future<void> _finishQuestionnaire() async {
-    // Guardar que ya se completó
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('cuestionario_completado', true);
 
-    // Aquí podrías guardar _respuestas en backend o BD local
     debugPrint("Respuestas Finales: $_respuestas");
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const Principal()),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => const Principal(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
     );
   }
 
@@ -59,78 +58,124 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    // Paleta Verde
-    final primaryGreen = const Color(0xFF43A047); 
-    final backgroundColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFFAFAFA);
+    final backgroundColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
+    final primaryColor = const Color(0xFF43A047);
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      appBar: AppBar(
-        title: Text(
-          "Conociéndote (${_currentPage + 1}/$_totalPages)",
-          style: TextStyle(
-             color: isDarkMode ? Colors.white : Colors.black87,
-             fontWeight: FontWeight.bold,
-             fontSize: 16
-          ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Custom Header with Progress
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+              decoration: BoxDecoration(
+                color: isDarkMode ? const Color(0xFF1E272E) : Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      if (_currentPage > 0)
+                        IconButton(
+                          icon: Icon(Icons.arrow_back_ios_new, 
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                            size: 20,
+                          ),
+                          onPressed: () => _pageController.previousPage(
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.easeInOutQuart,
+                          ),
+                        )
+                      else
+                        const SizedBox(width: 48), // Placeholder for alignment
+                      
+                      Expanded(
+                        child: Text(
+                          "Conociéndote",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(width: 48), // Placeholder for alignment
+                    ],
+                  ),
+                  const SizedBox(height: 15),
+                  // Progress Indicator
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      _totalPages,
+                      (index) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeInOut,
+                        margin: const EdgeInsets.symmetric(horizontal: 6),
+                        height: 12,
+                        width: _currentPage == index ? 40 : 12,
+                        decoration: BoxDecoration(
+                          color: _currentPage >= index 
+                              ? primaryColor 
+                              : (isDarkMode ? Colors.white12 : Colors.grey[300]),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: _currentPage == index ? [
+                            BoxShadow(
+                              color: primaryColor.withOpacity(0.5),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 3),
+                            )
+                          ] : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Page Content
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                onPageChanged: (page) {
+                  setState(() {
+                    _currentPage = page;
+                  });
+                },
+                children: [
+                  PasoPreferencias(
+                    onCompleted: (resultados) {
+                      _respuestas['preferencias'] = resultados;
+                      _nextPage();
+                    },
+                  ),
+                  PasoEscritura(
+                    onCompleted: (sentimientos, gustos, datos) {
+                      _respuestas['sentimientos'] = sentimientos;
+                      _respuestas['gustos'] = gustos;
+                      _respuestas['datos'] = datos;
+                      _finishQuestionnaire();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: _currentPage > 0 
-          ? IconButton(
-              icon: Icon(Icons.arrow_back, color: isDarkMode ? Colors.white : Colors.black87),
-              onPressed: () => _pageController.previousPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              )
-            )
-          : null,
-      ),
-      body: PageView(
-        controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(), // Evitar swipe manual para obligar a contestar
-        onPageChanged: (page) {
-          setState(() {
-            _currentPage = page;
-          });
-        },
-        children: [
-          // Paso 1: Swipe (Tinder-style)
-          PasoIdentificacion(
-            onCompleted: (resultados) {
-              _respuestas['identificacion'] = resultados;
-              _nextPage();
-            },
-          ),
-          
-          // Paso 2: Preferencias y Gustos (NUEVO)
-          PasoPreferencias(
-            onCompleted: (resultados) {
-              print("Guatemal: $resultados");
-              _respuestas['preferencias'] = resultados;
-              _nextPage();
-            },
-          ),
-          
-          // Paso 3: Escala de Gravedad Suicida
-          PasoEscalaSuicida(
-            onCompleted: (resultados) {
-              _respuestas['escala_suicida'] = resultados;
-              _nextPage();
-            },
-          ),
-          
-          // Paso 4: Escritura
-          PasoEscritura(
-            onCompleted: (sentimientos, gustos, datos) {
-              _respuestas['sentimientos'] = sentimientos;
-              _respuestas['gustos'] = gustos;
-              _respuestas['datos'] = datos;
-              _finishQuestionnaire();
-            },
-          ),
-        ],
       ),
     );
   }

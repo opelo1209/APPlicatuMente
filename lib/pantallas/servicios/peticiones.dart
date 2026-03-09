@@ -16,6 +16,10 @@ class Peticiones{
   static const String getPerfil = '$baseUrl/users/perfil';
   static const String activarUsuario = '$baseUrl/users/activar';
   static const String desactivarUsuario = '$baseUrl/users/desactivar';
+
+  // Análisis médico — endpoint externo
+  static const String postCuestionario =
+      'https://api.killerbytes.space/data/cuestionarios';
   
   // Headers comunes
   static Map<String, String> get headers => {

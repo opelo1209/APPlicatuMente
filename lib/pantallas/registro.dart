@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'theme_provider.dart';
 import 'login.dart';
 // Importar con el nombre CORRECTO

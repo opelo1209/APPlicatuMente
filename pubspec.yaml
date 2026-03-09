@@ -33,17 +33,17 @@ dependencies:
   provider: ^6.1.5
   shared_preferences: ^2.2.2
   font_awesome_flutter: ^10.8.0
-  flutter_appauth: ^6.0.0
+  flutter_appauth: ^12.0.0
   http: ^1.4.0
   path_provider: ^2.1.1
-  google_sign_in: ^6.1.5
+  google_sign_in: ^7.2.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
-  flutter_launcher_icons: ^0.13.1
+  flutter_launcher_icons: ^0.14.4
   flutter_test:
     sdk: flutter
 
@@ -72,7 +72,14 @@ flutter:
     - assets/imagenes/quetzal_4.png
     - assets/imagenes/quetzal_5.png
     - assets/imagenes/quetzal_6.png
+    - assets/imagenes/quetzal_7.png
+    - assets/imagenes/quetzal_8.png
+    - assets/imagenes/quetzal_9.PNG
+    - assets/imagenes/quetzal_10.PNG
+    - assets/imagenes/quetzal_11.PNG
+    - assets/imagenes/quetzal_12.PNG
     - assets/gif/swipe.gif
+    - assets/imagenes/imagen_riesgo_suicida.jpeg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

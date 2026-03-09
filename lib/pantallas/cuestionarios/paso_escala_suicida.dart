@@ -15,53 +15,47 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
   int _currentQuestionIndex = 0;
   final Map<String, int> _respuestas = {};
 
-  // Preguntas de la Escala de Gravedad Suicida de Colombia (Adaptadas)
+  // Preguntas C-SSRS compartidas por el usuario
   final List<Map<String, dynamic>> _preguntas = [
     {
-      'id': 'pensamientos_muerte',
-      'pregunta': '¿Has pensado que la vida no vale la pena?',
+      'id': 'desear_muerto',
+      'pregunta': '¿Ha deseado estar muerto(a) o poder dormirse y no despertar?',
+      'emoji': '🌫️',
+      'color': const Color(0xFF6A1B9A),
+    },
+    {
+      'id': 'idea_suicidarse',
+      'pregunta': '¿Ha tenido realmente la idea de suicidarse?',
       'emoji': '💭',
-      'color': const Color(0xFF9C27B0),
+      'color': const Color(0xFF5E35B1),
     },
     {
-      'id': 'deseo_morir',
-      'pregunta': '¿Has deseado estar muerto/a o no despertar?',
-      'emoji': '😔',
-      'color': const Color(0xFF673AB7),
+      'id': 'como_lo_haria',
+      'pregunta': '¿Ha pensado en cómo llevaría esto a cabo?',
+      'emoji': '🧭',
+      'color': const Color(0xFF3949AB),
     },
     {
-      'id': 'ideas_suicidas',
-      'pregunta': '¿Has tenido pensamientos sobre hacerte daño?',
-      'emoji': '🌧️',
-      'color': const Color(0xFF3F51B5),
-    },
-    {
-      'id': 'plan_suicida',
-      'pregunta': '¿Has pensado en alguna forma específica de hacerte daño?',
+      'id': 'intencion_llevarlo',
+      'pregunta': '¿Ha tenido estas ideas y en cierto grado la intención de llevarlas a cabo?',
       'emoji': '⚠️',
-      'color': const Color(0xFF2196F3),
+      'color': const Color(0xFF1E88E5),
     },
     {
-      'id': 'intencion',
-      'pregunta': '¿Has sentido que realmente podrías hacerte daño?',
+      'id': 'detalles_plan',
+      'pregunta': '¿Ha comenzado a elaborar los detalles sobre cómo suicidarse? ¿Tiene intención de llevar a cabo ese plan?',
       'emoji': '🚨',
-      'color': const Color(0xFF03A9F4),
-    },
-    {
-      'id': 'preparativos',
-      'pregunta': '¿Has hecho algún preparativo para hacerte daño?',
-      'emoji': '🛑',
-      'color': const Color(0xFF00BCD4),
+      'color': const Color(0xFFE53935),
     },
   ];
 
   // Opciones de respuesta con escala 0-4
   final List<Map<String, dynamic>> _opciones = [
-    {'valor': 0, 'texto': 'Nunca', 'emoji': '✅', 'color': const Color(0xFF4CAF50)},
-    {'valor': 1, 'texto': 'Rara vez', 'emoji': '🟢', 'color': const Color(0xFF8BC34A)},
+    {'valor': 0, 'texto': 'Nunca', 'emoji': '🌤️', 'color': const Color(0xFF4CAF50)},
+    {'valor': 1, 'texto': 'Casi nunca', 'emoji': '🟢', 'color': const Color(0xFF8BC34A)},
     {'valor': 2, 'texto': 'A veces', 'emoji': '🟡', 'color': const Color(0xFFFFC107)},
-    {'valor': 3, 'texto': 'Frecuentemente', 'emoji': '🟠', 'color': const Color(0xFFFF9800)},
-    {'valor': 4, 'texto': 'Muy frecuentemente', 'emoji': '🔴', 'color': const Color(0xFFF44336)},
+    {'valor': 3, 'texto': 'Muchas veces', 'emoji': '🟠', 'color': const Color(0xFFFF9800)},
+    {'valor': 4, 'texto': 'Casi siempre', 'emoji': '🔴', 'color': const Color(0xFFF44336)},
   ];
 
   @override
@@ -113,7 +107,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                "Las siguientes preguntas nos ayudan a entender cómo te has sentido últimamente.",
+                "Este segundo bloque profundiza en la ideación suicida reciente con preguntas más directas.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15,
@@ -134,7 +128,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        "Tus respuestas son confidenciales y nos ayudan a apoyarte mejor",
+                        "Tus respuestas son confidenciales y ayudan a valorar mejor el nivel de urgencia.",
                         style: TextStyle(
                           fontSize: 12,
                           color: isDarkMode ? Colors.white70 : Colors.black54,
@@ -146,7 +140,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
               ),
               const SizedBox(height: 15),
               Text(
-                "Responde con honestidad pensando en las últimas 2 semanas",
+                "Responde pensando en lo más reciente.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
@@ -218,17 +212,17 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
       mensaje = "¡Excelente! No identificamos señales de riesgo.";
       color = const Color(0xFF4CAF50);
       icono = Icons.check_circle;
-    } else if (puntuacion <= 6) {
+    } else if (puntuacion <= 4) {
       nivel = "Riesgo bajo";
       mensaje = "Es normal tener altibajos. Estamos aquí para apoyarte.";
       color = const Color(0xFF8BC34A);
       icono = Icons.info;
-    } else if (puntuacion <= 12) {
+    } else if (puntuacion <= 9) {
       nivel = "Riesgo moderado";
       mensaje = "Te recomendamos hablar con alguien de confianza.";
       color = const Color(0xFFFFC107);
       icono = Icons.warning;
-    } else if (puntuacion <= 18) {
+    } else if (puntuacion <= 15) {
       nivel = "Riesgo alto";
       mensaje = "Es importante que busques apoyo profesional pronto.";
       color = const Color(0xFFFF9800);
@@ -304,7 +298,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
                   ],
                 ),
               ),
-              if (puntuacion > 6) ...[
+              if (puntuacion > 4) ...[
                 const SizedBox(height: 20),
                 Container(
                   padding: const EdgeInsets.all(15),
@@ -331,7 +325,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "• Línea de la Vida: 800 911 2000\n• SAPTEL: 55 5259 8121\n• WhatsApp SAPTEL: 55 1997 3337",
+                          "• Línea de la Vida: 800 911 2000\n• SAPTEL: 55 5259 8121\n• WhatsApp SAPTEL: 55 1997 3337",
                         style: TextStyle(
                           fontSize: 12,
                           color: isDarkMode ? Colors.white70 : Colors.black54,
@@ -376,6 +370,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
     final isDarkMode = themeProvider.isDarkMode;
     final preguntaActual = _preguntas[_currentQuestionIndex];
     final progreso = (_currentQuestionIndex + 1) / _preguntas.length;
+    final colorPregunta = preguntaActual['color'] as Color;
 
     return Scaffold(
       backgroundColor: isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F5F5),
@@ -403,7 +398,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: preguntaActual['color'] as Color,
+                          color: colorPregunta,
                         ),
                       ),
                     ],
@@ -414,7 +409,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
                     child: LinearProgressIndicator(
                       value: progreso,
                       backgroundColor: isDarkMode ? Colors.white12 : Colors.grey[300],
-                      valueColor: AlwaysStoppedAnimation<Color>(preguntaActual['color'] as Color),
+                      valueColor: AlwaysStoppedAnimation<Color>(colorPregunta),
                       minHeight: 8,
                     ),
                   ),
@@ -427,63 +422,84 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
             // Tarjeta de pregunta - SIMPLIFICADA
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(30),
-                decoration: BoxDecoration(
-                  color: isDarkMode ? const Color(0xFF2C3E50) : Colors.white,
-                  borderRadius: BorderRadius.circular(25),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 350),
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.08, 0),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
                     ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Emoji
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: (preguntaActual['color'] as Color).withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        preguntaActual['emoji'] as String,
-                        style: const TextStyle(fontSize: 50),
-                      ),
+                  );
+                },
+                child: Container(
+                  key: ValueKey(preguntaActual['id'] as String),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(30),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isDarkMode
+                          ? [const Color(0xFF2C3E50), const Color(0xFF1E272E)]
+                          : [colorPregunta.withOpacity(0.92), colorPregunta.withOpacity(0.65)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // Pregunta
-                    Text(
-                      preguntaActual['pregunta'] as String,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        height: 1.4,
-                        color: isDarkMode ? Colors.white : Colors.black87,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorPregunta.withOpacity(isDarkMode ? 0.15 : 0.28),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
                       ),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // Subtexto
-                    Text(
-                      "En las últimas 2 semanas...",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontStyle: FontStyle.italic,
-                        color: isDarkMode ? Colors.white54 : Colors.grey[600],
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.18),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          preguntaActual['emoji'] as String,
+                          style: const TextStyle(fontSize: 52),
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 20),
+                      Text(
+                        preguntaActual['pregunta'] as String,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          height: 1.35,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.14),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'Responde según lo más reciente',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
