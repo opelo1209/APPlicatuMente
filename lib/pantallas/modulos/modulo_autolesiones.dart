@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:aptm/text_utils.dart';
 import '../cuestionarios/cuestionario_autolesion.dart';
 
 class ModuloAutolesiones extends StatelessWidget {
@@ -13,9 +13,11 @@ class ModuloAutolesiones extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
-        title: const Text(
-          'Autolesiones',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+        title: Text.rich(
+          italicAcronyms(
+            'Autolesiones (NSSI)',
+            const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          ),
         ),
         centerTitle: true,
       ),
@@ -26,9 +28,9 @@ class ModuloAutolesiones extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Banner Principal con el Quetzal
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFF00897B), Color(0xFF26A69A)],
@@ -36,149 +38,162 @@ class ModuloAutolesiones extends StatelessWidget {
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(24),
-                ),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.health_and_safety_outlined,
-                      color: Colors.white,
-                      size: 44,
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'Módulo de autolesión',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      'La auto lesión no suicida (NSSI) es la conducta deliberada de causar daño directo al propio cuerpo sin la intención consciente de morir. Aquí encontrarás información breve y después el cuestionario con las preguntas que compartiste.',
-                      style: TextStyle(
-                        fontSize: 15,
-                        height: 1.5,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-              const Text(
-                'Información clave',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1F2937),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildInfoCard(
-                icon: Icons.info_outline_rounded,
-                title: 'Definición y manifestaciones',
-                description:
-                    'La NSSI puede incluir cortarse la piel, quemarse, golpearse, rascarse hasta sangrar o interferir con la cicatrización de heridas. Se asocia con dificultades para regular emociones intensas.',
-                color: Colors.teal,
-              ),
-              _buildInfoCard(
-                icon: Icons.compare_arrows_rounded,
-                title: 'Diferencia con conducta suicida',
-                description:
-                    'La principal diferencia radica en la intención: en la auto lesión no existe un deseo explícito de morir, aunque puede coexistir con pensamientos suicidas y aumentar el riesgo futuro.',
-                color: Colors.orange,
-              ),
-              _buildInfoCard(
-                icon: Icons.psychology_alt_rounded,
-                title: 'Funciones psicológicas',
-                description:
-                    'Puede funcionar como regulación emocional, autocastigo, sensación de control o una forma indirecta de comunicar sufrimiento cuando cuesta expresarlo con palabras.',
-                color: Colors.blue,
-              ),
-              _buildInfoCard(
-                icon: Icons.warning_amber_rounded,
-                title: 'Factores de riesgo',
-                description:
-                    'Depresión, ansiedad, trauma, acoso escolar, conflictos familiares, consumo de sustancias y dificultades para manejar emociones intensas pueden aumentar el malestar emocional.',
-                color: Colors.purple,
-              ),
-              const SizedBox(height: 28),
-              const Text(
-                'Preguntas del cuestionario',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1F2937),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildInfoCard(
-                icon: Icons.content_cut_rounded,
-                title: 'Pregunta 1',
-                description:
-                    '¿Alguna vez te has cortado la piel sin la intención de terminar con tu vida?',
-                color: Colors.teal,
-              ),
-              _buildInfoCard(
-                icon: Icons.history_toggle_off_rounded,
-                title: 'Pregunta 2',
-                description:
-                    '¿Cuándo fue la primera vez que lo hiciste?',
-                color: Colors.orange,
-              ),
-              _buildInfoCard(
-                icon: Icons.repeat_rounded,
-                title: 'Pregunta 3',
-                description:
-                    '¿Cuántas veces lo has hecho?',
-                color: Colors.blue,
-              ),
-              _buildInfoCard(
-                icon: Icons.language_rounded,
-                title: 'Pregunta 4',
-                description:
-                    '¿Dónde aprendiste?',
-                color: Colors.purple,
-              ),
-              const SizedBox(height: 28),
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
+                      color: const Color(0xFF00897B).withOpacity(0.3),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    Text(
-                      'Importante',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF00897B),
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.healing_rounded,
+                            color: Colors.white,
+                            size: 44,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Entendiendo las\nAutolesiones',
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              height: 1.1,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.55,
+                            child: const Text(
+                              'A veces, el dolor emocional es tan fuerte que buscamos apagarlo. Aquí aprenderemos qué pasa y cómo pedir ayuda.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                height: 1.4,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(height: 8),
-                    Text(
-                      'La auto lesión no es un intento de suicidio, pero sí es una señal de alerta que necesita atención. Pedir ayuda es un acto de valentía. Hablar con alguien de confianza y buscar apoyo psicológico puede marcar una diferencia importante.',
-                      style: TextStyle(
-                        fontSize: 15,
-                        height: 1.5,
-                        color: Color(0xFF4B5563),
+                    Positioned(
+                      right: -10,
+                      bottom: -15,
+                      child: Image.asset(
+                        'assets/imagenes/quetzal_8.png', // Imagen del quetzal acompañando
+                        height: 150,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 38),
+
+              const Text(
+                'Información Clave',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              _buildSection(
+                title: '¿Qué es y qué NO es?',
+                content: '• Es causar daño al propio cuerpo a propósito (rasguñarse, cortarse, golpearse).\n• NO es un intento de suicidio. Quien lo hace no busca morir, sino intentar apagar o calmar un malestar emocional que parece imposible de controlar.\n ⚠️ Aunque no se busque esto, si se vuelve costumbre sí aumenta el riesgo a futuro.',
+                icon: Icons.info_outline_rounded,
+                color: Colors.teal,
+              ),
+
+              _buildSection(
+                title: '¿Por qué sucede?',
+                content: 'Generalmente a las personas les resulta una forma (poco saludable) de:\n\n1. Bajarle el volumen a emociones intensas como ansiedad, enojo o culpa.\n2. Castigarse por sentirse insuficientes o culpables por algo.\n3. Sentir que tienen "control" sobre algo cuando todo lo de afuera es un caos.\n4. Expresar un grito de ayuda cuando las palabras fallan.',
+                icon: Icons.psychology_alt_rounded,
+                color: Colors.blue,
+              ),
+
+              _buildSection(
+                title: 'Cosas que pueden influir (Riesgos)',
+                content: '• Pasar por momentos largos de tristeza, estrés o depresión.\n• Haber pasado por bullying o sentirse muy solo/a y rechazado.\n• Traumas del pasado o muchos problemas en casa.\n • Sentir esto no te obliga a hacerlo, pero sí hace que necesites más apoyo emocional).',
+                icon: Icons.report_problem_rounded,
+                color: Colors.orange,
+              ),
+
+              _buildSection(
+                title: 'Señales a las que prestar atención',
+                content: 'Preocúpate o pide ayuda si notas:\n• Uso de suéteres/manga larga, incluso cuando hace mucho calor, para esconder marcas.\n• Te sientes frecuentemente "vacío/a" o desconectado/a.\n• Rasguños o cortes sin una explicación lógica y frecuente.',
+                icon: Icons.search_rounded,
+                color: Colors.purple,
+              ),
+
+              _buildSection(
+                title: '¿Qué pasa si no se detiene?',
+                content: '• El problema real no desaparece, solo se pone en "pausa" un rato y el dolor vuelve más fuerte.\n• Riesgo a causarse daños médicos mayores o cicatrices permanentes.\n• Con el tiempo, se siente como la única forma de aliviar el estrés. ¡Y eso te limita a aprender otras maneras más sanas!',
+                icon: Icons.trending_down_rounded,
+                color: Colors.redAccent,
+              ),
+
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9FAFB),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.volunteer_activism_rounded,
+                      color: Color(0xFF00897B),
+                      size: 32,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            '¡No estás solo/a!',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF00897B),
+                            ),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            'Pedir ayuda es el acto más grande de valentía. Hablar con alguien de confianza puede cambiarlo todo.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              height: 1.4,
+                              color: Color(0xFF4B5563),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
@@ -194,9 +209,9 @@ class ModuloAutolesiones extends StatelessWidget {
                   },
                   icon: const Icon(Icons.touch_app, color: Colors.white),
                   label: const Text(
-                    'Continuar al cuestionario de autolesión',
+                    'Entendido, empezar cuestionario',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -218,63 +233,67 @@ class ModuloAutolesiones extends StatelessWidget {
     );
   }
 
-  static Widget _buildInfoCard({
-    required IconData icon,
+  static Widget _buildSection({
     required String title,
-    required String description,
+    required String content,
+    required IconData icon,
     required Color color,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: color.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
           ),
         ],
+        border: Border.all(color: color.withOpacity(0.2), width: 1.5),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 26),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1F2937),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: Icon(icon, color: color, size: 24),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF6B7280),
-                    height: 1.45,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: color.withOpacity(0.9),
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 14),
+            Text(
+              content,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF374151),
+                height: 1.6,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

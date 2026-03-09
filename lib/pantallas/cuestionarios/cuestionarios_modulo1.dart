@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:aptm/text_utils.dart';
 import '../theme_provider.dart';
 import '../principal.dart';
-import '../servicios/cuestionario_service.dart';
+import 'dart:convert';
 import 'paso_identificacion.dart'; // IMPORT PASO IDENTIFICACION
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -242,37 +243,39 @@ class _CuestionarioState extends State<Cuestionario> {
     final cssrsScore = cssrsReactivos.fold<int>(
         0, (sum, r) => sum + (r['respuesta_valor'] as int));
 
-    final bloques = [
-      {
-        'bloque': 'PHQ9',
-        'nombre': 'Depresión y Riesgo (PHQ-9)',
-        'puntuacion_total': phq9Score,
-        'reactivos': phq9Reactivos,
-      },
-      {
-        'bloque': 'CSSRS',
-        'nombre': 'Ideación Suicida (C-SSRS)',
-        'puntuacion_total': cssrsScore,
-        'reactivos': cssrsReactivos,
-      },
-    ];
+    final payload = {
+      'tipo_cuestionario': 'suicidio',
+      'fecha_aplicacion': DateTime.now().toUtc().toIso8601String(),
+      'phq9_score': phq9Score,
+      'cssrs_score': cssrsScore,
+      'bloques': [
+        {
+          'bloque': 'PHQ9',
+          'nombre': 'Depresión y Riesgo (PHQ-9)',
+          'puntuacion_total': phq9Score,
+          'reactivos': phq9Reactivos,
+        },
+        {
+          'bloque': 'CSSRS',
+          'nombre': 'Ideación Suicida (C-SSRS)',
+          'puntuacion_total': cssrsScore,
+          'reactivos': cssrsReactivos,
+        },
+      ],
+    };
 
-    final result = await CuestionarioService().enviarCuestionario(
-      tipoCuestionario: 'suicidio',
-      bloques: bloques,
-    );
+    // Guardar localmente
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cuestionario_suicidio', jsonEncode(payload));
+    await prefs.setBool('cuestionario_completado', true);
 
     if (!mounted) return;
     setState(() => _enviando = false);
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('cuestionario_completado', true);
-
-    _mostrarResultado(result, phq9Score, cssrsScore);
+    _mostrarResultado(phq9Score, cssrsScore);
   }
 
-  void _mostrarResultado(
-      Map<String, dynamic> result, int phq9Score, int cssrsScore) {
+  void _mostrarResultado(int phq9Score, int cssrsScore) {
     final isDark =
         Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
 
@@ -334,32 +337,7 @@ class _CuestionarioState extends State<Cuestionario> {
                   : const Color(0xFFE53935),
               isDark: isDark,
             ),
-            if (!result['success']) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.10),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning_amber_rounded,
-                        color: Colors.orange, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Sin conexión al servidor. Los datos se guardaron localmente.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.white70 : Colors.black54,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+
           ],
         ),
         actions: [
@@ -401,7 +379,7 @@ class _CuestionarioState extends State<Cuestionario> {
               const CircularProgressIndicator(color: Color(0xFF5C6BC0)),
               const SizedBox(height: 16),
               Text(
-                'Enviando respuestas...',
+                'Guardando respuestas...',
                 style: TextStyle(
                   color: isDark ? Colors.white70 : Colors.black54,
                 ),
@@ -413,23 +391,30 @@ class _CuestionarioState extends State<Cuestionario> {
     }
 
     final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
+    const _cardGradients = [
+      [Color(0xFF1565C0), Color(0xFF42A5F5)], // azul profundo
+      [Color(0xFF283593), Color(0xFF5C6BC0)], // índigo
+      [Color(0xFF00695C), Color(0xFF26A69A)], // teal
+      [Color(0xFF6A1B9A), Color(0xFFAB47BC)], // violeta
+      [Color(0xFF37474F), Color(0xFF78909C)], // gris azulado
+      [Color(0xFF1B5E20), Color(0xFF66BB6A)], // verde oscuro
+      [Color(0xFF4A148C), Color(0xFF7E57C2)], // púrpura
+      [Color(0xFF0D47A1), Color(0xFF29B6F6)], // azul cielo
+    ];
     final binaryQuestions = _preguntas.sublist(9).map((p) {
       final idx = _preguntas.indexOf(p);
-      final imgIndex = (idx % 6) + 7;
-      final ext = imgIndex >= 9 ? 'PNG' : 'png';
-      final imagePath = 'assets/imagenes/quetzal_$imgIndex.$ext';
       final bloque = p['bloque'] as String;
       final bloqueNombre = p['bloque_nombre'] as String;
       final numero = p['numero'];
+      final grad = _cardGradients[idx % _cardGradients.length];
 
       return {
         'id': p['id'],
         'text': p['pregunta'],
-        'image': imagePath, // Imagen para transmitir calma
         'section': bloque == 'PHQ9'
             ? '$bloqueNombre · Pregunta $numero'
-            : 'Ideación suicida (C-SSRS) · Intensidad / historia reciente · Pregunta $numero',
-        'gradient': [const Color(0xFF84FAB0), const Color(0xFF8FD3F4)],
+            : 'C-SSRS · Ideación suicida · Pregunta $numero',
+        'gradient': grad,
       };
     }).toList();
 
@@ -448,7 +433,7 @@ class _CuestionarioState extends State<Cuestionario> {
       ),
       body: PasoIdentificacion(
         questions: binaryQuestions,
-        headerTitle: 'Bloque Sí / No',
+        headerTitle: '',
         instructionTitle: 'Preguntas de Sí o No',
         instructionDescription: 'Aquí responderás las preguntas finales de PHQ-9 y luego el bloque de ideación suicida C-SSRS. Desliza a la derecha para Sí y a la izquierda para No.',
         readyButtonText: '¡Entendido!',
@@ -566,12 +551,14 @@ class _CuestionarioState extends State<Cuestionario> {
                             color: bloqueColor.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Text(
-                            pregunta['bloque_nombre'] as String,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: bloqueColor,
+                          child: Text.rich(
+                            italicAcronyms(
+                              pregunta['bloque_nombre'] as String,
+                              TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: bloqueColor,
+                              ),
                             ),
                           ),
                         ),
@@ -677,36 +664,34 @@ class _OptionButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
         margin: const EdgeInsets.only(bottom: 12),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color: isSelected
               ? color
-              : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
+              : (isDark ? const Color(0xFF1E272E) : Colors.white),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected
-                ? color
-                : (isDark ? Colors.white12 : Colors.black12),
-            width: 2,
+            color: isSelected ? color : color.withOpacity(0.3),
+            width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
               color: isSelected
-                  ? color.withOpacity(0.25)
-                  : Colors.black.withOpacity(isDark ? 0 : 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+                  ? color.withOpacity(0.3)
+                  : Colors.black.withOpacity(isDark ? 0.12 : 0.04),
+              blurRadius: isSelected ? 10 : 6,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Row(
           children: [
             Container(
-              width: 10,
-              height: 10,
+              width: 11,
+              height: 11,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isSelected ? Colors.white : color,
@@ -756,39 +741,46 @@ class _BinaryButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        padding: const EdgeInsets.symmetric(vertical: 22),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isSelected
               ? color
-              : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
-          borderRadius: BorderRadius.circular(18),
+              : (isDark ? const Color(0xFF1E272E) : Colors.white),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
                 ? color
                 : (isDark ? Colors.white12 : Colors.black12),
-            width: 2,
+            width: isSelected ? 0 : 1.5,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isSelected
-                  ? color.withOpacity(0.30)
-                  : Colors.black.withOpacity(isDark ? 0 : 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: isSelected
-                  ? Colors.white
-                  : (isDark ? Colors.white : Colors.black87),
-            ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            color: isSelected
+                ? Colors.white
+                : (isDark ? Colors.white : Colors.black87),
           ),
         ),
       ),

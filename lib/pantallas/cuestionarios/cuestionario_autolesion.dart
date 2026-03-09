@@ -1,37 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:aptm/text_utils.dart';
 
 import '../principal.dart';
 import '../theme_provider.dart';
-import '../servicios/cuestionario_service.dart';
-import 'paso_identificacion.dart'; // IMPORT PASO IDENTIFICACION
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Cuestionario NSSI — Autolesión No Suicida
-//   Pregunta 1 : ¿Te has cortado sin intención suicida? (binario, SWIPE)
-//   Si Sí → Preguntas 2-4 (cuándo, cuántas veces, dónde aprendiste) (FORM)
-//   Si No → Envío directo
-// ─────────────────────────────────────────────────────────────────────────────
+import 'dart:convert';
 
 class CuestionarioAutolesion extends StatefulWidget {
   const CuestionarioAutolesion({super.key});
 
   @override
-  State<CuestionarioAutolesion> createState() =>
-      _CuestionarioAutolesionState();
+  State<CuestionarioAutolesion> createState() => _CuestionarioAutolesionState();
 }
 
 class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
-  int _phase = 0; // 0 = Q1,  1 = formulario follow-up
-  bool? _q1Respuesta; // null → sin responder, true → Sí, false → No
   bool _enviando = false;
+  final _formKey = GlobalKey<FormState>();
 
-  // Controladores para Q2-Q4
+  // Respuestas
+  bool? _q1Respuesta; // true = Sí, false = No
   final _primeraVezCtrl = TextEditingController();
   int _cuantasVeces = 1;
   final _dondeCtrl = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
 
   static const Color _teal = Color(0xFF00897B);
 
@@ -42,16 +33,28 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
     super.dispose();
   }
 
-  // ── Envío al servidor ────────────────────────────────────────────────────
   Future<void> _enviar() async {
+    if (_q1Respuesta == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, responde la primera pregunta.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    if (_q1Respuesta == true && !_formKey.currentState!.validate()) {
+      return;
+    }
+
     setState(() => _enviando = true);
 
     final reactivos = <Map<String, dynamic>>[
       {
         'numero': 1,
         'id': 'cortado_piel',
-        'pregunta':
-            '¿Alguna vez te has cortado la piel sin la intención de terminar con tu vida?',
+        'pregunta': '¿Alguna vez te has cortado la piel sin la intención de terminar con tu vida?',
         'tipo_respuesta': 'binario',
         'respuesta_valor': _q1Respuesta == true ? 1 : 0,
         'respuesta_etiqueta': _q1Respuesta == true ? 'Sí' : 'No',
@@ -87,9 +90,10 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
       ]);
     }
 
-    final result = await CuestionarioService().enviarCuestionario(
-      tipoCuestionario: 'autolesion',
-      bloques: [
+    final payload = {
+      'tipo_cuestionario': 'autolesion',
+      'fecha_aplicacion': DateTime.now().toUtc().toIso8601String(),
+      'bloques': [
         {
           'bloque': 'NSSI',
           'nombre': 'Autolesión No Suicida (NSSI)',
@@ -97,36 +101,31 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
           'reactivos': reactivos,
         },
       ],
-    );
+    };
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cuestionario_autolesion', jsonEncode(payload));
+    await prefs.setBool('cuestionario_autolesion_completado', true);
 
     if (!mounted) return;
     setState(() => _enviando = false);
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('cuestionario_autolesion_completado', true);
-
-    _mostrarResultado(result);
+    _mostrarResultado();
   }
 
-  void _mostrarResultado(Map<String, dynamic> result) {
-    final isDark =
-        Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+  void _mostrarResultado() {
+    final isDark = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF1E272E) : Colors.white,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.check_circle_rounded,
-              color: _teal,
-              size: 56,
-            ),
+            const Icon(Icons.check_circle_rounded, color: _teal, size: 56),
             const SizedBox(height: 12),
             Text(
               'Cuestionario enviado',
@@ -145,32 +144,6 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
                 color: isDark ? Colors.white70 : Colors.black54,
               ),
             ),
-            if (!result['success']) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.10),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning_amber_rounded,
-                        color: Colors.orange, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Sin conexión al servidor. Se guardaron localmente.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.white70 : Colors.black54,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
         actions: [
@@ -186,10 +159,8 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _teal,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30)),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 40, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
               ),
               child: const Text('Finalizar'),
             ),
@@ -200,125 +171,16 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
     );
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
-    final bgColor =
-        isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA);
-
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: _phase > 0
-            ? IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
-                onPressed: () => setState(() => _phase = 0),
-              )
-            : null,
-        title: Text(
-          'Autolesión (NSSI)',
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: _enviando
-          ? const Center(
-              child: CircularProgressIndicator(color: _teal),
-            )
-          : _phase == 0
-              ? PasoIdentificacion(
-                  questions: const [
-                    {
-                      'id': 'cortado_piel',
-                      'text': '¿Alguna vez te has cortado la piel sin la intención de terminar con tu vida?',
-                      'image': 'assets/imagenes/quetzal_7.png',
-                      'gradient': [Color(0xFF84FAB0), Color(0xFF8FD3F4)],
-                    }
-                  ],
-                  headerTitle: 'Autolesión No Suicida',
-                  instructionTitle: 'Pregunta Inicial',
-                  instructionDescription: 'Desliza hacia la derecha si es un Sí, y a la izquierda si es un No.',
-                  readyButtonText: 'Comenzar',
-                  rightSwipeLabel: 'SÍ',
-                  leftSwipeLabel: 'NO',
-                  rightMeaning: 'Sí, me ha pasado',
-                  leftMeaning: 'No, nunca',
-                  accentColor: _teal,
-                  completionMessage: 'Procesando...',
-                  onCompleted: (resultados) {
-                    final res = resultados['cortado_piel'];
-                    if (res == true) {
-                      setState(() {
-                        _q1Respuesta = true;
-                        _phase = 1;
-                      });
-                    } else {
-                      setState(() => _q1Respuesta = false);
-                      _enviar();
-                    }
-                  },
-                )
-              : _FollowUpForm(
-                  isDark: isDark,
-                  primeraVezCtrl: _primeraVezCtrl,
-                  cuantasVeces: _cuantasVeces,
-                  dondeCtrl: _dondeCtrl,
-                  formKey: _formKey,
-                  onCuantasChanged: (v) =>
-                      setState(() => _cuantasVeces = v),
-                  onSubmit: () {
-                    if (_formKey.currentState!.validate()) _enviar();
-                  },
-                ),
-    );
-  }
-}
-
-// ── Formulario follow-up (Q2, Q3, Q4) ───────────────────────────────────────
-
-class _FollowUpForm extends StatelessWidget {
-  const _FollowUpForm({
-    required this.isDark,
-    required this.primeraVezCtrl,
-    required this.cuantasVeces,
-    required this.dondeCtrl,
-    required this.formKey,
-    required this.onCuantasChanged,
-    required this.onSubmit,
-  });
-
-  final bool isDark;
-  final TextEditingController primeraVezCtrl;
-  final int cuantasVeces;
-  final TextEditingController dondeCtrl;
-  final GlobalKey<FormState> formKey;
-  final ValueChanged<int> onCuantasChanged;
-  final VoidCallback onSubmit;
-
-  static const Color _teal = Color(0xFF00897B);
-
-  InputDecoration get _inputDec => InputDecoration(
+  InputDecoration _inputDec(bool isDark) => InputDecoration(
         filled: true,
         fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(
-              color: isDark ? Colors.white12 : Colors.black12),
+          borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(
-              color: isDark ? Colors.white12 : Colors.black12),
+          borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
         ),
         focusedBorder: const OutlineInputBorder(
           borderRadius: BorderRadius.all(Radius.circular(14)),
@@ -326,157 +188,250 @@ class _FollowUpForm extends StatelessWidget {
         ),
       );
 
+  Widget _buildInfo(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.info_outline, color: _teal),
+              const SizedBox(width: 8),
+              Text(
+                'Información de la sección',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text.rich(
+            italicAcronyms(
+              'La auto lesión no suicida (NSSI) se refiere a la conducta deliberada de causar daño directo al propio cuerpo sin la intención de morir.\n\nA continuación, responde con honestidad las preguntas relacionadas.',
+              TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.white70 : Colors.black87,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final labelStyle = TextStyle(
-      fontSize: 12,
-      color: isDark ? Colors.white38 : Colors.black38,
-    );
-    final questionStyle = TextStyle(
-      fontSize: 18,
-      fontWeight: FontWeight.bold,
-      height: 1.35,
-      color: isDark ? Colors.white : Colors.black87,
-    );
-    final textStyle =
-        TextStyle(color: isDark ? Colors.white : Colors.black87);
+    final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
-      child: Form(
-        key: formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const LinearProgressIndicator(
-              value: 1.0,
-              backgroundColor: Color(0x1F000000),
-              valueColor: AlwaysStoppedAnimation<Color>(_teal),
-              minHeight: 4,
-            ),
-            const SizedBox(height: 24),
-            // Chip
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: _teal.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'Preguntas de seguimiento',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: _teal,
-                ),
-              ),
-            ),
-            const SizedBox(height: 28),
+    final labelStyle = TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54);
+    final questionStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.35, color: isDark ? Colors.white : Colors.black87);
+    final textStyle = TextStyle(color: isDark ? Colors.white : Colors.black87);
 
-            // ── Q2 ─────────────────────────────────────────────────────
-            Text('Pregunta 2', style: labelStyle),
-            const SizedBox(height: 6),
-            Text('¿Cuándo fue la primera vez que lo hiciste?',
-                style: questionStyle),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: primeraVezCtrl,
-              style: textStyle,
-              decoration: _inputDec.copyWith(
-                  hintText: 'Ej: hace 2 años, cuando tenía 14…'),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
-            ),
-            const SizedBox(height: 28),
-
-            // ── Q3 ─────────────────────────────────────────────────────
-            Text('Pregunta 3', style: labelStyle),
-            const SizedBox(height: 6),
-            Text('¿Cuántas veces lo has hecho?', style: questionStyle),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color:
-                    isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isDark ? Colors.white12 : Colors.black12,
-                ),
-              ),
-              child: Row(
+    return Scaffold(
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black87),
+        title: Text(
+          'Cuestionario de Autolesión',
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: _enviando
+          ? const Center(child: CircularProgressIndicator(color: _teal))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    onPressed: cuantasVeces > 1
-                        ? () => onCuantasChanged(cuantasVeces - 1)
-                        : null,
-                    icon: const Icon(Icons.remove_circle_outline),
-                    color: _teal,
-                    iconSize: 30,
+                  _buildInfo(isDark),
+                  Text('Pregunta 1', style: labelStyle),
+                  const SizedBox(height: 6),
+                  Text('¿Alguna vez te has cortado la piel sin la intención de terminar con tu vida?', style: questionStyle),
+                  const SizedBox(height: 16),
+                  
+                  // Botones Sí / No
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() => _q1Respuesta = true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            decoration: BoxDecoration(
+                              color: _q1Respuesta == true ? _teal : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
+                              border: Border.all(color: _q1Respuesta == true ? _teal : (isDark ? Colors.white24 : Colors.black26)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Sí',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: _q1Respuesta == true ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() {
+                            _q1Respuesta = false;
+                            // reset
+                            _primeraVezCtrl.clear();
+                            _cuantasVeces = 1;
+                            _dondeCtrl.clear();
+                          }),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            decoration: BoxDecoration(
+                              color: _q1Respuesta == false ? Colors.redAccent : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
+                              border: Border.all(color: _q1Respuesta == false ? Colors.redAccent : (isDark ? Colors.white24 : Colors.black26)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'No',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: _q1Respuesta == false ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        '$cuantasVeces',
+
+                  if (_q1Respuesta == true) ...[
+                    const SizedBox(height: 32),
+                    const Divider(),
+                    const SizedBox(height: 24),
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Pregunta 2', style: labelStyle),
+                          const SizedBox(height: 6),
+                          Text('¿Cuándo fue la primera vez que lo hiciste?', style: questionStyle),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _primeraVezCtrl,
+                            style: textStyle,
+                            decoration: _inputDec(isDark).copyWith(hintText: 'Ej: hace 2 años, a los 14...'),
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
+                          ),
+                          const SizedBox(height: 28),
+
+                          Text('Pregunta 3', style: labelStyle),
+                          const SizedBox(height: 6),
+                          Text('¿Cuántas veces lo has hecho?', style: questionStyle),
+                          const SizedBox(height: 12),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
+                            ),
+                            child: Row(
+                              children: [
+                                IconButton(
+                                  onPressed: _cuantasVeces > 1 ? () => setState(() => _cuantasVeces--) : null,
+                                  icon: const Icon(Icons.remove_circle_outline),
+                                  color: _teal,
+                                  iconSize: 30,
+                                ),
+                                Expanded(
+                                  child: Center(
+                                    child: Text(
+                                      '$_cuantasVeces',
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () => setState(() => _cuantasVeces++),
+                                  icon: const Icon(Icons.add_circle_outline),
+                                  color: _teal,
+                                  iconSize: 30,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+
+                          Text('Pregunta 4', style: labelStyle),
+                          const SizedBox(height: 6),
+                          Text('¿Dónde aprendiste?', style: questionStyle),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _dondeCtrl,
+                            style: textStyle,
+                            decoration: _inputDec(isDark).copyWith(hintText: 'Ej: amigos, internet...'),
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 48),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _enviar,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _teal,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Enviar cuestionario',
                         style: TextStyle(
-                          fontSize: 34,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color:
-                              isDark ? Colors.white : Colors.black87,
+                          color: Colors.white,
                         ),
                       ),
                     ),
                   ),
-                  IconButton(
-                    onPressed: () => onCuantasChanged(cuantasVeces + 1),
-                    icon: const Icon(Icons.add_circle_outline),
-                    color: _teal,
-                    iconSize: 30,
-                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
-            const SizedBox(height: 28),
-
-            // ── Q4 ─────────────────────────────────────────────────────
-            Text('Pregunta 4', style: labelStyle),
-            const SizedBox(height: 6),
-            Text('¿Dónde aprendiste?', style: questionStyle),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: dondeCtrl,
-              style: textStyle,
-              decoration: _inputDec.copyWith(
-                  hintText: 'Ej: amigos, redes sociales, internet…'),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
-            ),
-            const SizedBox(height: 36),
-
-            // ── Botón enviar ────────────────────────────────────────────
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: onSubmit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _teal,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text(
-                  'Enviar respuestas',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
-
-

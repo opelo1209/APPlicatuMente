@@ -315,21 +315,21 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
             imagePath: 'assets/imagenes/quetzal_2.png', // Quetzal pensando
             title: "Mis pensamientos me preocupan",
             subtitle: "Hablemos de lo que ronda por tu cabeza",
-            color: const Color(0xFFA5D6A7), // Verde claro
+            color:  const Color(0xFFA5D6A7), // Verde claro
             textColor: Colors.black87,
             onTap: () {
               // Navegar al cuestionario
             },
           ),
           
-           _buildOptionCard(
+          _buildOptionCard(
             context,
             imagePath: 'assets/imagenes/quetzal_5.png', // Corazón o emoción
             title: "Quiero saber cómo estoy emocionalmente",
             subtitle: "Un espacio para conocerte mejor",
             color: const Color(0xFFC8E6C9), // Verde muy claro
             textColor: Colors.black87,
-             onTap: () {
+            onTap: () {
               // Navegar al cuestionario
             },
           ),

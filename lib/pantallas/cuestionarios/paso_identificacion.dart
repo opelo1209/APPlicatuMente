@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:aptm/text_utils.dart';
 import '../theme_provider.dart';
 
 class PasoIdentificacion extends StatefulWidget {
@@ -234,25 +235,27 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
-    final primaryGreen = widget.accentColor;
+    final accentColor = widget.accentColor;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = (screenWidth - 48.0).clamp(0.0, 380.0);
+    final swipeProgress = (_dragX.abs() / (screenWidth * 0.28)).clamp(0.0, 1.0);
 
-    // Si ya se respondieron todas, muestra pantalla de transición
     if (_currentIndex >= _questions.length) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline, size: 80, color: primaryGreen),
+            Icon(Icons.check_circle_outline, size: 80, color: accentColor),
             const SizedBox(height: 20),
             Text(
-              '¡Gracias por tus respuestas!',
+              '¡Listo!',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: isDarkMode ? Colors.white : Colors.black87,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               widget.completionMessage,
               style: TextStyle(
@@ -263,35 +266,33 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
       );
     }
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final swipeProgress =
-        (_dragX.abs() / (screenWidth * 0.3)).clamp(0.0, 1.0);
-
     return Column(
       children: [
         const SizedBox(height: 20),
 
-        // ── Header ──────────────────────────────────────────────────────
-        Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          decoration: BoxDecoration(
-            color: primaryGreen.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
+        // ── Barra de progreso ───────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.swipe_rounded, size: 22, color: primaryGreen),
-              const SizedBox(width: 10),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: _currentIndex / _questions.length,
+                    minHeight: 5,
+                    backgroundColor: isDarkMode ? Colors.white12 : Colors.black12,
+                    valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
               Text(
-                widget.headerTitle,
+                '${_currentIndex + 1} / ${_questions.length}',
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isDarkMode
-                      ? Colors.white
-                      : primaryGreen.withOpacity(0.8),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDarkMode ? Colors.white54 : Colors.black38,
                 ),
               ),
             ],
@@ -300,90 +301,52 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
 
         const Spacer(),
 
-        // ── Tarjeta ──────────────────────────────────────────────────────
+        // ── Stack de tarjetas ───────────────────────────────────────────
         SizedBox(
-          height: 420,
+          height: 460,
           child: Stack(
-            alignment: Alignment.center,
+            alignment: Alignment.topCenter,
             clipBehavior: Clip.none,
             children: [
-              // Indicador SÍ
-              if (_dragX > 20)
+              // Tarjeta fantasma (siguiente)
+              if (_currentIndex + 1 < _questions.length)
                 Positioned(
-                  left: 30,
-                  child: Opacity(
-                    opacity: swipeProgress,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: primaryGreen.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.check_rounded,
-                              color: Colors.white, size: 32),
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.rightMeaning,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
+                  bottom: 0,
+                  child: Transform.scale(
+                    scale: 0.94,
+                    alignment: Alignment.bottomCenter,
+                    child: Opacity(
+                      opacity: 0.6,
+                      child: _buildCard(
+                        _questions[_currentIndex + 1],
+                        isDarkMode,
+                        cardWidth,
+                        0.0,
+                        0.0,
                       ),
                     ),
                   ),
                 ),
 
-              // Indicador NO
-              if (_dragX < -20)
-                Positioned(
-                  right: 30,
-                  child: Opacity(
-                    opacity: swipeProgress,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.close_rounded,
-                              color: Colors.white, size: 32),
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.leftMeaning,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
+              // Tarjeta activa
+              Positioned(
+                bottom: 0,
+                child: GestureDetector(
+                  onHorizontalDragUpdate: _onDragUpdate,
+                  onHorizontalDragEnd: _onDragEnd,
+                  child: Transform(
+                    transform: Matrix4.identity()
+                      ..translate(_dragX, -_dragX.abs() * 0.04)
+                      ..rotateZ(_dragX * 0.0014),
+                    alignment: Alignment.bottomCenter,
+                    child: _buildCard(
+                      _questions[_currentIndex],
+                      isDarkMode,
+                      cardWidth,
+                      swipeProgress,
+                      _dragX,
                     ),
                   ),
-                ),
-
-              // Tarjeta arrastrable
-              GestureDetector(
-                onHorizontalDragUpdate: _onDragUpdate,
-                onHorizontalDragEnd: _onDragEnd,
-                child: Transform(
-                  transform: Matrix4.identity()
-                    ..translate(_dragX, 0.0)
-                    ..rotateZ(_dragX * 0.0008),
-                  alignment: Alignment.center,
-                  child: _buildCard(
-                      _questions[_currentIndex], isDarkMode),
                 ),
               ),
             ],
@@ -394,15 +357,28 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
 
         // ── Botones manuales ─────────────────────────────────────────────
         Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+          padding: const EdgeInsets.fromLTRB(32, 0, 32, 36),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildActionButton(Icons.close, Colors.redAccent,
-                  () => _handleManualSwipe(false)),
-              _buildActionButton(Icons.check, primaryGreen,
-                  () => _handleManualSwipe(true)),
+              Expanded(
+                child: _buildActionButton(
+                  label: widget.leftMeaning,
+                  icon: Icons.close_rounded,
+                  color: const Color(0xFFEF5350),
+                  isDark: isDarkMode,
+                  onTap: () => _handleManualSwipe(false),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildActionButton(
+                  label: widget.rightMeaning,
+                  icon: Icons.check_rounded,
+                  color: accentColor,
+                  isDark: isDarkMode,
+                  onTap: () => _handleManualSwipe(true),
+                ),
+              ),
             ],
           ),
         ),
@@ -411,148 +387,217 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
   }
 
   // ── Card widget ──────────────────────────────────────────────────────────
-  Widget _buildCard(Map<String, dynamic> question, bool isDarkMode) {
+  Widget _buildCard(
+    Map<String, dynamic> question,
+    bool isDarkMode,
+    double cardWidth,
+    double swipeProgress,
+    double dragX,
+  ) {
+    final rawGradient = question['gradient'] as List<dynamic>?;
+    final gradColors = rawGradient != null && rawGradient.length >= 2
+        ? rawGradient.cast<Color>()
+        : [widget.accentColor, widget.accentColor.withOpacity(0.6)];
+
     final text = question['text'] as String;
     final section = question['section'] as String?;
     final fontSize = text.length > 140
-        ? 18.0
+        ? 17.0
         : text.length > 90
-            ? 21.0
-            : 24.0;
+            ? 20.0
+            : 23.0;
+
+    final overlayColor = dragX > 0
+        ? const Color(0xFF4CAF50).withOpacity(swipeProgress * 0.45)
+        : dragX < 0
+            ? const Color(0xFFEF5350).withOpacity(swipeProgress * 0.45)
+            : Colors.transparent;
 
     return Container(
-      width: 330,
-      height: 420,
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+      width: cardWidth,
+      height: 460,
       decoration: BoxDecoration(
-        color:
-            isDarkMode ? const Color(0xFF1B1F24) : Colors.white,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradColors,
+        ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color:
-                Colors.black.withOpacity(isDarkMode ? 0.28 : 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: gradColors.first.withOpacity(0.35),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
           ),
         ],
-        border: Border.all(
-          color: isDarkMode
-              ? Colors.white.withOpacity(0.08)
-              : Colors.black.withOpacity(0.06),
-          width: 1.2,
-        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (section != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: _cardAccentColor(question, isDarkMode)
-                    .withOpacity(0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                section,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: _cardAccentColor(question, isDarkMode),
-                ),
-              ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          children: [
+            // Overlay de color al deslizar
+            Positioned.fill(
+              child: ColoredBox(color: overlayColor),
             ),
-            const SizedBox(height: 20),
-          ],
-          Container(
-            width: 56,
-            height: 56,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: _cardAccentColor(question, isDarkMode)
-                  .withOpacity(0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.question_answer_rounded,
-              color: _cardAccentColor(question, isDarkMode),
-              size: 28,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                child: Text(
-                  text,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.w700,
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                    height: 1.3,
-                    letterSpacing: -0.2,
+
+            // Sello SÍ
+            if (dragX > 10)
+              Positioned(
+                top: 40,
+                left: 24,
+                child: Transform.rotate(
+                  angle: -0.35,
+                  child: Opacity(
+                    opacity: swipeProgress,
+                    child: _buildStamp(
+                        widget.rightSwipeLabel, const Color(0xFF4CAF50)),
                   ),
                 ),
               ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: isDarkMode
-                  ? Colors.white.withOpacity(0.06)
-                  : Colors.black.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '${_currentIndex + 1} de ${_questions.length}',
-              style: TextStyle(
-                color: isDarkMode
-                    ? Colors.white70
-                    : Colors.black54,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+
+            // Sello NO
+            if (dragX < -10)
+              Positioned(
+                top: 40,
+                right: 24,
+                child: Transform.rotate(
+                  angle: 0.35,
+                  child: Opacity(
+                    opacity: swipeProgress,
+                    child: _buildStamp(
+                        widget.leftSwipeLabel, const Color(0xFFEF5350)),
+                  ),
+                ),
+              ),
+
+            // Contenido
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (section != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.22),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text.rich(
+                        italicAcronyms(
+                          section,
+                          const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        text,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          height: 1.45,
+                          shadows: const [
+                            Shadow(
+                              color: Color(0x44000000),
+                              offset: Offset(0, 2),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Hint de swipe
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.swipe_rounded,
+                          color: Colors.white54, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Desliza para responder',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Color _cardAccentColor(
-      Map<String, dynamic> question, bool isDarkMode) {
-    final gradient = question['gradient'] as List<Color>?;
-    if (gradient != null && gradient.isNotEmpty) return gradient.first;
-    return isDarkMode ? Colors.white70 : widget.accentColor;
+  Widget _buildStamp(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color, width: 3),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 26,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 2,
+        ),
+      ),
+    );
   }
 
-  Widget _buildActionButton(
-      IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 68,
-        height: 68,
+        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.24),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
+          color: color.withOpacity(isDark ? 0.15 : 0.08),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withOpacity(0.35), width: 1.5),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 26),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
-          border:
-              Border.all(color: color.withOpacity(0.16), width: 1.5),
         ),
-        child: Icon(icon, color: color, size: 34),
       ),
     );
   }
