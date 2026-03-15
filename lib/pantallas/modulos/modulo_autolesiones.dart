@@ -109,38 +109,59 @@ class ModuloAutolesiones extends StatelessWidget {
               const SizedBox(height: 16),
               
               _buildSection(
-                title: '¿Qué es y qué NO es?',
-                content: '• Es causar daño al propio cuerpo a propósito (rasguñarse, cortarse, golpearse).\n• NO es un intento de suicidio. Quien lo hace no busca morir, sino intentar apagar o calmar un malestar emocional que parece imposible de controlar.\n ⚠️ Aunque no se busque esto, si se vuelve costumbre sí aumenta el riesgo a futuro.',
+                title: '¿Qué es y qué no es?',
+                content: '• Es lastimarse a propósito (cortarse, quemarse, rascarse), pero SIN querer morir.\n• NO es saludable ni normal, ocurre por emociones muy fuertes que no sabemos cómo manejar.',
                 icon: Icons.info_outline_rounded,
                 color: Colors.teal,
               ),
 
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7ED), // Fondo naranja muy suave
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFDBA74), width: 1.5), // Borde naranja pastel
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Icon(Icons.warning_amber_rounded, color: Color(0xFFF97316), size: 28),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Aunque no es para morir, hacerlo mucho sí aumenta el riesgo de pensar en el suicidio.',
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          color: Color(0xFF9A3412), // Texto naranja oscuro
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               _buildSection(
-                title: '¿Por qué sucede?',
-                content: 'Generalmente a las personas les resulta una forma (poco saludable) de:\n\n1. Bajarle el volumen a emociones intensas como ansiedad, enojo o culpa.\n2. Castigarse por sentirse insuficientes o culpables por algo.\n3. Sentir que tienen "control" sobre algo cuando todo lo de afuera es un caos.\n4. Expresar un grito de ayuda cuando las palabras fallan.',
+                title: '¿Por qué lo hacen?',
+                content: 'Las personas pueden lastimarse por varias razones:\n\n1. Para calmar emociones fuertes (tristeza, enojo, ansiedad).\n2. Para castigarse por sentir mucha culpa o creer que hicieron algo mal.\n3. Para sentir "algo" o sentir control cuando se sienten muy vacíos.\n4. Para mostrar que están sufriendo cuando es difícil usar palabras.',
                 icon: Icons.psychology_alt_rounded,
                 color: Colors.blue,
               ),
 
               _buildSection(
-                title: 'Cosas que pueden influir (Riesgos)',
-                content: '• Pasar por momentos largos de tristeza, estrés o depresión.\n• Haber pasado por bullying o sentirse muy solo/a y rechazado.\n• Traumas del pasado o muchos problemas en casa.\n • Sentir esto no te obliga a hacerlo, pero sí hace que necesites más apoyo emocional).',
+                title: 'Situaciones de riesgo',
+                content: 'Factores que pueden aumentar el riesgo:\n• Depresión o ansiedad.\n• Problemas familiares o bullying.\n• Experiencias traumáticas.\n• Uso de alcohol o drogas.\n\nTener estos problemas no significa que alguien se lastimará, cada uno reacciona distinto.',
                 icon: Icons.report_problem_rounded,
                 color: Colors.orange,
               ),
 
               _buildSection(
-                title: 'Señales a las que prestar atención',
-                content: 'Preocúpate o pide ayuda si notas:\n• Uso de suéteres/manga larga, incluso cuando hace mucho calor, para esconder marcas.\n• Te sientes frecuentemente "vacío/a" o desconectado/a.\n• Rasguños o cortes sin una explicación lógica y frecuente.',
-                icon: Icons.search_rounded,
+                title: '¿Qué más puedo hacer?',
+                content: 'Sentirse triste o enojado es parte de la vida, pero hay formas sanas de manejarlo como:\n• Hablar con alguien de confianza o un psicólogo.\n• Escribir lo que sientes.\n• Hacer ejercicio o escuchar música.\n\nPedir ayuda no es debilidad. Es un acto de valentía.',
+                icon: Icons.favorite_border_rounded,
                 color: Colors.purple,
-              ),
-
-              _buildSection(
-                title: '¿Qué pasa si no se detiene?',
-                content: '• El problema real no desaparece, solo se pone en "pausa" un rato y el dolor vuelve más fuerte.\n• Riesgo a causarse daños médicos mayores o cicatrices permanentes.\n• Con el tiempo, se siente como la única forma de aliviar el estrés. ¡Y eso te limita a aprender otras maneras más sanas!',
-                icon: Icons.trending_down_rounded,
-                color: Colors.redAccent,
               ),
 
               const SizedBox(height: 16),

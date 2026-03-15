@@ -68,3 +68,7 @@ app.*.map.json
 
 # Linux
 **/linux/flutter/ephemeral/
+
+.agents/
+
+skills-lock.json

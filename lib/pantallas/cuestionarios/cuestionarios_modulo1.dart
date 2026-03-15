@@ -36,7 +36,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'numero': 1,
       'id': 'deprimido_irritable',
       'tipo': 'likert4',
-      'pregunta': '¿Te has sentido deprimido, irritado o sin esperanza?',
+      'pregunta': '¿Has estado sintiéndote triste, irritado(a) o sin ganas de nada?',
     },
     {
       'bloque': 'PHQ9',
@@ -44,7 +44,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'numero': 2,
       'id': 'poco_interes',
       'tipo': 'likert4',
-      'pregunta': '¿Has sentido poco interés o placer para hacer cosas?',
+      'pregunta': '¿Has sentido falta de interés en las cosas, o que ya casi nada te da placer o gusto, aunque antes sí te gustaran?',
     },
     {
       'bloque': 'PHQ9',
@@ -53,7 +53,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'id': 'sueno',
       'tipo': 'likert4',
       'pregunta':
-          '¿Tienes dificultad para dormirte, quedarte dormido, o duermes demasiado?',
+          '¿Tienes problemas con el sueño? Por ejemplo: ¿te cuesta mucho trabajo dormirte o te despiertas en la madrugada y ya no puedes volver a dormir? O al contrario, ¿duermes tanto que igual sientes que no descansas?',
     },
     {
       'bloque': 'PHQ9',
@@ -61,7 +61,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'numero': 4,
       'id': 'apetito',
       'tipo': 'likert4',
-      'pregunta': '¿Tienes poco apetito, pérdida de peso, o comes demasiado?',
+      'pregunta': '¿Tu apetito ha cambiado mucho? ¿Comes muy poco o demasiado, o has bajado o subido de peso sin querer?',
     },
     {
       'bloque': 'PHQ9',
@@ -69,7 +69,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'numero': 5,
       'id': 'cansancio',
       'tipo': 'likert4',
-      'pregunta': '¿Te sientes cansado o tienes poca energía?',
+      'pregunta': '¿Te sientes cansado(a) o sin energía casi todo el tiempo?',
     },
     {
       'bloque': 'PHQ9',
@@ -78,7 +78,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'id': 'mal_consigo',
       'tipo': 'likert4',
       'pregunta':
-          '¿Te sientes mal por ti mismo, o sientes que eres un fracasado, o que le has fallado a tu familia?',
+          '¿Te sientes mal contigo mismo(a), como si fueras un fracaso o como que les has fallado a las personas que quieres?',
     },
     {
       'bloque': 'PHQ9',
@@ -87,7 +87,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'id': 'concentracion',
       'tipo': 'likert4',
       'pregunta':
-          '¿Tienes problemas para concentrarte en tareas escolares, leer o ver televisión?',
+          '¿Te cuesta concentrarte en la escuela, al leer o incluso al ver una película o serie?',
     },
     {
       'bloque': 'PHQ9',
@@ -96,7 +96,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'id': 'movimiento',
       'tipo': 'likert4',
       'pregunta':
-          '¿Te mueves o hablas tan lentamente que otros pueden notarlo? ¿O al contrario, estás tan inquieto que te mueves más de lo usual?',
+          '¿Te mueves o hablas más lento de lo normal y los demás lo notan? O al revés, ¿estás tan inquieto(a) que no puedes quedarte quieto(a)?',
     },
     {
       'bloque': 'PHQ9',
@@ -105,7 +105,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'id': 'mejor_muerto',
       'tipo': 'likert4',
       'pregunta':
-          '¿Piensas que estarías mejor muerto o de hacerte daño a ti mismo de alguna manera?',
+          '¿Has tenido pensamientos de que estarías mejor muerto(a) o de hacerte daño de alguna forma?',
     },
     // PHQ-9 ── Preguntas 10-12 (binario)
     {
@@ -115,7 +115,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'id': 'deprimido_anio',
       'tipo': 'binario',
       'pregunta':
-          '¿En el año pasado te has sentido deprimido o triste la mayoría de los días?',
+          '¿En el último año te has sentido triste o deprimido(a) la mayor parte del tiempo?',
     },
     {
       'bloque': 'PHQ9',
@@ -124,7 +124,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'id': 'pensar_terminar',
       'tipo': 'binario',
       'pregunta':
-          '¿En el mes pasado hubo algún momento donde pensaste seriamente en terminar con tu vida?',
+          '¿En el último mes hubo algún momento en que pensaste en serio en quitarte la vida?',
     },
     {
       'bloque': 'PHQ9',
@@ -132,7 +132,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'numero': 12,
       'id': 'intento_suicidio',
       'tipo': 'binario',
-      'pregunta': '¿Alguna vez en tu vida, trataste de matarte o suicidarte?',
+      'pregunta': '¿Alguna vez en tu vida intentaste suicidarte o hacerte daño para morir?',
     },
     // C-SSRS ── 5 preguntas (binario)
     {
@@ -142,7 +142,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'id': 'desear_muerto',
       'tipo': 'binario',
       'pregunta':
-          '¿Ha deseado estar muerto(a) o poder dormirse y no despertar?',
+          '¿Has deseado estar muerto(a), o sentido que quisieras dormirte y simplemente no despertar?',
     },
     {
       'bloque': 'CSSRS',
@@ -150,7 +150,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'numero': 2,
       'id': 'idea_suicidarse',
       'tipo': 'binario',
-      'pregunta': '¿Ha tenido realmente la idea de suicidarse?',
+      'pregunta': '¿Has tenido pensamientos de suicidarte, aunque sea por un momento?',
     },
     {
       'bloque': 'CSSRS',
@@ -158,7 +158,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'numero': 3,
       'id': 'como_lo_haria',
       'tipo': 'binario',
-      'pregunta': '¿Ha pensado en cómo llevaría esto a cabo?',
+      'pregunta': '¿Has pensado en cómo lo harías?',
     },
     {
       'bloque': 'CSSRS',
@@ -167,7 +167,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'id': 'intencion_llevarlo',
       'tipo': 'binario',
       'pregunta':
-          '¿Ha tenido estas ideas y en cierto grado la intención de llevarlas a cabo?',
+          '¿Has tenido esos pensamientos y sientes que en parte sí querrías llevarlos a cabo?',
     },
     {
       'bloque': 'CSSRS',
@@ -176,7 +176,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'id': 'detalles_plan',
       'tipo': 'binario',
       'pregunta':
-          '¿Ha comenzado a elaborar los detalles sobre cómo suicidarse? ¿Tiene intención de llevar a cabo ese plan?',
+          '¿Has empezado a pensar en los detalles de cómo hacerlo? ¿Sientes que de verdad quieres o planeas llevarlo a cabo?',
     },
   ];
 

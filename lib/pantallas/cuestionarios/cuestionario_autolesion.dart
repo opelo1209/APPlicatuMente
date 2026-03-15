@@ -54,7 +54,7 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
       {
         'numero': 1,
         'id': 'cortado_piel',
-        'pregunta': '¿Alguna vez te has cortado la piel sin la intención de terminar con tu vida?',
+        'pregunta': '¿Alguna vez te has hecho cortadas en la piel, pero sin querer hacerte daño grave ni quitarte la vida?',
         'tipo_respuesta': 'binario',
         'respuesta_valor': _q1Respuesta == true ? 1 : 0,
         'respuesta_etiqueta': _q1Respuesta == true ? 'Sí' : 'No',
@@ -82,7 +82,7 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
         {
           'numero': 4,
           'id': 'donde_aprendiste',
-          'pregunta': '¿Dónde aprendiste?',
+          'pregunta': '¿Dónde o cómo te enteraste de hacerlo?',
           'tipo_respuesta': 'texto',
           'respuesta_valor': null,
           'respuesta_etiqueta': _dondeCtrl.text.trim(),
@@ -270,7 +270,7 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
                   _buildInfo(isDark),
                   Text('Pregunta 1', style: labelStyle),
                   const SizedBox(height: 6),
-                  Text('¿Alguna vez te has cortado la piel sin la intención de terminar con tu vida?', style: questionStyle),
+                  Text('¿Alguna vez te has hecho cortadas en la piel, pero sin querer hacerte daño grave ni quitarte la vida?', style: questionStyle),
                   const SizedBox(height: 16),
                   
                   // Botones Sí / No
@@ -394,7 +394,7 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
 
                           Text('Pregunta 4', style: labelStyle),
                           const SizedBox(height: 6),
-                          Text('¿Dónde aprendiste?', style: questionStyle),
+                          Text('¿Dónde o cómo te enteraste de hacerlo?', style: questionStyle),
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _dondeCtrl,
