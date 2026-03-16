@@ -6,6 +6,7 @@ import '../theme_provider.dart';
 import '../principal.dart';
 import 'dart:convert';
 import 'paso_identificacion.dart'; // IMPORT PASO IDENTIFICACION
+import '../servicios/user.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cuestionario de Riesgo Suicida
@@ -268,6 +269,14 @@ class _CuestionarioState extends State<Cuestionario> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('cuestionario_suicidio', jsonEncode(payload));
     await prefs.setBool('cuestionario_completado', true);
+
+      // Enviar al backend
+      final userService = User();
+      final resultado = await userService.updateCuestionario(
+        tipoCuestionario: 'suicidio',
+        respuestas: payload,
+      );
+      print('Backend cuestionario suicidio: $resultado');
 
     if (!mounted) return;
     setState(() => _enviando = false);

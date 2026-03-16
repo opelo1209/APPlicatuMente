@@ -6,6 +6,7 @@ import 'package:aptm/text_utils.dart';
 import '../principal.dart';
 import '../theme_provider.dart';
 import 'dart:convert';
+import '../servicios/user.dart';
 
 class CuestionarioAutolesion extends StatefulWidget {
   const CuestionarioAutolesion({super.key});
@@ -106,6 +107,14 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('cuestionario_autolesion', jsonEncode(payload));
     await prefs.setBool('cuestionario_autolesion_completado', true);
+
+      // Enviar al backend
+      final userService = User();
+      final resultado = await userService.updateCuestionario(
+        tipoCuestionario: 'autolesion',
+        respuestas: payload,
+      );
+      print('Backend cuestionario autolesion: $resultado');
 
     if (!mounted) return;
     setState(() => _enviando = false);

@@ -8,6 +8,7 @@ class Peticiones{
   
   // Endpoints
   static const String login = '$baseUrl/auth/login';
+  static const String loginGoogle = '$baseUrl/auth/google';
   static const String register = '$baseUrl/auth/register';
   static const String getUserMe = '$baseUrl/users/me';
   static const String syncUser = '$baseUrl/users/sync';
@@ -19,7 +20,7 @@ class Peticiones{
 
   // Análisis médico — endpoint externo
   static const String postCuestionario =
-      'https://api.killerbytes.space/data/cuestionarios';
+      '$baseUrl/users/cuestionario';
   
   // Headers comunes
   static Map<String, String> get headers => {

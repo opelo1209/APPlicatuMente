@@ -1,9 +1,22 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'peticiones.dart';
 
 class Auth {
+  bool _googleInitialized = false;
+
+  void _initGoogle() {
+    if (!_googleInitialized) {
+      GoogleSignIn.instance.initialize(
+        // Es obligatorio en Android para poder obtener el idToken
+        serverClientId: '773970807427-dqu2tgcoq7sbklofmlr9bbhmv48g9631.apps.googleusercontent.com',
+      );
+      _googleInitialized = true;
+    }
+  }
+
   // Almacenar token en SharedPreferences
   Future<void> _saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -20,7 +33,39 @@ class Auth {
   Future<void> clearToken() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
+    await prefs.remove('id_token');
+    await prefs.remove('refresh_token');
     await prefs.remove('cuestionario_completado');
+  }
+
+  String _normalizeBase64(String value) {
+    final output = value.replaceAll('-', '+').replaceAll('_', '/');
+    switch (output.length % 4) {
+      case 0:
+        return output;
+      case 2:
+        return '$output==';
+      case 3:
+        return '$output=';
+      default:
+        return output;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getTokenClaims() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return null;
+
+      final parts = token.split('.');
+      if (parts.length < 2) return null;
+
+      final payload = utf8.decode(base64Decode(_normalizeBase64(parts[1])));
+      return jsonDecode(payload) as Map<String, dynamic>;
+    } catch (e) {
+      print('Error al leer claims del token: $e');
+      return null;
+    }
   }
 
   // LOGIN
@@ -128,5 +173,68 @@ class Auth {
   Future<bool> isAuthenticated() async {
     final token = await getToken();
     return token != null && token.isNotEmpty;
+  }
+
+  // Login con Google usando backend
+  Future<Map<String, dynamic>> loginWithGoogle() async {
+    try {
+      _initGoogle();
+      final GoogleSignInAccount? googleUser = await GoogleSignIn.instance.authenticate();
+      if (googleUser == null) {
+        return {
+          'success': false,
+          'message': 'Login con Google cancelado por el usuario',
+        };
+      }
+
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken == null || idToken.isEmpty) {
+        return {
+          'success': false,
+          'message': 'No se pudo obtener el token de identidad de Google',
+        };
+      }
+
+      // Enviar idToken a nuestro endpoint de FastAPI
+      final response = await http.post(
+        Uri.parse(Peticiones.loginGoogle),
+        headers: Peticiones.headers,
+        body: jsonEncode({
+          'token': idToken,
+        }),
+      );
+
+      print('Google Login Backend Status: ${response.statusCode}');
+      print('Google Login Backend Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        // Guardar el access_token retornado por nuestro backend
+        if (data['access_token'] != null) {
+          await _saveToken(data['access_token']);
+        }
+        
+        return {
+          'success': true,
+          'data': data,
+          'message': 'Login con Google exitoso',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Credenciales de Google no aceptadas por el backend',
+          'error': response.body,
+        };
+      }
+    } catch (e) {
+      print('Error en loginWithGoogle: $e');
+      return {
+        'success': false,
+        'message': 'Error en autenticación con Google: $e',
+      };
+    }
   }
 }

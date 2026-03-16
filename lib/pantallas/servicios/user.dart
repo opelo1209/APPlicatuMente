@@ -113,13 +113,15 @@ class User {
     }
   }
 
-  // PUT /users/cuestionario - Actualizar estado del cuestionario
+  // PUT /users/cuestionario - Guardar sesión de cuestionario
   Future<Map<String, dynamic>> updateCuestionario({
-    required bool completado,
+    required String tipoCuestionario,
+    required Map<String, dynamic> respuestas,
+    bool completado = true,
   }) async {
     try {
       final token = await _getToken();
-      
+
       if (token == null) {
         return {
           'success': false,
@@ -131,6 +133,8 @@ class User {
         Uri.parse(Peticiones.updateCuestionario),
         headers: Peticiones.getAuthHeaders(token),
         body: jsonEncode({
+          'tipo_cuestionario': tipoCuestionario,
+          'respuestas': respuestas,
           'completado': completado,
         }),
       );
@@ -139,21 +143,18 @@ class User {
       print('Update Cuestionario Response: ${response.body}');
 
       if (response.statusCode == 200) {
-        // También guardar en SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('cuestionario_completado', completado);
-        
         final data = jsonDecode(response.body);
         return {
           'success': true,
           'data': data,
         };
-      } else {
-        return {
-          'success': false,
-          'message': 'Error al actualizar cuestionario',
-        };
       }
+
+      return {
+        'success': false,
+        'message': 'Error al guardar cuestionario (${response.statusCode})',
+        'body': response.body,
+      };
     } catch (e) {
       print('Error en updateCuestionario: $e');
       return {

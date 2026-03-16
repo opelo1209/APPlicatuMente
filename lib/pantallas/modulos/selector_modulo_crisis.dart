@@ -56,23 +56,7 @@ class SelectorModuloCrisis extends StatelessWidget {
                 children: [
                   _InfoBox(isDarkMode: isDarkMode),
                   const SizedBox(height: 30),
-                  _ModuleCard(
-                    title: 'Riesgo de suicidio',
-                    subtitle:
-                        'Conoce las señales, comprende factores de riesgo y evalúa la situación de forma segura.',
-                    icon: Icons.favorite_border_rounded,
-                    color: const Color(0xFF43A047),
-                    isDarkMode: isDarkMode,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ModuloSuicidio(),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 20),
+                
                   _ModuleCard(
                     title: 'Autolesiones',
                     subtitle:
@@ -85,6 +69,23 @@ class SelectorModuloCrisis extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => const ModuloAutolesiones(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                    _ModuleCard(
+                    title: 'Riesgo de suicidio',
+                    subtitle:
+                        'Conoce las señales, comprende factores de riesgo y evalúa la situación de forma segura.',
+                    icon: Icons.favorite_border_rounded,
+                    color: const Color(0xFF43A047),
+                    isDarkMode: isDarkMode,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ModuloSuicidio(),
                         ),
                       );
                     },

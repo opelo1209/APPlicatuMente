@@ -5,6 +5,7 @@ import '../theme_provider.dart';
 import '../principal.dart';
 import 'paso_preferencias.dart';
 import 'paso_escritura.dart';
+import '../servicios/user.dart';
 
 class CuestionarioWrapper extends StatefulWidget {
   const CuestionarioWrapper({super.key});
@@ -42,6 +43,14 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
     await prefs.setBool('cuestionario_completado', true);
 
     debugPrint("Respuestas Finales: $_respuestas");
+
+      // Enviar al backend
+      final userService = User();
+      final resultado = await userService.updateCuestionario(
+        tipoCuestionario: 'informacion_general',
+        respuestas: _respuestas,
+      );
+      print('Backend informacion general: $resultado');
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'theme_provider.dart';
 import 'registro.dart';
 import 'principal.dart';
@@ -29,13 +28,10 @@ class _LoginState extends State<Login> {
   // Servicios con los nombres CORRECTOS: Auth y User
   final Auth _auth = Auth();
   final User _user = User();
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
-  late final Future<void> _googleSignInInitialization;
 
   @override
   void initState() {
     super.initState();
-    _googleSignInInitialization = _googleSignIn.initialize();
   }
 
   @override
@@ -147,16 +143,23 @@ class _LoginState extends State<Login> {
       _isLoading = true;
     });
     try {
-      await _googleSignInInitialization;
-      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
+      final loginResult = await _auth.loginWithGoogle();
+      if (!loginResult['success']) {
+        _showMessage(
+          loginResult['message'] ?? 'Error al iniciar sesión con Google',
+          isError: true,
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
 
-      // Deberías enviar el token al backend para validar y obtener sesión si usas una API propia
-      // final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      // Con el nuevo endpoint del backend, la validación del token de Google y la creación del usuario
+      // se realizan internamente y nos devuelve directamente un token de acceso válido.
+      // Ya no necesitamos llamar a syncUser porque ya se guarda en base de datos.
       
-      // Guardar el email en shared preferences
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('google_email', googleUser.email); 
-      
       final bool cuestionarioCompletado = prefs.getBool('cuestionario_completado') ?? false;
       if (!mounted) return;
       
@@ -177,22 +180,8 @@ class _LoginState extends State<Login> {
         );
       }
 
-    } on GoogleSignInException catch (error) {
-      if (error.code == GoogleSignInExceptionCode.canceled ||
-          error.code == GoogleSignInExceptionCode.interrupted) {
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      print('Error en Google Sign-In: $error');
-      _showMessage('Error al iniciar sesión con Google', isError: true);
-      setState(() {
-        _isLoading = false;
-      });
     } catch (error) {
-      print('Error en Google Sign-In: $error');
+      print('Error en login Google: $error');
       _showMessage('Error al iniciar sesión con Google', isError: true);
       setState(() {
         _isLoading = false;
