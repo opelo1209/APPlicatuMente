@@ -10,8 +10,42 @@ class ModuloSuicidio extends StatefulWidget {
 }
 
 class _ModuloSuicidioState extends State<ModuloSuicidio> {
+  bool _isForTeens = true; // Empieza en modo para adolescentes por defecto
+
   @override
   Widget build(BuildContext context) {
+    // Textos dinámicos basados en la selección
+    final String bloque1Title = 'Bloque 1: Depresión (PHQ-9)';
+    final String bloque1Content = _isForTeens 
+      ? 'Este bloque sirve para ver si has tenido señales de depresión en las últimas semanas, como:\n\n• Sentirte muy triste o sin ganas de hacer cosas\n• Perder el interés en lo que antes te gustaba\n• Dormir mal o tener cambios en el apetito\n• Sentirte sin energía\n• Tener pensamientos de culpa o sentirte mal contigo mismo'
+      : 'Identifica la presencia y severidad de síntomas depresivos como tristeza profunda, pérdida de interés, problemas de sueño o apetito, falta de energía y sentimientos de culpa durante las últimas semanas.';
+
+    final String bloque2Title = _isForTeens ? 'Bloque 2: Pensamientos sobre morir (C-SSRS)' : 'Bloque 2: Ideación (C-SSRS)';
+    final String bloque2Content = _isForTeens
+      ? 'Ayuda a entender qué tan fuertes son los pensamientos sobre la muerte. Puede ir desde pensar que quisieras desaparecer o no existir, hasta tener ideas más claras de hacerte daño o incluso pensar en cómo hacerlo.'
+      : 'Analiza, de forma escalonada, la severidad de pensamientos suicidas: desde el simple deseo de estar muerto, hasta la ideación activa con intención y planes estructurados.';
+
+    final String factoresTitle = _isForTeens ? 'Comprendiendo lo que pasa en tu cuerpo y mente' : 'Comprendiendo los Factores Clínicos';
+
+    final String devCerebralTitle = _isForTeens ? 'Desarrollo del cerebro' : 'Desarrollo Cerebral';
+    final String devCerebralDesc = _isForTeens
+      ? 'Durante la adolescencia, tu cerebro todavía se está formando. La parte que ayuda a tomar decisiones y controlar impulsos aún no está completamente desarrollada, por eso a veces las emociones pueden sentirse muy intensas o difíciles de controlar.'
+      : 'En la adolescencia y juventud temprana, el córtex prefrontal aún está en desarrollo, lo que puede limitar el control de impulsos frente al desbordamiento emocional.';
+
+    final String quimicaTitle = _isForTeens ? 'Química del cerebro' : 'Química del Cerebro';
+    final String quimicaDesc = _isForTeens
+      ? 'En el cerebro hay sustancias (como serotonina y dopamina) que influyen en cómo te sientes. Cuando hay un desbalance, las emociones pueden sentirse mucho más fuertes, especialmente el dolor emocional.'
+      : 'Desequilibrios en neurotransmisores (como serotonina y dopamina) alteran la percepción y hacen que el dolor emocional se experimente de forma mucho más intensa.';
+
+    final String estresTitle = _isForTeens ? 'Estrés y sobrecarga' : 'Estrés y Sobrecarga';
+    final String estresDesc = _isForTeens
+      ? 'Cuando pasas por mucho estrés o situaciones difíciles por mucho tiempo, tu cuerpo se cansa y le cuesta más trabajo manejar lo que sientes.'
+      : 'Situaciones prolongadas de estrés o traumas agotan la capacidad natural del cuerpo (Eje HPA) para regularse y manejar la adversidad.';
+
+    final String esperanzaMsg = _isForTeens
+      ? 'No tienes que pasar por esto solo.\nHablar con alguien de confianza, como un familiar, amigo o profesional, puede ayudarte a sentirte mejor. Ser honesto sobre lo que sientes es un paso importante para encontrar apoyo.'
+      : 'La evaluación temprana salva vidas. Responder con honestidad ayuda a encontrar el mejor camino hacia el bienestar de sus seres queridos.';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), // Fondo suave y minimalista
       appBar: AppBar(
@@ -108,7 +142,71 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
                   ],
                 ),
               ),
-              const SizedBox(height: 38),
+              const SizedBox(height: 28),
+
+              // Toggle Adolescentes / Padres
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isForTeens = true),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _isForTeens ? Colors.white : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: _isForTeens
+                                ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))]
+                                : [],
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Para ti (Adolescente)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: _isForTeens ? Colors.indigo : Colors.black54,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isForTeens = false),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: !_isForTeens ? Colors.white : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: !_isForTeens
+                                ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))]
+                                : [],
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Para padres',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: !_isForTeens ? Colors.deepOrange : Colors.black54,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
 
               const Text(
                 'Estructura del Cuestionario',
@@ -120,23 +218,23 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
               ),
               const SizedBox(height: 16),
               _buildSection(
-                title: 'Bloque 1: Depresión (PHQ-9)',
-                content: 'Identifica la presencia y severidad de síntomas depresivos como tristeza profunda, pérdida de interés, problemas de sueño o apetito, falta de energía y sentimientos de culpa durante las últimas semanas.',
+                title: bloque1Title,
+                content: bloque1Content,
                 icon: Icons.quiz_rounded,
                 color: Colors.indigo,
               ),
               _buildSection(
-                title: 'Bloque 2: Ideación (C-SSRS)',
-                content: 'Analiza, de forma escalonada, la severidad de pensamientos suicidas: desde el simple deseo de estar muerto, hasta la ideación activa con intención y planes estructurados.',
+                title: bloque2Title,
+                content: bloque2Content,
                 icon: Icons.fact_check_rounded,
                 color: Colors.deepOrange,
               ),
 
               const SizedBox(height: 32),
 
-              const Text(
-                'Comprendiendo los Factores Clínicos',
-                style: TextStyle(
+              Text(
+                factoresTitle,
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF2D3748),
@@ -145,20 +243,20 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
               const SizedBox(height: 16),
               
               _buildModernCard(
-                title: 'Desarrollo Cerebral',
-                description: 'En la adolescencia y juventud temprana, el córtex prefrontal aún está en desarrollo, lo que puede limitar el control de impulsos frente al desbordamiento emocional.',
+                title: devCerebralTitle,
+                description: devCerebralDesc,
                 icon: Icons.psychology_rounded,
                 color: Colors.purple,
               ),
               _buildModernCard(
-                title: 'Química del Cerebro',
-                description: 'Desequilibrios en neurotransmisores (como serotonina y dopamina) alteran la percepción y hacen que el dolor emocional se experimente de forma mucho más intensa.',
+                title: quimicaTitle,
+                description: quimicaDesc,
                 icon: Icons.science_rounded,
                 color: Colors.blueAccent,
               ),
               _buildModernCard(
-                title: 'Estrés y Sobrecarga',
-                description: 'Situaciones prolongadas de estrés o traumas agotan la capacidad natural del cuerpo (Eje HPA) para regularse y manejar la adversidad.',
+                title: estresTitle,
+                description: estresDesc,
                 icon: Icons.monitor_heart_rounded,
                 color: Colors.teal,
               ),
@@ -193,8 +291,8 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
+                        children: [
+                          const Text(
                             'Hay ayuda disponible',
                             style: TextStyle(
                               fontSize: 18,
@@ -202,10 +300,10 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
                               color: Colors.indigo,
                             ),
                           ),
-                          SizedBox(height: 6),
+                          const SizedBox(height: 6),
                           Text(
-                            'La evaluación temprana salva vidas. Responder con honestidad ayuda a encontrar el mejor camino hacia el bienestar.',
-                            style: TextStyle(
+                            esperanzaMsg,
+                            style: const TextStyle(
                               fontSize: 14,
                               height: 1.4,
                               color: Color(0xFF4A5568),

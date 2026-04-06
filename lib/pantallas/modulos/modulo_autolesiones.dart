@@ -2,11 +2,49 @@ import 'package:flutter/material.dart';
 import 'package:aptm/text_utils.dart';
 import '../cuestionarios/cuestionario_autolesion.dart';
 
-class ModuloAutolesiones extends StatelessWidget {
+class ModuloAutolesiones extends StatefulWidget {
   const ModuloAutolesiones({super.key});
 
   @override
+  State<ModuloAutolesiones> createState() => _ModuloAutolesionesState();
+}
+
+class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
+  bool _isForTeens = true;
+
+  @override
   Widget build(BuildContext context) {
+    final String heroDescription = _isForTeens
+        ? 'A veces, el dolor emocional es tan fuerte que buscamos apagarlo. Aquí aprenderemos qué pasa y cómo pedir ayuda.'
+        : 'Comprender la autolesión no suicida (NSSI) es clave para brindar apoyo. Aquí aprenderá sus causas, factores de riesgo y cómo actuar.';
+
+    final String qyaContent = _isForTeens
+        ? '• Es lastimarse a propósito (cortarse, quemarse, rascarse), pero SIN querer morir.\n• NO es saludable ni normal, ocurre por emociones muy fuertes que no sabemos cómo manejar.'
+        : '• Consiste en el daño deliberado del propio cuerpo (cortes, quemaduras, golpes) sin intención suicida.\n• Suele ser un mecanismo de afrontamiento disfuncional ante un desbordamiento emocional severo.';
+
+    final String warningMsg = _isForTeens
+        ? 'Aunque no es para morir, hacerlo mucho sí aumenta el riesgo de tener pensamientos o conductas mucho más peligrosas.'
+        : 'Aunque el objetivo inicial no es terminar con la vida, la repetición de autolesiones incrementa significativamente el riesgo de conducta suicida futura.';
+
+    final String pkTitle = _isForTeens ? '¿Por qué lo hacen?' : '¿Por qué sucede?';
+    final String pkContent = _isForTeens
+        ? 'Las personas pueden lastimarse por varias razones:\n\n1. Para calmar emociones fuertes (tristeza, enojo, ansiedad).\n2. Para castigarse por sentir mucha culpa o creer que hicieron algo mal.\n3. Para sentir "algo" o sentir control cuando se sienten muy vacíos.\n4. Para mostrar que están sufriendo cuando es difícil usar palabras.'
+        : 'Principales funciones de la conducta:\n\n1. Regulación emocional: Aliviar tensión, ansiedad o angustia severa.\n2. Autocastigo: Asociado a sentimientos profundos de culpa o vergüenza.\n3. Anti-disociación: Sentir dolor físico para contrarrestar gran desconexión.\n4. Comunicación: Expresar de forma no verbal un sufrimiento profundo.';
+
+    final String riskContent = _isForTeens
+        ? 'Cosas que pueden hacer que pase:\n• Estar muy triste o con mucha ansiedad.\n• Problemas familiares o bullying.\n• Haber pasado por cosas muy difíciles o traumáticas.\n• Tomar alcohol o drogas.\n\nTener estos problemas no significa que alguien se lastimará.'
+        : 'Factores de vulnerabilidad asociados:\n• Trastornos de estado de ánimo (depresión, ansiedad extrema).\n• Conflictos familiares, situaciones de bullying o acoso escolar.\n• Historial de trauma o abuso.\n• Consumo de sustancias.\n\nLa presencia de estos factores no determina la conducta, pero incrementa el riesgo.';
+
+    final String actionTitle = _isForTeens ? '¿Qué más puedo hacer?' : '¿Cómo puedo ayudar?';
+    final String actionContent = _isForTeens
+        ? 'Sentirse triste o enojado es parte de la vida, pero hay formas sanas de manejarlo como:\n• Hablar con alguien de confianza o un psicólogo.\n• Escribir o dibujar lo que sientes.\n• Hacer ejercicio o escuchar música.\n\nPedir ayuda no es debilidad. Es de valientes.'
+        : '• Mantenga la calma: Una reacción de pánico o reprensión puede empeorar la situación y generar asilamiento.\n• Escuche sin juzgar: Valide su malestar emocional sin justificar la conducta autolesiva.\n• Busque ayuda profesional: Requiere evaluación y acompañamiento clínico adecuado.';
+
+    final String footerTitle = _isForTeens ? '¡No estás solo/a!' : 'El apoyo es fundamental';
+    final String footerMsg = _isForTeens
+        ? 'Pedir ayuda es el acto más grande de valentía. Hablar con alguien de confianza puede cambiarlo todo.'
+        : 'Abordar el tema con empatía, contención y sin juicios de valor, es el primer paso vital para su recuperación.';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
@@ -72,9 +110,9 @@ class ModuloAutolesiones extends StatelessWidget {
                           const SizedBox(height: 12),
                           SizedBox(
                             width: MediaQuery.of(context).size.width * 0.55,
-                            child: const Text(
-                              'A veces, el dolor emocional es tan fuerte que buscamos apagarlo. Aquí aprenderemos qué pasa y cómo pedir ayuda.',
-                              style: TextStyle(
+                            child: Text(
+                              heroDescription,
+                              style: const TextStyle(
                                 fontSize: 14,
                                 height: 1.4,
                                 color: Colors.white,
@@ -88,7 +126,7 @@ class ModuloAutolesiones extends StatelessWidget {
                       right: -10,
                       bottom: -15,
                       child: Image.asset(
-                        'assets/imagenes/quetzal_8.png', // Imagen del quetzal acompañando
+                        'assets/imagenes/quetzal_8.png',
                         height: 150,
                         fit: BoxFit.contain,
                       ),
@@ -96,7 +134,71 @@ class ModuloAutolesiones extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 38),
+              const SizedBox(height: 28),
+
+              // Toggle Adolescentes / Padres
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isForTeens = true),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _isForTeens ? Colors.white : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: _isForTeens
+                                ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))]
+                                : [],
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Para ti (Adolescente)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: _isForTeens ? const Color(0xFF00897B) : Colors.black54,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isForTeens = false),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: !_isForTeens ? Colors.white : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: !_isForTeens
+                                ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))]
+                                : [],
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Para padres',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: !_isForTeens ? Colors.deepOrange : Colors.black54,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
 
               const Text(
                 'Información Clave',
@@ -110,7 +212,7 @@ class ModuloAutolesiones extends StatelessWidget {
               
               _buildSection(
                 title: '¿Qué es y qué no es?',
-                content: '• Es lastimarse a propósito (cortarse, quemarse, rascarse), pero SIN querer morir.\n• NO es saludable ni normal, ocurre por emociones muy fuertes que no sabemos cómo manejar.',
+                content: qyaContent,
                 icon: Icons.info_outline_rounded,
                 color: Colors.teal,
               ),
@@ -125,13 +227,13 @@ class ModuloAutolesiones extends StatelessWidget {
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Icon(Icons.warning_amber_rounded, color: Color(0xFFF97316), size: 28),
-                    SizedBox(width: 12),
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Color(0xFFF97316), size: 28),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Aunque no es para morir, hacerlo mucho sí aumenta el riesgo de pensar en el suicidio.',
-                        style: TextStyle(
+                        warningMsg,
+                        style: const TextStyle(
                           fontSize: 14.5,
                           color: Color(0xFF9A3412), // Texto naranja oscuro
                           height: 1.4,
@@ -144,22 +246,22 @@ class ModuloAutolesiones extends StatelessWidget {
               ),
 
               _buildSection(
-                title: '¿Por qué lo hacen?',
-                content: 'Las personas pueden lastimarse por varias razones:\n\n1. Para calmar emociones fuertes (tristeza, enojo, ansiedad).\n2. Para castigarse por sentir mucha culpa o creer que hicieron algo mal.\n3. Para sentir "algo" o sentir control cuando se sienten muy vacíos.\n4. Para mostrar que están sufriendo cuando es difícil usar palabras.',
+                title: pkTitle,
+                content: pkContent,
                 icon: Icons.psychology_alt_rounded,
                 color: Colors.blue,
               ),
 
               _buildSection(
                 title: 'Situaciones de riesgo',
-                content: 'Factores que pueden aumentar el riesgo:\n• Depresión o ansiedad.\n• Problemas familiares o bullying.\n• Experiencias traumáticas.\n• Uso de alcohol o drogas.\n\nTener estos problemas no significa que alguien se lastimará, cada uno reacciona distinto.',
+                content: riskContent,
                 icon: Icons.report_problem_rounded,
                 color: Colors.orange,
               ),
 
               _buildSection(
-                title: '¿Qué más puedo hacer?',
-                content: 'Sentirse triste o enojado es parte de la vida, pero hay formas sanas de manejarlo como:\n• Hablar con alguien de confianza o un psicólogo.\n• Escribir lo que sientes.\n• Hacer ejercicio o escuchar música.\n\nPedir ayuda no es debilidad. Es un acto de valentía.',
+                title: actionTitle,
+                content: actionContent,
                 icon: Icons.favorite_border_rounded,
                 color: Colors.purple,
               ),
@@ -190,19 +292,19 @@ class ModuloAutolesiones extends StatelessWidget {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
-                            '¡No estás solo/a!',
-                            style: TextStyle(
+                            footerTitle,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF00897B),
                             ),
                           ),
-                          SizedBox(height: 6),
+                          const SizedBox(height: 6),
                           Text(
-                            'Pedir ayuda es el acto más grande de valentía. Hablar con alguien de confianza puede cambiarlo todo.',
-                            style: TextStyle(
+                            footerMsg,
+                            style: const TextStyle(
                               fontSize: 14,
                               height: 1.4,
                               color: Color(0xFF4B5563),
@@ -254,7 +356,7 @@ class ModuloAutolesiones extends StatelessWidget {
     );
   }
 
-  static Widget _buildSection({
+  Widget _buildSection({
     required String title,
     required String content,
     required IconData icon,

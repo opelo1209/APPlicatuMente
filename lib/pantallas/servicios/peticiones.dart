@@ -4,7 +4,7 @@ class Peticiones{
   // Para emulador Android: http://10.0.2.2:8000
   // Para iOS Simulator: http://localhost:8000
   // Para dispositivo físico: http://127.0.0.1:8001
-  static const String baseUrl = 'http://killerbytes.space:8001';
+  static const String baseUrl = 'https://api.killerbytes.space';
   
   // Endpoints
   static const String login = '$baseUrl/auth/login';
