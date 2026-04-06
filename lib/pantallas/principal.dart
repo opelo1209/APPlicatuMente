@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
 import 'login.dart';
+import 'juegos/tcg_flame_screen.dart';
 import 'modulos/selector_modulo_crisis.dart';
 
 class Principal extends StatefulWidget {
@@ -343,6 +344,23 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
             textColor: Colors.black87,
              onTap: () {
               // Navegar al cuestionario
+            },
+          ),
+
+          _buildOptionCard(
+            context,
+            imagePath: 'assets/imagenes/quetzal_8.png',
+            title: "TCG Salud Mental (Beta)",
+            subtitle: "Arrastra cartas y enfrentate al Boss",
+            color: const Color(0xFFE3F2FD),
+            textColor: Colors.black87,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TcgFlameScreen(),
+                ),
+              );
             },
           ),
           
