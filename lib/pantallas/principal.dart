@@ -72,6 +72,9 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
         case 1:
           _title = 'Inicio';
           break;
+        case 2:
+          _title = 'TCG Salud Mental';
+          break;
         default:
           _title = 'Inicio';
       }
@@ -132,9 +135,16 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
          return _buildChatbot(); 
       case 1:
         return SingleChildScrollView(child: _buildInicio(context));
+      case 2:
+        return _buildTCG();
+
       default:
         return Container();
     }
+  }
+
+  Widget _buildTCG() {
+    return const TcgFlameScreen();
   }
 
   Widget _buildChatbot() {
@@ -656,6 +666,7 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
             children: [
               _buildNavBarItem(0, Icons.chat_bubble_outline, "Chatbot"),
               _buildNavBarItem(1, Icons.home_outlined, "Inicio"),
+              _buildNavBarItem(2, Icons.videogame_asset_outlined, "TCG"),
             ],
           ),
         ),

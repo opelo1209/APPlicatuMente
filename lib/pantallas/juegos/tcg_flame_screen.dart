@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 
 import 'tcg_flame_game.dart';
 
+import 'package:just_audio/just_audio.dart';
+
 enum _GameMenuAction { toggleSound, continueGame, exitGame }
 
 class TcgFlameScreen extends StatefulWidget {
   const TcgFlameScreen({super.key});
-
   @override
   State<TcgFlameScreen> createState() => _TcgFlameScreenState();
 }
@@ -15,11 +16,19 @@ class TcgFlameScreen extends StatefulWidget {
 class _TcgFlameScreenState extends State<TcgFlameScreen> {
   late final MentalTcgGame _game;
   bool _soundEnabled = true;
+  late final AudioPlayer player;
 
   @override
   void initState() {
     super.initState();
     _game = MentalTcgGame();
+    _initializeAudio();
+  }
+
+  Future<void> _initializeAudio() async {
+    player = AudioPlayer();
+    await player.setAsset( 'assets/musica/tcg/Quick_Save.mp3');
+    player.play();
   }
 
   Future<void> _openGameMenu() async {
@@ -111,6 +120,11 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
     if (action == _GameMenuAction.toggleSound) {
       setState(() {
         _soundEnabled = !_soundEnabled;
+        if (_soundEnabled) {
+          player.play();
+        } else {
+          player.pause();
+        }
       });
       _game.resumeEngine();
       return;
@@ -128,7 +142,7 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
           'hud': (context, game) {
             return SafeArea(
               child: Padding(
-                padding: const EdgeInsets.only(top: 8, left: 8, right: 8),
+              padding: const EdgeInsets.only(top: 35, left: 28, right: 28),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

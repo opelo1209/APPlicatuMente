@@ -4,7 +4,10 @@ import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 
 enum MentalCardType { cognitivo, emocional, conductual }
 
@@ -32,7 +35,7 @@ extension MentalCardTypeX on MentalCardType {
   }
 }
 
-const String _boardAssetPath = 'assets/imagenes/tcg/tcg-tablero.jpg';
+const String _boardAssetPath = 'assets/imagenes/tcg/tcg-tablero.png';
 const List<String> _cardArtPaths = <String>[
   'assets/imagenes/tcg/tcg1.jpeg',
   'assets/imagenes/tcg/tcg2.jpeg',
@@ -50,10 +53,37 @@ const List<String> _cardArtPaths = <String>[
   'assets/imagenes/tcg/tcg14.jpeg',
 ];
 
-const double _fieldCardWidth = 124;
-const double _fieldCardHeight = 176;
-const double _handCardWidth = 86;
-const double _handCardHeight = 124;
+// --- ZONA DE CONFIGURACIÓN ---
+// 1. Jefe (Boss) - No tiene zona de drop, solo posición visual
+const double _bossCardWidth = 118.0;   
+const double _bossCardHeight = 148.0;  
+const double _bossPosYRatio = 0.250; // Altura (0.0 es arriba del todo, 1.0 es abajo del todo)
+
+// 2. Jugador (Carta central) y su Zona de Drop
+const double _playerCardWidth = 125.0; 
+const double _playerCardHeight = 175.0; 
+const double _playerPosYRatio = 0.460; // Altura
+
+// Qué tan grande es la caja invisible para soltar la carta central.
+// Ajústalo hasta que calce perfectamente con las líneas de tu tablero.
+const double _mainDropZoneWidth = 125.0; 
+const double _mainDropZoneHeight = 175.0; 
+
+// 3. Cartas Inferiores (Poder) y sus Zonas de Drop
+const double _powerCardWidth = 83.0;  
+const double _powerCardHeight = 119.0; 
+const double _powerPosYRatio = 0.690; // Altura de la línea de 3 cartas
+const double _powerDropGap = 22.0;    // Espacio (hueco) entre las 3 cartas
+
+// Qué tan grandes son los rectángulos invisibles para soltar cartas abajo.
+const double _powerDropZoneWidth = 90.0;
+const double _powerDropZoneHeight = 130.0;
+
+// 4. Cartas en la mano
+const double _handCardWidth = 92.0;
+const double _handCardHeight = 132.0;
+const int _powerSlotCount = 3;
+// -----------------------------------------------------------------
 
 class MentalCard {
   const MentalCard({
@@ -75,14 +105,17 @@ class MentalTcgGame extends FlameGame {
   MentalTcgGame();
 
   final Random _random = Random();
-
+  
   late final PositionComponent _background;
   late final RectangleComponent _backgroundTint;
   late final DropZoneComponent _dropZone;
-  late final TextComponent _statsText;
+  late final List<PowerDropZoneComponent> _powerZones;
+
 
   final List<DraggableCardComponent> _handCards = <DraggableCardComponent>[];
   final List<MentalCard> _drawPile = <MentalCard>[];
+  final List<CardFaceComponent?> _powerCardViews =
+      List<CardFaceComponent?>.filled(_powerSlotCount, null);
   final ValueNotifier<String?> previewArtPath = ValueNotifier<String?>(null);
 
   CardFaceComponent? _bossCardView;
@@ -100,6 +133,7 @@ class MentalTcgGame extends FlameGame {
 
   @override
   Future<void> onLoad() async {
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     await super.onLoad();
 
     images.prefix = '';
@@ -131,20 +165,13 @@ class MentalTcgGame extends FlameGame {
     _dropZone = DropZoneComponent();
     add(_dropZone);
 
-    _statsText = TextComponent(
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          shadows: [
-            Shadow(color: Colors.black87, blurRadius: 6),
-          ],
-        ),
-      ),
-      priority: 40,
+    _powerZones = List<PowerDropZoneComponent>.generate(
+      _powerSlotCount,
+      (_) => PowerDropZoneComponent(),
     );
-    add(_statsText);
+    for (final zone in _powerZones) {
+      add(zone);
+    }
 
     resetMatch();
   }
@@ -171,6 +198,11 @@ class MentalTcgGame extends FlameGame {
 
     _playerFieldCardView?.removeFromParent();
     _playerFieldCardView = null;
+
+    for (var i = 0; i < _powerCardViews.length; i++) {
+      _powerCardViews[i]?.removeFromParent();
+      _powerCardViews[i] = null;
+    }
 
     playerHp = 20;
     bossHp = 20;
@@ -221,7 +253,7 @@ class MentalTcgGame extends FlameGame {
     _bossCardView?.removeFromParent();
     _bossCardView = CardFaceComponent(
       card: _bossCard!,
-      cardSize: Vector2(_fieldCardWidth, _fieldCardHeight),
+      cardSize: Vector2(_bossCardWidth, _bossCardHeight),
     );
     add(_bossCardView!);
     _animateEnemyDeploy(_bossCardView!);
@@ -230,6 +262,12 @@ class MentalTcgGame extends FlameGame {
   void _handleDrop(DraggableCardComponent cardView) {
     if (_isFinished) {
       cardView.returnToHome();
+      return;
+    }
+
+    final powerSlotIndex = _findPowerSlotAt(cardView);
+    if (powerSlotIndex != -1) {
+      _dropOnPowerSlot(cardView, powerSlotIndex);
       return;
     }
 
@@ -288,6 +326,45 @@ class MentalTcgGame extends FlameGame {
     _layoutBoard();
   }
 
+  int _findPowerSlotAt(DraggableCardComponent cardView) {
+    for (var i = 0; i < _powerZones.length; i++) {
+      if (cardView.toRect().overlaps(_powerZones[i].toRect())) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  void _dropOnPowerSlot(DraggableCardComponent cardView, int slotIndex) {
+    if (_powerCardViews[slotIndex] != null) {
+      cardView.returnToHome();
+      return;
+    }
+
+    final card = cardView.card;
+    if (mana < card.energyCost) {
+      _setHint(
+        'No hay energia suficiente para ${card.name}. Costo ${card.energyCost}.',
+      );
+      cardView.returnToHome();
+      return;
+    }
+
+    _handCards.remove(cardView);
+    cardView.removeFromParent();
+
+    mana -= card.energyCost;
+
+    final powerCardView = CardFaceComponent(
+      card: card,
+      cardSize: Vector2(_powerCardWidth, _powerCardHeight),
+    );
+    _powerCardViews[slotIndex] = powerCardView;
+    add(powerCardView);
+    _animatePowerDeploy(powerCardView);
+    _layoutBoard();
+  }
+
   int _scaledDamage(int basePower, double factor) {
     final raw = (basePower * factor).round();
     return max(1, raw);
@@ -334,39 +411,55 @@ class MentalTcgGame extends FlameGame {
     _playerFieldCardView?.removeFromParent();
     _playerFieldCardView = CardFaceComponent(
       card: card,
-      cardSize: Vector2(_fieldCardWidth, _fieldCardHeight),
+      cardSize: Vector2(_playerCardWidth, _playerCardHeight),
     );
     add(_playerFieldCardView!);
     _animatePlayerDeploy(_playerFieldCardView!);
   }
 
   void _animateEnemyDeploy(CardFaceComponent cardView) {
-    cardView.scale = Vector2.all(0.9);
+    cardView.scale = Vector2.all(0.6);
     cardView.add(
       SequenceEffect([
         ScaleEffect.to(
-          Vector2.all(1.05),
-          EffectController(duration: 0.16, curve: Curves.easeOut),
+          Vector2.all(1.15),
+          EffectController(duration: 0.25, curve: Curves.easeOutBack),
         ),
         ScaleEffect.to(
           Vector2.all(1),
-          EffectController(duration: 0.14, curve: Curves.easeInOut),
+          EffectController(duration: 0.20, curve: Curves.easeInOut),
         ),
       ]),
     );
   }
 
   void _animatePlayerDeploy(CardFaceComponent cardView) {
-    cardView.scale = Vector2.all(0.86);
+    cardView.scale = Vector2.all(0.6);
     cardView.add(
       SequenceEffect([
         ScaleEffect.to(
-          Vector2.all(1.09),
-          EffectController(duration: 0.18, curve: Curves.easeOut),
+          Vector2.all(1.20),
+          EffectController(duration: 0.30, curve: Curves.easeOutBack),
         ),
         ScaleEffect.to(
           Vector2.all(1),
-          EffectController(duration: 0.16, curve: Curves.easeInOut),
+          EffectController(duration: 0.20, curve: Curves.easeInOut),
+        ),
+      ]),
+    );
+  }
+
+  void _animatePowerDeploy(CardFaceComponent cardView) {
+    cardView.scale = Vector2.all(0.6);
+    cardView.add(
+      SequenceEffect([
+        ScaleEffect.to(
+          Vector2.all(1.15),
+          EffectController(duration: 0.25, curve: Curves.easeOutBack),
+        ),
+        ScaleEffect.to(
+          Vector2.all(1),
+          EffectController(duration: 0.18, curve: Curves.easeInOut),
         ),
       ]),
     );
@@ -394,22 +487,50 @@ class MentalTcgGame extends FlameGame {
       ..position = Vector2.zero()
       ..size = size;
 
-    const dropPadding = 9.0;
-    final centerX = (size.x - _fieldCardWidth) / 2;
-    final bossY = size.y * 0.24;
-    final playerY = size.y * 0.465;
+    // --- POSICIONES X e Y CALCULADAS SEGÚN EL ESPACIO ---
+    final bossY = size.y * _bossPosYRatio;
+    final playerY = size.y * _playerPosYRatio;
+    final powerY = size.y * _powerPosYRatio;
+
+    // Centros X visuales para las cartas de arriba
+    final bossCenterX = (size.x - _bossCardWidth) / 2;
+    final playerCenterX = (size.x - _playerCardWidth) / 2;
+
+    // 1. DIBUJAR CAJA DE DROP PRINCIPAL INDEPENDIENTE
+    // La ubicamos exactamente en el mismo centro X e Y que dibujamos la carta del jugador
+    final mainDropCenterX = playerCenterX + (_playerCardWidth / 2);
+    final mainDropCenterY = playerY + (_playerCardHeight / 2);
     _dropZone
-      ..position = Vector2(centerX - dropPadding, playerY - dropPadding)
-      ..size = Vector2(
-        _fieldCardWidth + (dropPadding * 2),
-        _fieldCardHeight + (dropPadding * 2),
+      ..position = Vector2(
+        mainDropCenterX - (_mainDropZoneWidth / 2),
+        mainDropCenterY - (_mainDropZoneHeight / 2),
       )
+      ..size = Vector2(_mainDropZoneWidth, _mainDropZoneHeight)
       ..refreshLayout();
 
-    _statsText.position = Vector2(12, 42);
+    _bossCardView?.position = Vector2(bossCenterX, bossY);
+    _playerFieldCardView?.position = Vector2(playerCenterX, playerY);
 
-    _bossCardView?.position = Vector2(centerX, bossY);
-    _playerFieldCardView?.position = Vector2(centerX, playerY);
+    // 2. DIBUJAR CAJAS DE DROP INFERIORES INDEPENDIENTES
+    final totalPowerWidth =
+        (_powerCardWidth * _powerSlotCount) + (_powerDropGap * (_powerSlotCount - 1));
+    final powerStartX = (size.x - totalPowerWidth) / 2;
+
+    for (var i = 0; i < _powerZones.length; i++) {
+      // Posición final de la carta si es colocada aquí
+      final cardX = powerStartX + (i * (_powerCardWidth + _powerDropGap));
+      
+      // Posición del RECÚADRO que detecta cuando la sueltas (centrado alrededor del 'slot' de la carta)
+      final dropX = cardX + (_powerCardWidth / 2) - (_powerDropZoneWidth / 2);
+      final dropY = powerY + (_powerCardHeight / 2) - (_powerDropZoneHeight / 2);
+      
+      _powerZones[i]
+        ..position = Vector2(dropX, dropY)
+        ..size = Vector2(_powerDropZoneWidth, _powerDropZoneHeight)
+        ..refreshLayout();
+
+      _powerCardViews[i]?.position = Vector2(cardX, powerY);
+    }
 
     _layoutHand();
   }
@@ -421,11 +542,11 @@ class MentalTcgGame extends FlameGame {
 
     const cardWidth = _handCardWidth;
     const cardHeight = _handCardHeight;
-    const gap = 8.0;
+    const gap = 10.0;
     final totalWidth = (_handCards.length * cardWidth) +
         ((_handCards.length - 1) * gap);
     final startX = (size.x - totalWidth) / 2;
-    final y = size.y - cardHeight - 12;
+    final y = size.y - cardHeight - 8;
 
     for (var i = 0; i < _handCards.length; i++) {
       final home = Vector2(startX + (i * (cardWidth + gap)), y);
@@ -435,26 +556,28 @@ class MentalTcgGame extends FlameGame {
 }
 
 class DropZoneComponent extends PositionComponent {
-  late final RectangleComponent _glow;
-  late final RectangleComponent _border;
+  RectangleComponent? _glow;
+  RectangleComponent? _border;
   var _ready = false;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
-    _glow = RectangleComponent(
-      paint: Paint()..color = const Color(0x224FC3F7),
-    );
-    add(_glow);
+    if (kDebugMode) {
+      _glow = RectangleComponent(
+        paint: Paint()..color = const Color(0x224FC3F7),
+      );
+      add(_glow!);
 
-    _border = RectangleComponent(
-      paint: Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..color = Colors.white70,
-    );
-    add(_border);
+      _border = RectangleComponent(
+        paint: Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..color = Colors.white70,
+      );
+      add(_border!);
+    }
     _ready = true;
     refreshLayout();
   }
@@ -463,8 +586,44 @@ class DropZoneComponent extends PositionComponent {
     if (!_ready) {
       return;
     }
-    _glow.size = size;
-    _border.size = size;
+    _glow?.size = size;
+    _border?.size = size;
+  }
+}
+
+class PowerDropZoneComponent extends PositionComponent {
+  RectangleComponent? _glow;
+  RectangleComponent? _border;
+  var _ready = false;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+
+    if (kDebugMode) {
+      _glow = RectangleComponent(
+        paint: Paint()..color = const Color(0x1839B06F),
+      );
+      add(_glow!);
+
+      _border = RectangleComponent(
+        paint: Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.4
+          ..color = const Color(0xCCFFFFFF),
+      );
+      add(_border!);
+    }
+    _ready = true;
+    refreshLayout();
+  }
+
+  void refreshLayout() {
+    if (!_ready) {
+      return;
+    }
+    _glow?.size = size;
+    _border?.size = size;
   }
 }
 
@@ -488,9 +647,11 @@ class CardFaceComponent extends PositionComponent
 
     add(
       RectangleComponent(
-        position: Vector2(3, 4),
+        position: Vector2(6, 10),
         size: size,
-        paint: Paint()..color = const Color(0x33000000),
+        paint: Paint()
+          ..color = Colors.black.withOpacity(0.5)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8.0),
       ),
     );
 
