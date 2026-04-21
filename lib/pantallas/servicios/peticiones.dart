@@ -18,6 +18,11 @@ class Peticiones{
   static const String activarUsuario = '$baseUrl/users/activar';
   static const String desactivarUsuario = '$baseUrl/users/desactivar';
 
+  // Serena chatbot
+  static const String serenaChat = '$baseUrl/chat';
+  static const String serenaHistorial = '$baseUrl/chat/historial';
+  static const String serenaSalud = '$baseUrl/salud';
+
   // Análisis médico — endpoint externo
   static const String postCuestionario =
       '$baseUrl/users/cuestionario';

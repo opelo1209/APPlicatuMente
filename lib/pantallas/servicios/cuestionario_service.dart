@@ -12,12 +12,8 @@ class CuestionarioService {
     return prefs.getString('access_token');
   }
 
-  /// Envía un cuestionario completo al endpoint de análisis médico.
-  ///
-  /// [tipoCuestionario] — 'suicidio' | 'autolesion'
-  /// [bloques] — lista de bloques, cada uno con sus reactivos respondidos.
-  ///
-  /// Estructura de cada bloque:
+  /// Envía un cuestionario completo 
+  /// Estructura:
   /// ```json
   /// {
   ///   "bloque": "PHQ9",

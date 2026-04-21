@@ -4,6 +4,7 @@ import 'theme_provider.dart';
 import 'login.dart';
 import 'juegos/tcg_flame_screen.dart';
 import 'modulos/selector_modulo_crisis.dart';
+import 'modulos/chatbot_serena.dart';
 
 class Principal extends StatefulWidget {
   const Principal({super.key});
@@ -12,62 +13,17 @@ class Principal extends StatefulWidget {
   State<Principal> createState() => _PrincipalState();
 }
 
-class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
+class _PrincipalState extends State<Principal> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _selectedIndex = 1;
   String _title = 'Inicio';
-
-  // Variables para el Chatbot
-  final TextEditingController _chatController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-  final List<Map<String, String>> _messages = [
-    {'sender': 'bot', 'text': '¡Hola! Soy tu asistente emocional.\n¿Cómo te sientes hoy?'},
-  ];
-
-  @override
-  void dispose() {
-    _chatController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _sendMessage() {
-    if (_chatController.text.trim().isEmpty) return;
-    setState(() {
-      _messages.add({'sender': 'user', 'text': _chatController.text});
-    });
-    _chatController.clear();
-    _scrollToBottom();
-    
-    // Simular respuesta simple
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() {
-          _messages.add({'sender': 'bot', 'text': 'Gracias por compartirlo. Estoy aquí para escucharte.'});
-        });
-        _scrollToBottom();
-      }
-    });
-  }
-
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
   
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
       switch (index) {
         case 0:
-          _title = 'Chatbot';
+          _title = 'Serena';
           break;
         case 1:
           _title = 'Inicio';
@@ -132,134 +88,12 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
   Widget _buildBody() {
     switch (_selectedIndex) {
       case 0:
-         return _buildChatbot(); 
+         return const ChatbotSerena();
       case 1:
         return SingleChildScrollView(child: _buildInicio(context));
       default:
-        return Container();
+        return const SizedBox.shrink();
     }
-  }
-
-  Widget _buildTCG() {
-    return const TcgFlameScreen();
-  }
-
-  Widget _buildChatbot() {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDarkMode = themeProvider.isDarkMode;
-    final primaryGreen = const Color(0xFF43A047);
-
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.builder(
-            controller: _scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            itemCount: _messages.length,
-            itemBuilder: (context, index) {
-              final msg = _messages[index];
-              final isUser = msg['sender'] == 'user';
-              return Align(
-                alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 6),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: isUser ? primaryGreen : (isDarkMode ? const Color(0xFF2C2C2C) : Colors.white),
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(24),
-                      topRight: const Radius.circular(24),
-                      bottomLeft: isUser ? const Radius.circular(24) : const Radius.circular(4),
-                      bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(24),
-                    ),
-                     boxShadow: [
-                      if (!isDarkMode)
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                    ],
-                  ),
-                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                  child: Text(
-                    msg['text']!,
-                    style: TextStyle(
-                      color: isUser ? Colors.white : (isDarkMode ? Colors.white : Colors.black87),
-                      fontSize: 16,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 15,
-                offset: const Offset(0, -5),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            top: false,
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _chatController,
-                    style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
-                    decoration: InputDecoration(
-                      hintText: "Escribe un mensaje...",
-                      hintStyle: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[500]),
-                      filled: true,
-                      fillColor: isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFF5F5F5),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                    ),
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: _sendMessage,
-                  child: Container(
-                    height: 50,
-                    width: 50,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [primaryGreen, const Color(0xFF66BB6A)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: primaryGreen.withOpacity(0.4),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.send_rounded, color: Colors.white, size: 24),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
   }
 
   Widget _buildInicio(BuildContext context) {
@@ -390,10 +224,10 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
     final isDarkMode = themeProvider.isDarkMode;
 
     // Usamos el textColor para decidir colores en modo claro, en modo oscuro siempre blanco
-    final cardColor = isDarkMode ? color.withOpacity(0.25) : color;
+    final cardColor = isDarkMode ? color.withValues(alpha: 0.25) : color;
     final resolvedTitleColor = isDarkMode ? Colors.white : (textColor == Colors.white ? Colors.white : Colors.black87);
-    final resolvedSubtitleColor = isDarkMode ? Colors.white70 : (textColor == Colors.white ? Colors.white.withOpacity(0.85) : Colors.black54);
-    final resolvedArrowColor = isDarkMode ? Colors.white54 : (textColor == Colors.white ? Colors.white.withOpacity(0.7) : Colors.black38);
+    final resolvedSubtitleColor = isDarkMode ? Colors.white70 : (textColor == Colors.white ? Colors.white.withValues(alpha: 0.85) : Colors.black54);
+    final resolvedArrowColor = isDarkMode ? Colors.white54 : (textColor == Colors.white ? Colors.white.withValues(alpha: 0.7) : Colors.black38);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -402,7 +236,7 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
         borderRadius: BorderRadius.circular(20),
         boxShadow: isDarkMode ? [] : [
           BoxShadow(
-            color: color.withOpacity(0.25),
+            color: color.withValues(alpha: 0.25),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -496,7 +330,7 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
                 Container(
                   padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                   ),
                   child: const CircleAvatar(
@@ -616,7 +450,7 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
          leading: Container(
            padding: const EdgeInsets.all(8),
            decoration: BoxDecoration(
-             color: color.withOpacity(0.1),
+             color: color.withValues(alpha: 0.1),
              borderRadius: BorderRadius.circular(10),
            ),
            child: Icon(icon, color: color, size: 22),
@@ -649,7 +483,7 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
         color: isDarkMode ? const Color(0xFF121212) : Colors.white, // Neutro en dark
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -661,7 +495,7 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavBarItem(0, Icons.chat_bubble_outline, "Chatbot"),
+              _buildNavBarItem(0, Icons.chat_bubble_outline, "Serena"),
               _buildNavBarItem(1, Icons.home_outlined, "Inicio"),
               // _buildNavBarItem(2, Icons.videogame_asset_outlined, "TCG"),
             ],
@@ -684,7 +518,7 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected 
-             ? primaryGreen.withOpacity(isDarkMode ? 0.2 : 0.1) 
+             ? primaryGreen.withValues(alpha: isDarkMode ? 0.2 : 0.1) 
              : Colors.transparent,
           borderRadius: BorderRadius.circular(15),
         ),
