@@ -27,7 +27,8 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
 
   Future<void> _initializeAudio() async {
     player = AudioPlayer();
-    await player.setAsset( 'assets/musica/tcg/Quick_Save.mp3');
+    await player.setAsset( 'assets/musica/tcg/The_Keeper_s_Ledger.mp3');
+    player.setLoopMode(LoopMode.all);
     player.play();
   }
 
@@ -99,7 +100,9 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  onTap: () => Navigator.of(context).pop(_GameMenuAction.exitGame),
+                  onTap: () => {
+                    player.stop(),
+                    Navigator.of(context).pop(_GameMenuAction.exitGame)},
                 ),
               ],
             ),

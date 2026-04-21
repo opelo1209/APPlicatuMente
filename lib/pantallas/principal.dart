@@ -72,9 +72,9 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
         case 1:
           _title = 'Inicio';
           break;
-        case 2:
-          _title = 'TCG Salud Mental';
-          break;
+        // case 2:
+        //   _title = 'TCG Salud Mental';
+        //   break;
         default:
           _title = 'Inicio';
       }
@@ -135,9 +135,6 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
          return _buildChatbot(); 
       case 1:
         return SingleChildScrollView(child: _buildInicio(context));
-      case 2:
-        return _buildTCG();
-
       default:
         return Container();
     }
@@ -321,48 +318,48 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
             },
           ),
           
-          _buildOptionCard(
-            context,
-            imagePath: 'assets/imagenes/quetzal_2.png', // Quetzal pensando
-            title: "Mis pensamientos me preocupan",
-            subtitle: "Hablemos de lo que ronda por tu cabeza",
-            color:  const Color(0xFFA5D6A7), // Verde claro
-            textColor: Colors.black87,
-            onTap: () {
-              // Navegar al cuestionario
-            },
-          ),
+          // _buildOptionCard(
+          //   context,
+          //   imagePath: 'assets/imagenes/quetzal_2.png', // Quetzal pensando
+          //   title: "Mis pensamientos me preocupan",
+          //   subtitle: "Hablemos de lo que ronda por tu cabeza",
+          //   color:  const Color(0xFFA5D6A7), // Verde claro
+          //   textColor: Colors.black87,
+          //   onTap: () {
+          //     // Navegar al cuestionario
+          //   },
+          // ),
           
-          _buildOptionCard(
-            context,
-            imagePath: 'assets/imagenes/quetzal_5.png', // Corazón o emoción
-            title: "Quiero saber cómo estoy emocionalmente",
-            subtitle: "Un espacio para conocerte mejor",
-            color: const Color(0xFFC8E6C9), // Verde muy claro
-            textColor: Colors.black87,
-            onTap: () {
-              // Navegar al cuestionario
-            },
-          ),
+          // _buildOptionCard(
+          //   context,
+          //   imagePath: 'assets/imagenes/quetzal_5.png', // Corazón o emoción
+          //   title: "Quiero saber cómo estoy emocionalmente",
+          //   subtitle: "Un espacio para conocerte mejor",
+          //   color: const Color(0xFFC8E6C9), // Verde muy claro
+          //   textColor: Colors.black87,
+          //   onTap: () {
+          //     // Navegar al cuestionario
+          //   },
+          // ),
 
-          _buildOptionCard(
-            context,
-            imagePath: 'assets/imagenes/quetzal_6.png', // Quetzal cantando/feliz
-            title: "Solo quiero hablar un poco",
-            subtitle: "No tienes que saber qué responder",
-            color: const Color(0xFFFFF3E0), // Naranja/Beige muy suave
-            textColor: Colors.black87,
-             onTap: () {
-              // Navegar al cuestionario
-            },
-          ),
+          // _buildOptionCard(
+          //   context,
+          //   imagePath: 'assets/imagenes/quetzal_6.png', // Quetzal cantando/feliz
+          //   title: "Solo quiero hablar un poco",
+          //   subtitle: "No tienes que saber qué responder",
+          //   color: const Color(0xFFFFF3E0), // Naranja/Beige muy suave
+          //   textColor: Colors.black87,
+          //    onTap: () {
+          //     // Navegar al cuestionario
+          //   },
+          // ),
 
           _buildOptionCard(
             context,
             imagePath: 'assets/imagenes/quetzal_8.png',
-            title: "TCG Salud Mental (Beta)",
-            subtitle: "Arrastra cartas y enfrentate al Boss",
-            color: const Color(0xFFE3F2FD),
+            title: "TCG Salud Mental",
+            subtitle: "Usa tu conocimiento y enfrentate al Boss",
+            color: const Color(0xFFA5D6A7), // Verde claro
             textColor: Colors.black87,
             onTap: () {
               Navigator.push(
@@ -666,7 +663,7 @@ class _PrincipalState extends State<Principal> with TickerProviderStateMixin {
             children: [
               _buildNavBarItem(0, Icons.chat_bubble_outline, "Chatbot"),
               _buildNavBarItem(1, Icons.home_outlined, "Inicio"),
-              _buildNavBarItem(2, Icons.videogame_asset_outlined, "TCG"),
+              // _buildNavBarItem(2, Icons.videogame_asset_outlined, "TCG"),
             ],
           ),
         ),

@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 
-enum MentalCardType { cognitivo, emocional, conductual }
+enum MentalCardType { cognitivo, emocional, conductual, comodin }
 
 extension MentalCardTypeX on MentalCardType {
   String get label {
@@ -20,6 +20,8 @@ extension MentalCardTypeX on MentalCardType {
         return 'Emocional';
       case MentalCardType.conductual:
         return 'Conductual';
+      case MentalCardType.comodin:
+        return 'Comodín';
     }
   }
 
@@ -31,26 +33,49 @@ extension MentalCardTypeX on MentalCardType {
         return const Color(0xFFEF5350);
       case MentalCardType.conductual:
         return const Color(0xFF66BB6A);
+      case MentalCardType.comodin:
+        return const Color(0xFFAB47BC); // Morado para comodines
     }
   }
 }
 
 const String _boardAssetPath = 'assets/imagenes/tcg/tcg-tablero.png';
 const List<String> _cardArtPaths = <String>[
-  'assets/imagenes/tcg/tcg1.jpeg',
-  'assets/imagenes/tcg/tcg2.jpeg',
-  'assets/imagenes/tcg/tcg3.jpeg',
-  'assets/imagenes/tcg/tcg4.jpeg',
-  'assets/imagenes/tcg/tcg5.jpeg',
-  'assets/imagenes/tcg/tcg6.jpeg',
-  'assets/imagenes/tcg/tcg7.jpeg',
-  'assets/imagenes/tcg/tcg8.jpeg',
-  'assets/imagenes/tcg/tcg9.jpeg',
-  'assets/imagenes/tcg/tcg10.jpeg',
-  'assets/imagenes/tcg/tcg11.jpeg',
-  'assets/imagenes/tcg/tcg12.jpeg',
-  'assets/imagenes/tcg/tcg13.jpeg',
-  'assets/imagenes/tcg/tcg14.jpeg',
+  'assets/imagenes/tcg/tcg0.jpg',
+  'assets/imagenes/tcg/tcg1.jpg',
+  'assets/imagenes/tcg/tcg2.jpg',
+  'assets/imagenes/tcg/tcg3.jpg',
+  'assets/imagenes/tcg/tcg4.jpg',
+  'assets/imagenes/tcg/tcg5.jpg',
+  'assets/imagenes/tcg/tcg6.jpg',
+  'assets/imagenes/tcg/tcg7.jpg',
+  'assets/imagenes/tcg/tcg8.jpg',
+  'assets/imagenes/tcg/tcg9.jpg',
+  'assets/imagenes/tcg/tcg10.jpg',
+  'assets/imagenes/tcg/tcg11.jpg',
+  'assets/imagenes/tcg/tcg12.jpg',
+  'assets/imagenes/tcg/tcg13.jpg',
+  'assets/imagenes/tcg/tcg14.jpg',
+  'assets/imagenes/tcg/tcg16.jpg',
+  'assets/imagenes/tcg/tcg17.jpg',
+  'assets/imagenes/tcg/tcg18.jpg',
+  'assets/imagenes/tcg/tcg19.jpg',
+  'assets/imagenes/tcg/tcg20.jpg',
+  'assets/imagenes/tcg/tcg21.jpg',
+  'assets/imagenes/tcg/tcg22.jpg',
+  'assets/imagenes/tcg/tcg23.jpg',
+  'assets/imagenes/tcg/tcg24.jpg',
+  'assets/imagenes/tcg/tcg25.jpg',
+  'assets/imagenes/tcg/tcg26.jpg',
+  'assets/imagenes/tcg/tcg27.jpg',
+  'assets/imagenes/tcg/tcg28.jpg',
+  'assets/imagenes/tcg/tcg29.jpg',
+  'assets/imagenes/tcg/tcg30.jpg',
+  'assets/imagenes/tcg/tcg31.jpg',
+  'assets/imagenes/tcg/tcg32.jpg',
+  'assets/imagenes/tcg/tcg33.jpg',
+  'assets/imagenes/tcg/tcg34.jpg',
+  'assets/imagenes/tcg/tcg35.jpg',
 ];
 
 // --- ZONA DE CONFIGURACIÓN ---
@@ -64,8 +89,7 @@ const double _playerCardWidth = 125.0;
 const double _playerCardHeight = 175.0; 
 const double _playerPosYRatio = 0.460; // Altura
 
-// Qué tan grande es la caja invisible para soltar la carta central.
-// Ajústalo hasta que calce perfectamente con las líneas de tu tablero.
+//Que tan grande es la caja invisible para soltar la carta central.
 const double _mainDropZoneWidth = 125.0; 
 const double _mainDropZoneHeight = 175.0; 
 
@@ -82,6 +106,17 @@ const double _powerDropZoneHeight = 130.0;
 // 4. Cartas en la mano
 const double _handCardWidth = 92.0;
 const double _handCardHeight = 132.0;
+const double _handCardOverlapRatio = 0.40;
+const double _handSidePadding = 12.0;
+const double _handFanMaxAngleDeg = 25.0; // inclinacion
+const double _handFanCenterLift = 8.0;
+const double _handFanCurveDrop = 14.0; //curvatura 
+const double _handSelectedLift = 42.0;
+const double _handSelectedScale = 1.16;
+const double _handSelectedAngleFactor = 0.0; // Hace que la carta se ponga recta al seleccionarla
+const double _handBottomMargin = 6.0;
+const int _handSelectedPriority = 80;
+const int _handBasePriority = 20;
 const int _powerSlotCount = 3;
 // -----------------------------------------------------------------
 
@@ -117,6 +152,7 @@ class MentalTcgGame extends FlameGame {
   final List<CardFaceComponent?> _powerCardViews =
       List<CardFaceComponent?>.filled(_powerSlotCount, null);
   final ValueNotifier<String?> previewArtPath = ValueNotifier<String?>(null);
+  DraggableCardComponent? _selectedHandCard;
 
   CardFaceComponent? _bossCardView;
   CardFaceComponent? _playerFieldCardView;
@@ -128,6 +164,9 @@ class MentalTcgGame extends FlameGame {
   int manaCap = 1;
   int mana = 1;
   bool _isFinished = false;
+
+  int _nextAttackBonus = 0;
+  bool _bossAttackCancelled = false;
 
   bool get isFinished => _isFinished;
 
@@ -192,6 +231,7 @@ class MentalTcgGame extends FlameGame {
       card.removeFromParent();
     }
     _handCards.clear();
+    _selectedHandCard = null;
 
     _bossCardView?.removeFromParent();
     _bossCardView = null;
@@ -210,6 +250,8 @@ class MentalTcgGame extends FlameGame {
     manaCap = 1;
     mana = 1;
     _isFinished = false;
+    _nextAttackBonus = 0;
+    _bossAttackCancelled = false;
 
     _refillDrawPile();
     _drawUntilHandSize(4);
@@ -227,11 +269,23 @@ class MentalTcgGame extends FlameGame {
       final cardView = DraggableCardComponent(
         card: card,
         onDropped: _handleDrop,
+        onFocused: _focusHandCard,
         cardSize: Vector2(_handCardWidth, _handCardHeight),
       );
       _handCards.add(cardView);
       add(cardView);
     }
+  }
+
+  void _focusHandCard(DraggableCardComponent cardView) {
+    if (_isFinished || !_handCards.contains(cardView)) {
+      return;
+    }
+    if (_selectedHandCard == cardView) {
+      return;
+    }
+    _selectedHandCard = cardView;
+    _layoutHand();
   }
 
   MentalCard _takeToolCard() {
@@ -245,6 +299,7 @@ class MentalTcgGame extends FlameGame {
     _drawPile
       ..clear()
       ..addAll(_toolCardPool)
+      ..addAll(_comodinesCardPool)
       ..shuffle(_random);
   }
 
@@ -278,6 +333,12 @@ class MentalTcgGame extends FlameGame {
     }
 
     final card = cardView.card;
+    if (card.type == MentalCardType.comodin) {
+      _setHint('Los Comodines deben colocarse en los espacios de abajo.');
+      cardView.returnToHome();
+      return;
+    }
+
     if (mana < card.energyCost) {
       _setHint(
         'No hay energia suficiente para ${card.name}. Costo ${card.energyCost}.',
@@ -286,6 +347,9 @@ class MentalTcgGame extends FlameGame {
       return;
     }
 
+    if (_selectedHandCard == cardView) {
+      _selectedHandCard = null;
+    }
     _handCards.remove(cardView);
     cardView.removeFromParent();
 
@@ -294,7 +358,8 @@ class MentalTcgGame extends FlameGame {
 
     final bossCard = _bossCard!;
     final playerMultiplier = _multiplier(card.type, bossCard.type);
-    final playerDamage = _scaledDamage(card.power, playerMultiplier);
+    final playerDamage = _scaledDamage(card.power, playerMultiplier) + _nextAttackBonus;
+    _nextAttackBonus = 0; // Consume the bonus
     bossHp = max(0, bossHp - playerDamage);
 
     var turnLog =
@@ -307,12 +372,17 @@ class MentalTcgGame extends FlameGame {
       return;
     }
 
-    final bossMultiplier = _multiplier(bossCard.type, card.type);
-    final bossDamage = _scaledDamage(bossCard.power, bossMultiplier);
-    playerHp = max(0, playerHp - bossDamage);
+    if (_bossAttackCancelled) {
+      _bossAttackCancelled = false; // Consume the cancel
+      turnLog += ' El Boss no pudo atacar (Romper el Bucle).';
+    } else {
+      final bossMultiplier = _multiplier(bossCard.type, card.type);
+      final bossDamage = _scaledDamage(bossCard.power, bossMultiplier);
+      playerHp = max(0, playerHp - bossDamage);
 
-    turnLog +=
-        ' ${bossCard.name} responde con $bossDamage (${_multiplierLabel(bossMultiplier)}).';
+      turnLog +=
+          ' ${bossCard.name} responde con $bossDamage (${_multiplierLabel(bossMultiplier)}).';
+    }
 
     if (playerHp <= 0) {
       _isFinished = true;
@@ -342,6 +412,12 @@ class MentalTcgGame extends FlameGame {
     }
 
     final card = cardView.card;
+    if (card.type != MentalCardType.comodin) {
+      _setHint('Solo puedes colocar Comodines aquí abajo.');
+      cardView.returnToHome();
+      return;
+    }
+
     if (mana < card.energyCost) {
       _setHint(
         'No hay energia suficiente para ${card.name}. Costo ${card.energyCost}.',
@@ -350,6 +426,9 @@ class MentalTcgGame extends FlameGame {
       return;
     }
 
+    if (_selectedHandCard == cardView) {
+      _selectedHandCard = null;
+    }
     _handCards.remove(cardView);
     cardView.removeFromParent();
 
@@ -362,6 +441,82 @@ class MentalTcgGame extends FlameGame {
     _powerCardViews[slotIndex] = powerCardView;
     add(powerCardView);
     _animatePowerDeploy(powerCardView);
+    
+    // Ejecutar efecto del comodín
+    if (card.type == MentalCardType.comodin) {
+      if (card.id == 'comodin_31') { // Pausa de Respiración
+        playerHp = min(20, playerHp + 4);
+      } else if (card.id == 'comodin_32') { // Red de Apoyo Activa
+        playerHp = min(20, playerHp + 6);
+      } else if (card.id == 'comodin_33') { // Enfoque con Intención
+        _nextAttackBonus += 3;
+      } else if (card.id == 'comodin_34') { // Romper el Bucle
+        _bossAttackCancelled = true;
+      } else if (card.id == 'comodin_35') { // Tablero Organizado
+        if (_handCards.isNotEmpty) {
+          final randomCard = _handCards[_random.nextInt(_handCards.length)];
+          _handCards.remove(randomCard);
+          randomCard.removeFromParent();
+        }
+        // Robar 2 (El máximo es irrelevante si es un efecto especial, podemos forzar dibujo)
+        for (var i = 0; i < 2; i++) {
+          if (_handCards.length < 10) { // Un pequeño cap de mano
+            final c = _takeToolCard();
+            final cView = DraggableCardComponent(
+              card: c,
+              onDropped: _handleDrop,
+              onFocused: _focusHandCard,
+              cardSize: Vector2(_handCardWidth, _handCardHeight),
+            );
+            _handCards.add(cView);
+            add(cView);
+          }
+        }
+      }
+      _setHint('Comodín activado: ${card.name}!');
+    }
+
+    _layoutBoard();
+    _checkAutoAdvance();
+  }
+
+  void _checkAutoAdvance() {
+    bool canPlay = false;
+    for (final c in _handCards) {
+      if (c.card.energyCost <= mana) {
+        canPlay = true;
+        break;
+      }
+    }
+    if (!canPlay) {
+      _setHint('${mana == 0 ? "Sin energía" : "Sin cartas jugables"}, pasando turno...');
+      _executeBossCounterAttackAndAdvance();
+    }
+  }
+
+  void _executeBossCounterAttackAndAdvance() {
+    final bossCard = _bossCard!;
+    var turnLog = 'Turno finalizado automático.';
+
+    if (_bossAttackCancelled) {
+      _bossAttackCancelled = false; // Consume the cancel
+      turnLog += ' El Boss no pudo atacar (Romper el Bucle).';
+    } else {
+      final bossDamage = _scaledDamage(bossCard.power, 1.0); // Multiplier 1.0 ya que no atacaste con tipo
+      playerHp = max(0, playerHp - bossDamage);
+
+      turnLog += ' ${bossCard.name} te ataca y hace $bossDamage de daño.';
+    }
+
+    if (playerHp <= 0) {
+      _isFinished = true;
+      _setHint('Perdiste este round. Reinicia para intentar de nuevo.');
+      _layoutBoard();
+      return;
+    }
+
+    _advanceTurn();
+    _setHint(turnLog);
     _layoutBoard();
   }
 
@@ -401,6 +556,12 @@ class MentalTcgGame extends FlameGame {
 
   void _advanceTurn() {
     turn += 1;
+    // Limpiar slots de comodín
+    for (var i = 0; i < _powerCardViews.length; i++) {
+       _powerCardViews[i]?.removeFromParent();
+       _powerCardViews[i] = null;
+    }
+    
     manaCap = min(10, manaCap + 1);
     mana = manaCap;
     _drawUntilHandSize(4);
@@ -537,47 +698,60 @@ class MentalTcgGame extends FlameGame {
 
   void _layoutHand() {
     if (_handCards.isEmpty) {
+      _selectedHandCard = null;
       return;
     }
 
-    const cardWidth = _handCardWidth;
-    const cardHeight = _handCardHeight;
-    const gap = 10.0;
-    final totalWidth = (_handCards.length * cardWidth) +
-        ((_handCards.length - 1) * gap);
-    final startX = (size.x - totalWidth) / 2;
-    final y = size.y - cardHeight - 8;
+    if (_selectedHandCard == null || !_handCards.contains(_selectedHandCard)) {
+      _selectedHandCard = _handCards[_handCards.length ~/ 2];
+    }
 
-    for (var i = 0; i < _handCards.length; i++) {
-      final home = Vector2(startX + (i * (cardWidth + gap)), y);
-      _handCards[i].setHomePosition(home, moveNow: !_handCards[i].isDragging);
+    final count = _handCards.length;
+    final overlap = _handCardOverlapRatio.clamp(0.15, 0.75).toDouble();
+    final nominalStep = _handCardWidth * (1 - overlap);
+    final availableWidth = max(0.0, size.x - (_handSidePadding * 2));
+    final maxStepByScreen =
+        count > 1 ? max(0.0, (availableWidth - _handCardWidth) / (count - 1)) : 0.0;
+    final step = count > 1 ? min(nominalStep, maxStepByScreen) : 0.0;
+    final fanWidth = _handCardWidth + (step * (count - 1));
+    final startCenterX = (size.x - fanWidth) / 2 + (_handCardWidth / 2);
+    final maxAngleRad = _handFanMaxAngleDeg * pi / 180;
+    final baseCenterY =
+        size.y - (_handCardHeight / 2) - _handBottomMargin - _handFanCurveDrop;
+
+    for (var i = 0; i < count; i++) {
+      final cardView = _handCards[i];
+      final t = count == 1 ? 0.0 : ((i / (count - 1)) * 2) - 1;
+      final arcDrop = pow(t.abs(), 1.8).toDouble() * _handFanCurveDrop;
+      final centerLift = (1 - t.abs()) * _handFanCenterLift;
+      final isSelected = identical(cardView, _selectedHandCard);
+      final selectedLift = isSelected ? _handSelectedLift : 0.0;
+      final baseAngle = t * maxAngleRad;
+      final handAngle = isSelected ? baseAngle * _handSelectedAngleFactor : baseAngle;
+
+      final homeCenter = Vector2(
+        startCenterX + (i * step),
+        baseCenterY + arcDrop - centerLift - selectedLift,
+      );
+
+      cardView.setHomeLayout(
+        homeCenter,
+        angle: handAngle,
+        scale: isSelected ? _handSelectedScale : 1.0,
+        priority: isSelected ? _handSelectedPriority : (_handBasePriority + i),
+        moveNow: !cardView.isDragging,
+      );
     }
   }
 }
 
 class DropZoneComponent extends PositionComponent {
-  RectangleComponent? _glow;
-  RectangleComponent? _border;
   var _ready = false;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    if (kDebugMode) {
-      _glow = RectangleComponent(
-        paint: Paint()..color = const Color(0x224FC3F7),
-      );
-      add(_glow!);
-
-      _border = RectangleComponent(
-        paint: Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3
-          ..color = Colors.white70,
-      );
-      add(_border!);
-    }
+    // Las zonas de drop ahora son invisibles (transparentes). No hay glow ni border blanco de guía
     _ready = true;
     refreshLayout();
   }
@@ -586,34 +760,16 @@ class DropZoneComponent extends PositionComponent {
     if (!_ready) {
       return;
     }
-    _glow?.size = size;
-    _border?.size = size;
   }
 }
 
 class PowerDropZoneComponent extends PositionComponent {
-  RectangleComponent? _glow;
-  RectangleComponent? _border;
   var _ready = false;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    if (kDebugMode) {
-      _glow = RectangleComponent(
-        paint: Paint()..color = const Color(0x1839B06F),
-      );
-      add(_glow!);
-
-      _border = RectangleComponent(
-        paint: Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.4
-          ..color = const Color(0xCCFFFFFF),
-      );
-      add(_border!);
-    }
+    // Las zonas de drop ahora son invisibles (transparentes). No hay glow ni border blanco de guía
     _ready = true;
     refreshLayout();
   }
@@ -622,8 +778,6 @@ class PowerDropZoneComponent extends PositionComponent {
     if (!_ready) {
       return;
     }
-    _glow?.size = size;
-    _border?.size = size;
   }
 }
 
@@ -752,32 +906,64 @@ class DraggableCardComponent extends CardFaceComponent with DragCallbacks {
   DraggableCardComponent({
     required super.card,
     required this.onDropped,
+    required this.onFocused,
     required super.cardSize,
-  });
+  }) {
+    anchor = Anchor.center;
+  }
 
   final void Function(DraggableCardComponent card) onDropped;
+  final void Function(DraggableCardComponent card) onFocused;
   Vector2 _homePosition = Vector2.zero();
+  double _homeAngle = 0;
+  double _homeScale = 1;
+  int _homePriority = _handBasePriority;
   bool _isDragging = false;
 
   bool get isDragging => _isDragging;
 
-  void setHomePosition(Vector2 nextHome, {bool moveNow = true}) {
+  void setHomeLayout(
+    Vector2 nextHome, {
+    required double angle,
+    required double scale,
+    required int priority,
+    bool moveNow = true,
+  }) {
     _homePosition = nextHome.clone();
+    _homeAngle = angle;
+    _homeScale = scale;
+    _homePriority = priority;
     if (moveNow) {
       position.setFrom(nextHome);
+      this.angle = angle;
+      this.scale = Vector2.all(scale);
+      this.priority = priority;
     }
   }
 
   void returnToHome() {
     position.setFrom(_homePosition);
+    angle = _homeAngle;
+    scale = Vector2.all(_homeScale);
+    priority = _homePriority;
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    super.onTapDown(event);
+    if (!_isDragging) {
+      onFocused(this);
+    }
   }
 
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
+    onFocused(this);
     cancelPreviewFromExternalGesture();
     _isDragging = true;
-    scale = Vector2.all(1.03);
+    angle = 0;
+    scale = Vector2.all(1.04);
     priority = 100;
   }
 
@@ -791,8 +977,6 @@ class DraggableCardComponent extends CardFaceComponent with DragCallbacks {
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
     _isDragging = false;
-    scale = Vector2.all(1);
-    priority = 20;
     onDropped(this);
   }
 
@@ -800,228 +984,263 @@ class DraggableCardComponent extends CardFaceComponent with DragCallbacks {
   void onDragCancel(DragCancelEvent event) {
     super.onDragCancel(event);
     _isDragging = false;
-    scale = Vector2.all(1);
-    priority = 20;
     returnToHome();
   }
 }
 
 String _artPathForCard(MentalCard card) {
-  final cardNumber = int.tryParse(card.id.split('_').last) ?? 1;
-  final bossOffset = card.id.startsWith('boss_') ? 6 : 0;
-  final index = (cardNumber - 1 + bossOffset) % _cardArtPaths.length;
-  return _cardArtPaths[index];
+  final cardNumber = int.tryParse(card.id.split('_').last) ?? 0;
+  final index = _cardArtPaths.indexWhere((path) => path.contains('tcg$cardNumber.jpg'));
+  return index != -1 ? _cardArtPaths[index] : _cardArtPaths.first;
 }
 
 const List<MentalCard> _toolCardPool = <MentalCard>[
   MentalCard(
-    id: 'tool_01',
-    name: 'Checar Pruebas',
+    id: 'tool_16',
+    name: 'Checar las Pruebas',
     type: MentalCardType.cognitivo,
-    energyCost: 1,
+    energyCost: 2,
     power: 3,
   ),
   MentalCard(
-    id: 'tool_02',
-    name: 'Reenfocar Idea',
+    id: 'tool_17',
+    name: 'Pensamiento Alterno',
     type: MentalCardType.cognitivo,
-    energyCost: 2,
+    energyCost: 3,
     power: 4,
   ),
   MentalCard(
-    id: 'tool_03',
-    name: 'Detectar Trampa',
-    type: MentalCardType.cognitivo,
-    energyCost: 2,
-    power: 3,
-  ),
-  MentalCard(
-    id: 'tool_04',
-    name: 'Reencuadre Amable',
-    type: MentalCardType.cognitivo,
-    energyCost: 3,
-    power: 5,
-  ),
-  MentalCard(
-    id: 'tool_05',
-    name: 'Diario Pensado',
+    id: 'tool_18',
+    name: 'Ponerle Nombre al Pensamiento',
     type: MentalCardType.cognitivo,
     energyCost: 1,
     power: 2,
   ),
   MentalCard(
-    id: 'tool_06',
-    name: 'Nombrar Emocion',
-    type: MentalCardType.emocional,
-    energyCost: 1,
-    power: 3,
-  ),
-  MentalCard(
-    id: 'tool_07',
-    name: 'Respirar 4x4',
-    type: MentalCardType.emocional,
-    energyCost: 2,
-    power: 4,
-  ),
-  MentalCard(
-    id: 'tool_08',
-    name: 'Pausa de Calma',
-    type: MentalCardType.emocional,
+    id: 'tool_19',
+    name: 'Diario Rápido de Ideas',
+    type: MentalCardType.cognitivo,
     energyCost: 2,
     power: 3,
   ),
   MentalCard(
-    id: 'tool_09',
-    name: 'Validar Sentir',
-    type: MentalCardType.emocional,
-    energyCost: 3,
-    power: 5,
+    id: 'tool_20',
+    name: 'Frase Ancla',
+    type: MentalCardType.cognitivo,
+    energyCost: 2,
+    power: 3,
   ),
   MentalCard(
-    id: 'tool_10',
-    name: 'Autohabla Apoyo',
+    id: 'tool_21',
+    name: 'Nombrar la Emoción',
+    type: MentalCardType.emocional,
+    energyCost: 2,
+    power: 3,
+  ),
+  MentalCard(
+    id: 'tool_22',
+    name: 'Darse Chance de Sentir',
+    type: MentalCardType.emocional,
+    energyCost: 2,
+    power: 3,
+  ),
+  MentalCard(
+    id: 'tool_23',
+    name: 'Respirar en 4 Tiempos',
     type: MentalCardType.emocional,
     energyCost: 1,
     power: 2,
   ),
   MentalCard(
-    id: 'tool_11',
-    name: 'Mini Metas',
-    type: MentalCardType.conductual,
-    energyCost: 1,
+    id: 'tool_24',
+    name: 'Anclarse a los Sentidos',
+    type: MentalCardType.emocional,
+    energyCost: 2,
     power: 3,
   ),
   MentalCard(
-    id: 'tool_12',
-    name: 'Activacion',
-    type: MentalCardType.conductual,
-    energyCost: 2,
+    id: 'tool_25',
+    name: 'Hablarlo con Alguien Seguro',
+    type: MentalCardType.emocional,
+    energyCost: 3,
     power: 4,
   ),
   MentalCard(
-    id: 'tool_13',
-    name: 'Paso 2 Min',
+    id: 'tool_26',
+    name: 'Un Paso Muy Pequeño',
     type: MentalCardType.conductual,
     energyCost: 1,
     power: 2,
   ),
   MentalCard(
-    id: 'tool_14',
-    name: 'Romper Aislar',
+    id: 'tool_27',
+    name: 'Plan de Mini-Metas',
     type: MentalCardType.conductual,
     energyCost: 3,
-    power: 5,
+    power: 4,
   ),
   MentalCard(
-    id: 'tool_15',
-    name: 'Rutina Sueno',
+    id: 'tool_28',
+    name: 'Actividad que Sí Disfruto',
     type: MentalCardType.conductual,
     energyCost: 2,
+    power: 3,
+  ),
+  MentalCard(
+    id: 'tool_29',
+    name: 'Higiene de Sueño',
+    type: MentalCardType.conductual,
+    energyCost: 2,
+    power: 3,
+  ),
+  MentalCard(
+    id: 'tool_30',
+    name: 'Pedir Ayuda Profesional',
+    type: MentalCardType.conductual,
+    energyCost: 3,
     power: 4,
+  ),
+];
+
+const List<MentalCard> _comodinesCardPool = <MentalCard>[
+  MentalCard(
+    id: 'comodin_31',
+    name: 'Pausa de Respiración',
+    type: MentalCardType.comodin,
+    energyCost: 2,
+    power: 0,
+  ),
+  MentalCard(
+    id: 'comodin_32',
+    name: 'Red de Apoyo Activa',
+    type: MentalCardType.comodin,
+    energyCost: 3,
+    power: 0,
+  ),
+  MentalCard(
+    id: 'comodin_33',
+    name: 'Enfoque con Intención',
+    type: MentalCardType.comodin,
+    energyCost: 2,
+    power: 0,
+  ),
+  MentalCard(
+    id: 'comodin_34',
+    name: 'Romper el Bucle',
+    type: MentalCardType.comodin,
+    energyCost: 2,
+    power: 0,
+  ),
+  MentalCard(
+    id: 'comodin_35',
+    name: 'Tablero Organizado',
+    type: MentalCardType.comodin,
+    energyCost: 3,
+    power: 0,
   ),
 ];
 
 const List<MentalCard> _bossCardPool = <MentalCard>[
   MentalCard(
-    id: 'boss_01',
+    id: 'boss_00',
     name: 'Ansiedad Pico',
     type: MentalCardType.emocional,
     energyCost: 0,
     power: 3,
   ),
   MentalCard(
-    id: 'boss_02',
+    id: 'boss_01',
     name: 'Filtro Negativo',
     type: MentalCardType.cognitivo,
     energyCost: 0,
     power: 3,
   ),
   MentalCard(
-    id: 'boss_03',
+    id: 'boss_02',
     name: 'Procrastinar',
     type: MentalCardType.conductual,
     energyCost: 0,
     power: 3,
   ),
   MentalCard(
-    id: 'boss_04',
+    id: 'boss_03',
     name: 'Aislamiento',
     type: MentalCardType.conductual,
     energyCost: 0,
     power: 2,
   ),
   MentalCard(
-    id: 'boss_05',
+    id: 'boss_04',
     name: 'Catastrofismo',
     type: MentalCardType.cognitivo,
     energyCost: 0,
     power: 4,
   ),
   MentalCard(
-    id: 'boss_06',
+    id: 'boss_05',
     name: 'Verguenza',
     type: MentalCardType.emocional,
     energyCost: 0,
     power: 4,
   ),
   MentalCard(
-    id: 'boss_07',
+    id: 'boss_06',
     name: 'Todo o Nada',
     type: MentalCardType.cognitivo,
     energyCost: 0,
     power: 3,
   ),
   MentalCard(
-    id: 'boss_08',
+    id: 'boss_07',
     name: 'Evitacion',
     type: MentalCardType.conductual,
     energyCost: 0,
     power: 3,
   ),
   MentalCard(
-    id: 'boss_09',
+    id: 'boss_08',
     name: 'Culpa Excesiva',
     type: MentalCardType.emocional,
     energyCost: 0,
     power: 2,
   ),
   MentalCard(
-    id: 'boss_10',
+    id: 'boss_09',
     name: 'Rumia Mental',
     type: MentalCardType.cognitivo,
     energyCost: 0,
     power: 4,
   ),
   MentalCard(
-    id: 'boss_11',
+    id: 'boss_10',
     name: 'Ira Impulsiva',
     type: MentalCardType.emocional,
     energyCost: 0,
     power: 3,
   ),
   MentalCard(
-    id: 'boss_12',
+    id: 'boss_11',
     name: 'Desorden Rutina',
     type: MentalCardType.conductual,
     energyCost: 0,
     power: 2,
   ),
   MentalCard(
-    id: 'boss_13',
+    id: 'boss_12',
     name: 'Autocritica',
     type: MentalCardType.cognitivo,
     energyCost: 0,
     power: 4,
   ),
   MentalCard(
-    id: 'boss_14',
+    id: 'boss_13',
     name: 'Miedo Social',
     type: MentalCardType.emocional,
     energyCost: 0,
     power: 3,
   ),
   MentalCard(
-    id: 'boss_15',
+    id: 'boss_14',
     name: 'Bloqueo Activo',
     type: MentalCardType.conductual,
     energyCost: 0,
