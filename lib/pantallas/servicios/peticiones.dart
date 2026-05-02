@@ -1,31 +1,38 @@
-/// Configuración de la API de Serena
-class Peticiones {
+/// Configuración de la API
+class Peticiones{
   // Cambia esta URL según tu entorno
-  static const String baseUrlAuth = 'https://api.killerbytes.space';
-  static const String baseUrlSerena = 'http://127.0.0.1:8000';
+  // Para emulador Android: http://10.0.2.2:8000
+  // Para iOS Simulator: http://localhost:8000
+  // Para dispositivo físico: http://127.0.0.1:8001
+  static const String baseUrl = 'https://api.killerbytes.space';
+  
+  // Endpoints
+  static const String login = '$baseUrl/auth/login';
+  static const String loginGoogle = '$baseUrl/auth/google';
+  static const String register = '$baseUrl/auth/register';
+  static const String getUserMe = '$baseUrl/users/me';
+  static const String syncUser = '$baseUrl/users/sync';
+  static const String updateCuestionario = '$baseUrl/users/cuestionario';
+  static const String getCuestionarioStatus = '$baseUrl/users/cuestionario/status';
+  static const String getPerfil = '$baseUrl/users/perfil';
+  static const String activarUsuario = '$baseUrl/users/activar';
+  static const String desactivarUsuario = '$baseUrl/users/desactivar';
 
-  static const String login = '$baseUrlAuth/auth/login';
-  static const String loginGoogle = '$baseUrlAuth/auth/google';
-  static const String register = '$baseUrlAuth/auth/register';
+  // Serena chatbot
+  static const String serenaChat = '$baseUrl/chat';
+  static const String serenaHistorial = '$baseUrl/chat/historial';
+  static const String serenaSalud = '$baseUrl/salud';
 
-  static const String getUserMe = '$baseUrlAuth/users/me';
-  static const String syncUser = '$baseUrlAuth/users/sync';
-  static const String updateCuestionario = '$baseUrlAuth/users/cuestionario';
-  static const String getCuestionarioStatus = '$baseUrlAuth/users/cuestionario/status';
-  static const String getPerfil = '$baseUrlAuth/users/perfil';
-  static const String activarUsuario = '$baseUrlAuth/users/activar';
-  static const String desactivarUsuario = '$baseUrlAuth/users/desactivar';
-
-  static const String postCuestionario = '$baseUrlAuth/users/cuestionario';
-  static const String serenaChat = '$baseUrlSerena/chat';
-  static const String serenaHistorial = '$baseUrlSerena/chat/historial';
-  static const String salud = '$baseUrlSerena/salud';
-
+  // Análisis médico — endpoint externo
+  static const String postCuestionario =
+      '$baseUrl/users/cuestionario';
+  
+  // Headers comunes
   static Map<String, String> get headers => {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
-
+  
   static Map<String, String> getAuthHeaders(String token) => {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
