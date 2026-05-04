@@ -1,3 +1,4 @@
+import 'dart:async' as async;
 import 'dart:math';
 
 import 'package:flame/components.dart';
@@ -90,8 +91,8 @@ const double _playerCardHeight = 175.0;
 const double _playerPosYRatio = 0.460; // Altura
 
 //Que tan grande es la caja invisible para soltar la carta central.
-const double _mainDropZoneWidth = 125.0; 
-const double _mainDropZoneHeight = 175.0; 
+const double _mainDropZoneWidth = 160.0; 
+const double _mainDropZoneHeight = 220.0; 
 
 // 3. Cartas Inferiores (Poder) y sus Zonas de Drop
 const double _powerCardWidth = 83.0;  
@@ -100,8 +101,8 @@ const double _powerPosYRatio = 0.690; // Altura de la línea de 3 cartas
 const double _powerDropGap = 22.0;    // Espacio (hueco) entre las 3 cartas
 
 // Qué tan grandes son los rectángulos invisibles para soltar cartas abajo.
-const double _powerDropZoneWidth = 90.0;
-const double _powerDropZoneHeight = 130.0;
+const double _powerDropZoneWidth = 110.0;
+const double _powerDropZoneHeight = 150.0;
 
 // 4. Cartas en la mano
 const double _handCardWidth = 92.0;
@@ -118,6 +119,9 @@ const double _handBottomMargin = 6.0;
 const int _handSelectedPriority = 80;
 const int _handBasePriority = 20;
 const int _powerSlotCount = 3;
+const int _baseHealthPoints = 25;
+const int _initialMana = 3;
+const int _maxManaPerTurn = 10;
 // -----------------------------------------------------------------
 
 class MentalCard {
@@ -152,17 +156,37 @@ class MentalTcgGame extends FlameGame {
   final List<CardFaceComponent?> _powerCardViews =
       List<CardFaceComponent?>.filled(_powerSlotCount, null);
   final ValueNotifier<String?> previewArtPath = ValueNotifier<String?>(null);
+  final ValueNotifier<int> playerScore = ValueNotifier<int>(0);
+  final ValueNotifier<int> bossScore = ValueNotifier<int>(0);
+  final ValueNotifier<int> playerHpNotifier = ValueNotifier<int>(_baseHealthPoints);
+  final ValueNotifier<int> bossHpNotifier = ValueNotifier<int>(_baseHealthPoints);
+  final ValueNotifier<String> hintTextNotifier = ValueNotifier<String>('');
+  final ValueNotifier<int> manaNotifier = ValueNotifier<int>(_initialMana);
+  final ValueNotifier<int> manaCapNotifier = ValueNotifier<int>(_initialMana);
+  async.Timer? _hintTimer;
+  
   DraggableCardComponent? _selectedHandCard;
 
   CardFaceComponent? _bossCardView;
   CardFaceComponent? _playerFieldCardView;
   MentalCard? _bossCard;
 
-  int playerHp = 20;
-  int bossHp = 20;
+  int get playerHp => playerHpNotifier.value;
+  set playerHp(int value) => playerHpNotifier.value = value;
+
+  int get bossHp => bossHpNotifier.value;
+  set bossHp(int value) => bossHpNotifier.value = value;
+
+  int get mana => manaNotifier.value;
+  set mana(int value) => manaNotifier.value = value;
+
+  int get manaCap => manaCapNotifier.value;
+  set manaCap(int value) => manaCapNotifier.value = value;
+
+  int get baseHealthPoints => _baseHealthPoints;
+  int get maxManaPerTurn => _maxManaPerTurn;
+
   int turn = 1;
-  int manaCap = 1;
-  int mana = 1;
   bool _isFinished = false;
 
   int _nextAttackBonus = 0;
@@ -244,11 +268,11 @@ class MentalTcgGame extends FlameGame {
       _powerCardViews[i] = null;
     }
 
-    playerHp = 20;
-    bossHp = 20;
+    playerHp = _baseHealthPoints;
+    bossHp = _baseHealthPoints;
     turn = 1;
-    manaCap = 1;
-    mana = 1;
+    manaCap = _initialMana;
+    mana = _initialMana;
     _isFinished = false;
     _nextAttackBonus = 0;
     _bossAttackCancelled = false;
@@ -257,10 +281,13 @@ class MentalTcgGame extends FlameGame {
     _drawUntilHandSize(4);
     _spawnBossCard();
 
-    _setHint(
-      'Arrastra una carta al campo. Cognitivo > Emocional > Conductual > Cognitivo.',
-    );
     _layoutBoard();
+  }
+
+  void newSession() {
+    playerScore.value = 0;
+    bossScore.value = 0;
+    resetMatch();
   }
 
   void _drawUntilHandSize(int targetSize) {
@@ -326,7 +353,7 @@ class MentalTcgGame extends FlameGame {
       return;
     }
 
-    final droppedInZone = cardView.toRect().overlaps(_dropZone.toRect());
+    final droppedInZone = _dropZone.toRect().overlaps(cardView.toRect());
     if (!droppedInZone) {
       cardView.returnToHome();
       return;
@@ -334,7 +361,11 @@ class MentalTcgGame extends FlameGame {
 
     final card = cardView.card;
     if (card.type == MentalCardType.comodin) {
-      _setHint('Los Comodines deben colocarse en los espacios de abajo.');
+      cardView.returnToHome();
+      return;
+    }
+
+    if (_playerFieldCardView != null) {
       cardView.returnToHome();
       return;
     }
@@ -355,50 +386,12 @@ class MentalTcgGame extends FlameGame {
 
     mana -= card.energyCost;
     _placeOnField(card);
-
-    final bossCard = _bossCard!;
-    final playerMultiplier = _multiplier(card.type, bossCard.type);
-    final playerDamage = _scaledDamage(card.power, playerMultiplier) + _nextAttackBonus;
-    _nextAttackBonus = 0; // Consume the bonus
-    bossHp = max(0, bossHp - playerDamage);
-
-    var turnLog =
-        '${card.name} pega $playerDamage a ${bossCard.name} (${_multiplierLabel(playerMultiplier)}).';
-
-    if (bossHp <= 0) {
-      _isFinished = true;
-      _setHint('Ganaste el round. El Boss quedo sin bienestar.');
-      _layoutBoard();
-      return;
-    }
-
-    if (_bossAttackCancelled) {
-      _bossAttackCancelled = false; // Consume the cancel
-      turnLog += ' El Boss no pudo atacar (Romper el Bucle).';
-    } else {
-      final bossMultiplier = _multiplier(bossCard.type, card.type);
-      final bossDamage = _scaledDamage(bossCard.power, bossMultiplier);
-      playerHp = max(0, playerHp - bossDamage);
-
-      turnLog +=
-          ' ${bossCard.name} responde con $bossDamage (${_multiplierLabel(bossMultiplier)}).';
-    }
-
-    if (playerHp <= 0) {
-      _isFinished = true;
-      _setHint('Perdiste este round. Reinicia para intentar de nuevo.');
-      _layoutBoard();
-      return;
-    }
-
-    _advanceTurn();
-    _setHint(turnLog);
     _layoutBoard();
   }
 
   int _findPowerSlotAt(DraggableCardComponent cardView) {
     for (var i = 0; i < _powerZones.length; i++) {
-      if (cardView.toRect().overlaps(_powerZones[i].toRect())) {
+      if (_powerZones[i].toRect().overlaps(cardView.toRect())) {
         return i;
       }
     }
@@ -413,7 +406,6 @@ class MentalTcgGame extends FlameGame {
 
     final card = cardView.card;
     if (card.type != MentalCardType.comodin) {
-      _setHint('Solo puedes colocar Comodines aquí abajo.');
       cardView.returnToHome();
       return;
     }
@@ -445,9 +437,9 @@ class MentalTcgGame extends FlameGame {
     // Ejecutar efecto del comodín
     if (card.type == MentalCardType.comodin) {
       if (card.id == 'comodin_31') { // Pausa de Respiración
-        playerHp = min(20, playerHp + 4);
+        playerHp = min(_baseHealthPoints, playerHp + 4);
       } else if (card.id == 'comodin_32') { // Red de Apoyo Activa
-        playerHp = min(20, playerHp + 6);
+        playerHp = min(_baseHealthPoints, playerHp + 6);
       } else if (card.id == 'comodin_33') { // Enfoque con Intención
         _nextAttackBonus += 3;
       } else if (card.id == 'comodin_34') { // Romper el Bucle
@@ -473,50 +465,69 @@ class MentalTcgGame extends FlameGame {
           }
         }
       }
-      _setHint('Comodín activado: ${card.name}!');
     }
 
     _layoutBoard();
-    _checkAutoAdvance();
   }
 
-  void _checkAutoAdvance() {
-    bool canPlay = false;
-    for (final c in _handCards) {
-      if (c.card.energyCost <= mana) {
-        canPlay = true;
-        break;
-      }
-    }
-    if (!canPlay) {
-      _setHint('${mana == 0 ? "Sin energía" : "Sin cartas jugables"}, pasando turno...');
-      _executeBossCounterAttackAndAdvance();
-    }
+  void passTurn() {
+    if (_isFinished) return;
+    _resolveTurnFromBoard();
   }
 
-  void _executeBossCounterAttackAndAdvance() {
+  void _resolveTurnFromBoard() {
     final bossCard = _bossCard!;
-    var turnLog = 'Turno finalizado automático.';
+    final playerCard = _playerFieldCardView?.card;
+    final logParts = <String>[];
+
+    if (playerCard != null) {
+      final playerMultiplier = _multiplier(playerCard.type, bossCard.type);
+      final playerDamage =
+          _scaledDamage(playerCard.power, playerMultiplier) + _nextAttackBonus;
+      _nextAttackBonus = 0;
+      bossHp = max(0, bossHp - playerDamage);
+
+      logParts.add(
+        '${playerCard.name} pega $playerDamage a ${bossCard.name} (${_multiplierLabel(playerMultiplier)}).',
+      );
+
+      if (bossHp <= 0) {
+        _isFinished = true;
+        _setHint('¡Ganaste! El Boss llegó a 0 puntos.');
+        _layoutBoard();
+        return;
+      }
+    } else {
+      logParts.add('No jugaste carta principal.');
+    }
 
     if (_bossAttackCancelled) {
-      _bossAttackCancelled = false; // Consume the cancel
-      turnLog += ' El Boss no pudo atacar (Romper el Bucle).';
+      _bossAttackCancelled = false;
+      logParts.add('El Boss no pudo atacar (Romper el Bucle).');
     } else {
-      final bossDamage = _scaledDamage(bossCard.power, 1.0); // Multiplier 1.0 ya que no atacaste con tipo
+      final bossMultiplier =
+          playerCard == null ? 1.0 : _multiplier(bossCard.type, playerCard.type);
+      final bossDamage = _scaledDamage(bossCard.power, bossMultiplier);
       playerHp = max(0, playerHp - bossDamage);
 
-      turnLog += ' ${bossCard.name} te ataca y hace $bossDamage de daño.';
+      if (playerCard == null) {
+        logParts.add('${bossCard.name} te ataca y hace $bossDamage de daño.');
+      } else {
+        logParts.add(
+          '${bossCard.name} responde con $bossDamage (${_multiplierLabel(bossMultiplier)}).',
+        );
+      }
     }
 
     if (playerHp <= 0) {
       _isFinished = true;
-      _setHint('Perdiste este round. Reinicia para intentar de nuevo.');
+      _setHint('Perdiste. Tus puntos llegaron a 0.');
       _layoutBoard();
       return;
     }
 
     _advanceTurn();
-    _setHint(turnLog);
+    _setHint(logParts.join(' '));
     _layoutBoard();
   }
 
@@ -556,13 +567,16 @@ class MentalTcgGame extends FlameGame {
 
   void _advanceTurn() {
     turn += 1;
+    _playerFieldCardView?.removeFromParent();
+    _playerFieldCardView = null;
+
     // Limpiar slots de comodín
     for (var i = 0; i < _powerCardViews.length; i++) {
        _powerCardViews[i]?.removeFromParent();
        _powerCardViews[i] = null;
     }
     
-    manaCap = min(10, manaCap + 1);
+    manaCap = min(_maxManaPerTurn, manaCap + 1);
     mana = manaCap;
     _drawUntilHandSize(4);
     _spawnBossCard();
@@ -637,7 +651,15 @@ class MentalTcgGame extends FlameGame {
     previewArtPath.value = null;
   }
 
-  void _setHint(String _) {}
+  void _setHint(String text) {
+    hintTextNotifier.value = text;
+    _hintTimer?.cancel();
+    if (text.isNotEmpty) {
+      _hintTimer = async.Timer(const Duration(seconds: 4), () {
+        hintTextNotifier.value = '';
+      });
+    }
+  }
 
   void _layoutBoard() {
     _background

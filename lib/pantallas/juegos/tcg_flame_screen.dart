@@ -139,90 +139,267 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GameWidget<MentalTcgGame>(
-        game: _game,
-        overlayBuilderMap: {
-          'hud': (context, game) {
-            return SafeArea(
-              child: Padding(
-              padding: const EdgeInsets.only(top: 35, left: 28, right: 28),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.28),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed: _openGameMenu,
-                        tooltip: 'Menu',
-                        icon: const Icon(Icons.menu_rounded),
-                        color: Colors.white,
-                        iconSize: 26,
-                      ),
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.28),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed: game.resetMatch,
-                        tooltip: 'Reiniciar',
-                        icon: const Icon(Icons.refresh_rounded),
-                        color: Colors.white,
-                        iconSize: 26,
-                      ),
-                    ),
-                  ],
+      backgroundColor: const Color.fromARGB(255, 104, 112, 109),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 1. COMPONENTE 1: La Barra de Estado de Juego
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal:18, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF280705), // Un rojo oscuro profundo con estilo madera
+                border: const Border(
+                  bottom: BorderSide(color: Color(0xFF4A1010), width: 2),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color.fromARGB(255, 83, 11, 7).withValues(alpha: 1),
+                    blurRadius: 10,
+                  ),
+                ],
               ),
-            );
-          },
-          'preview': (context, game) {
-            return ValueListenableBuilder<String?>(
-              valueListenable: game.previewArtPath,
-              builder: (context, imagePath, child) {
-                if (imagePath == null) {
-                  return const SizedBox.shrink();
-                }
-
-                return GestureDetector(
-                  onTap: game.hideCardPreview,
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.72),
-                    child: Center(
-                      child: Container(
-                        width: MediaQuery.of(context).size.width * 0.82,
-                        constraints: const BoxConstraints(maxWidth: 360),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // MENU
+                      DecoratedBox(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
+                          color: Colors.black.withValues(alpha: 0.28),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          onPressed: _openGameMenu,
+                          tooltip: 'Menú',
+                          icon: const Icon(Icons.menu_rounded),
+                          color: Colors.white,
+                          iconSize: 18,
+                        ),
+                      ),
+                      
+                      // BARRA CENTRAL DE ESTADO (PUNTOS Y ELIXIR)
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: ValueListenableBuilder<int>(
+                            valueListenable: _game.playerHpNotifier,
+                            builder: (context, playerHp, _) {
+                              return ValueListenableBuilder<int>(
+                                valueListenable: _game.bossHpNotifier,
+                                builder: (context, bossHp, _) {
+                                  return ValueListenableBuilder<int>(
+                                    valueListenable: _game.manaNotifier,
+                                    builder: (context, mana, _) {
+                                      return ValueListenableBuilder<int>(
+                                        valueListenable: _game.manaCapNotifier,
+                                        builder: (context, manaCap, _) {
+                                          return Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    'Tú: $playerHp',
+                                                    style: const TextStyle(color: Color.fromARGB(255, 121, 185, 231), fontWeight: FontWeight.bold, fontSize: 16),
+                                                  ),
+                                                  Text(
+                                                    'Elixir: $mana/$manaCap',
+                                                    style: const TextStyle(color: Color.fromARGB(255, 232, 235, 235), fontWeight: FontWeight.bold, fontSize: 17),
+                                                  ),
+                                                  Text(
+                                                    'Boss: $bossHp',
+                                                    style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 16),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 6),
+                                              // BARRA DE ELIXIR CON 10 DIVISIONES
+                                              Row(
+                                                children: List.generate(_game.maxManaPerTurn, (index) {
+                                                  final isUnlocked = index < manaCap;
+                                                  final isAvailable = index < mana;
+                                                  return Expanded(
+                                                    child: Container(
+                                                      margin: const EdgeInsets.symmetric(horizontal: 1),
+                                                      height: 10,
+                                                      decoration: BoxDecoration(
+                                                        color: isAvailable
+                                                            ? const Color.fromARGB(255, 101, 216, 136)
+                                                            : (isUnlocked
+                                                                  ? const Color.fromARGB(255, 46, 104, 67)
+                                                                  : Colors.black38),
+                                                        borderRadius: BorderRadius.circular(2),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+
+                      // REINICIAR
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.28),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          onPressed: () {
+                            _game.resetMatch();
+                          },
+                          tooltip: 'Reiniciar',
+                          icon: const Icon(Icons.refresh_rounded),
+                          color: Colors.white,
+                          iconSize: 21,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            // 2. COMPONENTE 2: El Tablero del Juego (Flame)
+            Expanded(
+              child: Stack(
+                children: [
+                  GameWidget<MentalTcgGame>(
+                    game: _game,
+                    overlayBuilderMap: {
+                      'preview': (context, game) {
+                        return ValueListenableBuilder<String?>(
+                          valueListenable: game.previewArtPath,
+                          builder: (context, imagePath, child) {
+                            if (imagePath == null) return const SizedBox.shrink();
+                            return GestureDetector(
+                              onTap: game.hideCardPreview,
+                              behavior: HitTestBehavior.opaque,
+                              child: Container(
+                                color: Colors.black.withValues(alpha: 0.72),
+                                child: Center(
+                                  child: Container(
+                                    width: MediaQuery.of(context).size.width * 0.82,
+                                    constraints: const BoxConstraints(maxWidth: 360),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Colors.black54,
+                                          blurRadius: 20,
+                                          offset: Offset(0, 12),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Image.asset(
+                                        imagePath,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    },
+                    initialActiveOverlays: const ['preview'],
+                  ),
+                  
+                  // MENSAJES / INDICACIONES FLOTANTES (MODAL CENTRADO/ARRIBA)
+                  Positioned(
+                    top: 100,
+                    left: 24,
+                    right: 24,
+                    child: IgnorePointer(
+                      child: ValueListenableBuilder<String>(
+                        valueListenable: _game.hintTextNotifier,
+                        builder: (context, hint, _) {
+                          if (hint.isEmpty) return const SizedBox.shrink();
+                          
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.85),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.white24, width: 1.5),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black45,
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                )
+                              ]
+                            ),
+                            child: Text(
+                              hint,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white, 
+                                fontSize: 16, 
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+                  // BOTON RENDONDO PARA FINALIZAR TURNO (INFERIOR DERECHO)
+                  Positioned(
+                    bottom: 24,
+                    right: 20,
+                    child: Semantics(
+                      label: 'Jugar cartas',
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
                             BoxShadow(
                               color: Colors.black54,
-                              blurRadius: 20,
-                              offset: Offset(0, 12),
-                            ),
-                          ],
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
+                            )
+                          ]
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.asset(
-                            imagePath,
-                            fit: BoxFit.contain,
-                          ),
+                        child: FloatingActionButton(
+                          mini: true,
+                          heroTag: 'btn_pass_turn',
+                          backgroundColor: Colors.amber.shade700,
+                          foregroundColor: Colors.black87,
+                          elevation: 10,
+                          onPressed: () {
+                            if (!_game.isFinished) {
+                              _game.passTurn();
+                            }
+                          },
+                          child: const Icon(Icons.double_arrow_rounded, size: 28),
                         ),
                       ),
                     ),
                   ),
-                );
-              },
-            );
-          },
-        },
-        initialActiveOverlays: const ['hud', 'preview'],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
