@@ -27,7 +27,7 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
 
   Future<void> _initializeAudio() async {
     player = AudioPlayer();
-    await player.setAsset( 'assets/musica/tcg/The_Keeper_s_Ledger.mp3');
+    await player.setAsset('assets/musica/tcg/The_Keeper_s_Ledger.mp3');
     player.setLoopMode(LoopMode.all);
     player.play();
   }
@@ -71,9 +71,8 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  onTap: () => Navigator.of(
-                    context,
-                  ).pop(_GameMenuAction.toggleSound),
+                  onTap: () =>
+                      Navigator.of(context).pop(_GameMenuAction.toggleSound),
                 ),
                 ListTile(
                   leading: const Icon(
@@ -87,12 +86,14 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  onTap: () => Navigator.of(
-                    context,
-                  ).pop(_GameMenuAction.continueGame),
+                  onTap: () =>
+                      Navigator.of(context).pop(_GameMenuAction.continueGame),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.exit_to_app, color: Colors.redAccent),
+                  leading: const Icon(
+                    Icons.exit_to_app,
+                    color: Colors.redAccent,
+                  ),
                   title: const Text(
                     'Salir de la partida',
                     style: TextStyle(
@@ -102,7 +103,8 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                   ),
                   onTap: () => {
                     player.stop(),
-                    Navigator.of(context).pop(_GameMenuAction.exitGame)},
+                    Navigator.of(context).pop(_GameMenuAction.exitGame),
+                  },
                 ),
               ],
             ),
@@ -139,22 +141,22 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 104, 112, 109),
+      backgroundColor: const Color.fromARGB(255, 121, 185, 121), // Fondo color verde salvia para ocultar las esquinas grises
       body: SafeArea(
         child: Column(
           children: [
             // 1. COMPONENTE 1: La Barra de Estado de Juego
             Container(
-              padding: const EdgeInsets.symmetric(horizontal:18, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFF280705), // Un rojo oscuro profundo con estilo madera
-                border: const Border(
-                  bottom: BorderSide(color: Color(0xFF4A1010), width: 2),
-                ),
+                color: const Color.fromARGB(255, 78, 120, 82), // Verde Musgo Profundo
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                border: Border.all(color: const Color(0xFF3B5E40), width: 1.5), // Bisel sutil madera/metal (Ajustado)
                 boxShadow: [
                   BoxShadow(
-                    color: const Color.fromARGB(255, 83, 11, 7).withValues(alpha: 1),
-                    blurRadius: 10,
+                    color: const Color(0xFF28402C).withValues(alpha: 0.45), // Sombra ajustada al nuevo tono
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -165,20 +167,32 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       // MENU
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.28),
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          onPressed: _openGameMenu,
-                          tooltip: 'Menú',
-                          icon: const Icon(Icons.menu_rounded),
-                          color: Colors.white,
-                          iconSize: 18,
+                      GestureDetector(
+                        onTap: _openGameMenu,
+                        behavior: HitTestBehavior.opaque,
+                        child: Semantics(
+                          label: 'Menú',
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Icon(
+                                  Icons.menu_rounded,
+                                  size: 26,
+                                  color: Colors.black.withValues(alpha: 0.3),
+                                ),
+                                const Icon(
+                                  Icons.menu_rounded,
+                                  size: 24,
+                                  color: Color(0xFFF3E5AB), // Ocre suave/Crema
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                      
+
                       // BARRA CENTRAL DE ESTADO (PUNTOS Y ELIXIR)
                       Expanded(
                         child: Padding(
@@ -195,49 +209,131 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                                       return ValueListenableBuilder<int>(
                                         valueListenable: _game.manaCapNotifier,
                                         builder: (context, manaCap, _) {
-                                          return Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    'Tú: $playerHp',
-                                                    style: const TextStyle(color: Color.fromARGB(255, 121, 185, 231), fontWeight: FontWeight.bold, fontSize: 16),
-                                                  ),
-                                                  Text(
-                                                    'Elixir: $mana/$manaCap',
-                                                    style: const TextStyle(color: Color.fromARGB(255, 232, 235, 235), fontWeight: FontWeight.bold, fontSize: 17),
-                                                  ),
-                                                  Text(
-                                                    'Boss: $bossHp',
-                                                    style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 16),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 6),
-                                              // BARRA DE ELIXIR CON 10 DIVISIONES
-                                              Row(
-                                                children: List.generate(_game.maxManaPerTurn, (index) {
-                                                  final isUnlocked = index < manaCap;
-                                                  final isAvailable = index < mana;
-                                                  return Expanded(
-                                                    child: Container(
-                                                      margin: const EdgeInsets.symmetric(horizontal: 1),
-                                                      height: 10,
-                                                      decoration: BoxDecoration(
-                                                        color: isAvailable
-                                                            ? const Color.fromARGB(255, 101, 216, 136)
-                                                            : (isUnlocked
-                                                                  ? const Color.fromARGB(255, 46, 104, 67)
-                                                                  : Colors.black38),
-                                                        borderRadius: BorderRadius.circular(2),
+                                          return ValueListenableBuilder<int>(
+                                            valueListenable:
+                                                _game.bossManaNotifier,
+                                            builder: (context, bossMana, _) {
+                                              return ValueListenableBuilder<
+                                                int
+                                              >(
+                                                valueListenable:
+                                                    _game.bossManaCapNotifier,
+                                                builder: (context, bossManaCap, _) {
+                                                  return Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Row(
+                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                                        children: [
+                                                          Row(
+                                                            children: [
+                                                              const Icon(Icons.favorite_rounded, color: Color(0xFFA8D5BA), size: 16), // Verde menta
+                                                              const SizedBox(width: 6),
+                                                              Row(
+                                                                children: List.generate(10, (index) {
+                                                                  final blocksActive = (playerHp / 25 * 10).ceil();
+                                                                  final isActive = index < blocksActive;
+                                                                  return Container(
+                                                                    width: 4, // Reducido para evitar overflow
+                                                                    height: 10,
+                                                                    margin: const EdgeInsets.only(right: 2),
+                                                                    decoration: BoxDecoration(
+                                                                      color: isActive ? const Color(0xFFA8D5BA) : const Color(0xFF28402C).withValues(alpha: 0.6),
+                                                                      borderRadius: BorderRadius.circular(5), // Completamente ovalado
+                                                                      boxShadow: isActive ? [
+                                                                        BoxShadow(
+                                                                          color: const Color(0xFFA8D5BA).withValues(alpha: 0.4),
+                                                                          blurRadius: 2,
+                                                                          offset: const Offset(0, 0),
+                                                                        )
+                                                                      ] : null,
+                                                                    ),
+                                                                  );
+                                                                }),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          Text(
+                                                            'Bienestar',
+                                                            style: TextStyle(
+                                                              color: const Color(0xFFCFD8DC).withValues(alpha: 0.9), // Gris verdoso claro/Beige
+                                                              fontWeight: FontWeight.w700,
+                                                              fontSize: 15,
+                                                              letterSpacing: 0.5,
+                                                            ),
+                                                          ),
+                                                          Row(
+                                                            children: [
+                                                              Row(
+                                                                children: List.generate(10, (index) {
+                                                                  final blocksActive = (bossHp / 25 * 10).ceil();
+                                                                  final isActive = index < blocksActive;
+                                                                  return Container(
+                                                                    width: 4, // Reducido para evitar overflow
+                                                                    height: 10,
+                                                                    margin: const EdgeInsets.only(right: 2),
+                                                                    decoration: BoxDecoration(
+                                                                      color: isActive ? const Color(0xFFD87D2F) : const Color(0xFF28402C).withValues(alpha: 0.6),
+                                                                      borderRadius: BorderRadius.circular(5), // Completamente ovalado
+                                                                      boxShadow: isActive ? [
+                                                                        BoxShadow(
+                                                                          color: const Color(0xFFD87D2F).withValues(alpha: 0.4),
+                                                                          blurRadius: 2,
+                                                                          offset: const Offset(0, 0),
+                                                                        )
+                                                                      ] : null,
+                                                                    ),
+                                                                  );
+                                                                }),
+                                                              ),
+                                                              const SizedBox(width: 6),
+                                                              const Icon(Icons.local_fire_department_rounded, color: Color(0xFFD87D2F), size: 16), // Coral terracota
+                                                            ],
+                                                          ),
+                                                        ],
                                                       ),
-                                                    ),
+                                                      const SizedBox(height: 6),
+                                                      // BARRA DE ELIXIR ESTILO VECTOR MINIMALISTA
+                                                      Container(
+                                                        height: 14,
+                                                        padding: const EdgeInsets.all(2),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.black.withValues(alpha: 0.15),
+                                                          borderRadius: BorderRadius.circular(6),
+                                                        ),
+                                                        child: Row(
+                                                          children: List.generate(_game.maxManaPerTurn, (index) {
+                                                            final isUnlocked = index < manaCap;
+                                                            final isAvailable = index < mana;
+                                                            const activeColor = Color(0xFF66BB6A); // Verde natural/curativo
+                                                            
+                                                            return Expanded(
+                                                              child: Container(
+                                                                margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                                                                decoration: BoxDecoration(
+                                                                  color: isAvailable
+                                                                      ? activeColor
+                                                                      : (isUnlocked ? Colors.black26 : Colors.black12),
+                                                                  border: Border.all(
+                                                                    color: isAvailable
+                                                                        ? activeColor.withValues(alpha: 0.5)
+                                                                        : Colors.black12,
+                                                                    width: 1.0,
+                                                                  ),
+                                                                  borderRadius: BorderRadius.circular(4),
+                                                                ),
+                                                              ),
+                                                            );
+                                                          }),
+                                                        ),
+                                                      ),
+                                                    ],
                                                   );
-                                                }),
-                                              ),
-                                            ],
+                                                },
+                                              );
+                                            },
                                           );
                                         },
                                       );
@@ -251,19 +347,31 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                       ),
 
                       // REINICIAR
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.28),
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          onPressed: () {
-                            _game.resetMatch();
-                          },
-                          tooltip: 'Reiniciar',
-                          icon: const Icon(Icons.refresh_rounded),
-                          color: Colors.white,
-                          iconSize: 21,
+                      GestureDetector(
+                        onTap: () {
+                          _game.resetMatch();
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: Semantics(
+                          label: 'Reiniciar',
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Icon(
+                                  Icons.refresh_rounded,
+                                  size: 26,
+                                  color: Colors.black.withValues(alpha: 0.3),
+                                ),
+                                const Icon(
+                                  Icons.refresh_rounded,
+                                  size: 24,
+                                  color: Color(0xFFF3E5AB), // Ocre suave/Crema
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -271,7 +379,7 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                 ],
               ),
             ),
-            
+
             // 2. COMPONENTE 2: El Tablero del Juego (Flame)
             Expanded(
               child: Stack(
@@ -283,7 +391,8 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                         return ValueListenableBuilder<String?>(
                           valueListenable: game.previewArtPath,
                           builder: (context, imagePath, child) {
-                            if (imagePath == null) return const SizedBox.shrink();
+                            if (imagePath == null)
+                              return const SizedBox.shrink();
                             return GestureDetector(
                               onTap: game.hideCardPreview,
                               behavior: HitTestBehavior.opaque,
@@ -291,8 +400,12 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                                 color: Colors.black.withValues(alpha: 0.72),
                                 child: Center(
                                   child: Container(
-                                    width: MediaQuery.of(context).size.width * 0.82,
-                                    constraints: const BoxConstraints(maxWidth: 360),
+                                    width:
+                                        MediaQuery.of(context).size.width *
+                                        0.82,
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 360,
+                                    ),
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(16),
                                       boxShadow: const [
@@ -320,44 +433,92 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                     },
                     initialActiveOverlays: const ['preview'],
                   ),
-                  
-                  // MENSAJES / INDICACIONES FLOTANTES (MODAL CENTRADO/ARRIBA)
-                  Positioned(
-                    top: 100,
-                    left: 24,
-                    right: 24,
-                    child: IgnorePointer(
-                      child: ValueListenableBuilder<String>(
-                        valueListenable: _game.hintTextNotifier,
-                        builder: (context, hint, _) {
-                          if (hint.isEmpty) return const SizedBox.shrink();
-                          
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 16),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.85),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.white24, width: 1.5),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black45,
-                                  blurRadius: 10,
-                                  offset: Offset(0, 4),
-                                )
-                              ]
-                            ),
-                            child: Text(
-                              hint,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white, 
-                                fontSize: 16, 
-                                fontWeight: FontWeight.w600,
+
+                  // MENSAJES / INDICACIONES FLOTANTES (MODAL CENTRADO)
+                  Positioned.fill(
+                    child: Center(
+                      child: IgnorePointer(
+                        child: ValueListenableBuilder<String>(
+                          valueListenable: _game.hintTextNotifier,
+                          builder: (context, hint, _) {
+                            if (hint.isEmpty) return const SizedBox.shrink();
+
+                            return Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
                               ),
-                            ),
-                          );
-                        },
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.85),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white24,
+                                  width: 1.5,
+                                ),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black45,
+                                    blurRadius: 10,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: hint.split('\n').map((line) {
+                                  List<TextSpan> spans = [];
+                                  List<String> words = line.split(' ');
+                                  for (String word in words) {
+                                    Color color = Colors.white;
+                                    if (word == 'Tú:')
+                                      color = const Color.fromARGB(
+                                        255,
+                                        121,
+                                        185,
+                                        231,
+                                      );
+                                    else if (word == 'Boss:')
+                                      color = Colors.redAccent;
+                                    else if (word.contains('Daño') ||
+                                        int.tryParse(word) != null)
+                                      color = Colors.orangeAccent;
+                                    else if (word.contains('(x'))
+                                      color = Colors.greenAccent;
+                                    else if (word.contains('¡Ganaste!') ||
+                                        word.contains('Perdiste'))
+                                      color = Colors.amberAccent;
+
+                                    spans.add(
+                                      TextSpan(
+                                        text: '$word ',
+                                        style: TextStyle(color: color),
+                                      ),
+                                    );
+                                  }
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 2.0,
+                                    ),
+                                    child: RichText(
+                                      textAlign: TextAlign.center,
+                                      text: TextSpan(
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          fontFamily: 'sans-serif',
+                                        ),
+                                        children: spans,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),
@@ -369,28 +530,35 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                     child: Semantics(
                       label: 'Jugar cartas',
                       child: Container(
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black54,
-                              blurRadius: 12,
-                              offset: Offset(0, 6),
-                            )
-                          ]
+                              color: const Color(0xFF28402C).withValues(alpha: 0.5), // Sombra ajustada
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: FloatingActionButton(
                           mini: true,
                           heroTag: 'btn_pass_turn',
-                          backgroundColor: Colors.amber.shade700,
-                          foregroundColor: Colors.black87,
-                          elevation: 10,
+                          backgroundColor: const Color(0xFFD87D2F), // Naranja Terracota / Ocre
+                          foregroundColor: const Color(0xFFFFE0B2), // Ocre más claro
+                          elevation: 0,
+                          highlightElevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                           onPressed: () {
                             if (!_game.isFinished) {
                               _game.passTurn();
                             }
                           },
-                          child: const Icon(Icons.double_arrow_rounded, size: 28),
+                          child: const Icon(
+                            Icons.double_arrow_rounded,
+                            size: 28,
+                          ),
                         ),
                       ),
                     ),

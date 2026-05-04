@@ -9,8 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-
-enum MentalCardType { cognitivo, emocional, conductual, comodin }
+enum MentalCardType { cognitivo, emocional, conductual, comodin, bossSoporte }
 
 extension MentalCardTypeX on MentalCardType {
   String get label {
@@ -23,6 +22,8 @@ extension MentalCardTypeX on MentalCardType {
         return 'Conductual';
       case MentalCardType.comodin:
         return 'Comodín';
+      case MentalCardType.bossSoporte:
+        return 'Soporte';
     }
   }
 
@@ -35,12 +36,14 @@ extension MentalCardTypeX on MentalCardType {
       case MentalCardType.conductual:
         return const Color(0xFF66BB6A);
       case MentalCardType.comodin:
-        return const Color(0xFFAB47BC); // Morado para comodines
+        return const Color(0xFFAB47BC);
+      case MentalCardType.bossSoporte:
+        return const Color(0xFF6A0DAD);
     }
   }
 }
 
-const String _boardAssetPath = 'assets/imagenes/tcg/tcg-tablero.png';
+const String _boardAssetPath = 'assets/imagenes/tcg/tcg-tablero3.png';
 const List<String> _cardArtPaths = <String>[
   'assets/imagenes/tcg/tcg0.jpg',
   'assets/imagenes/tcg/tcg1.jpg',
@@ -77,28 +80,40 @@ const List<String> _cardArtPaths = <String>[
   'assets/imagenes/tcg/tcg33.jpg',
   'assets/imagenes/tcg/tcg34.jpg',
   'assets/imagenes/tcg/tcg35.jpg',
+  'assets/imagenes/tcg/tcg36.jpg',
+  'assets/imagenes/tcg/tcg37.jpg',
+  'assets/imagenes/tcg/tcg38.jpg',
+  'assets/imagenes/tcg/tcg39.jpg',
+  'assets/imagenes/tcg/tcg40.jpg',
 ];
 
 // --- ZONA DE CONFIGURACIÓN ---
 // 1. Jefe (Boss) - No tiene zona de drop, solo posición visual
-const double _bossCardWidth = 118.0;   
-const double _bossCardHeight = 148.0;  
-const double _bossPosYRatio = 0.250; // Altura (0.0 es arriba del todo, 1.0 es abajo del todo)
+const double _bossCardWidth = 122.0;
+const double _bossCardHeight = 148.0;
+const double _bossPosYRatio =
+    0.255; // Altura (0.0 es arriba del todo, 1.0 es abajo del todo)
 
 // 2. Jugador (Carta central) y su Zona de Drop
-const double _playerCardWidth = 125.0; 
-const double _playerCardHeight = 175.0; 
-const double _playerPosYRatio = 0.460; // Altura
+const double _playerCardWidth = 128.0;
+const double _playerCardHeight = 175.0;
+const double _playerPosYRatio = 0.470; // Altura
 
 //Que tan grande es la caja invisible para soltar la carta central.
-const double _mainDropZoneWidth = 160.0; 
-const double _mainDropZoneHeight = 220.0; 
+const double _mainDropZoneWidth = 160.0;
+const double _mainDropZoneHeight = 220.0;
+
+// 2b. Cartas de Soporte del Boss (slots superiores)
+const double _bossSupportCardWidth = 80.6;
+const double _bossSupportCardHeight = 100.0;
+const double _bossSupportPosYRatio = 0.115;
+const double _bossSupportGap = 10.7;
 
 // 3. Cartas Inferiores (Poder) y sus Zonas de Drop
-const double _powerCardWidth = 83.0;  
-const double _powerCardHeight = 119.0; 
-const double _powerPosYRatio = 0.690; // Altura de la línea de 3 cartas
-const double _powerDropGap = 22.0;    // Espacio (hueco) entre las 3 cartas
+const double _powerCardWidth = 83.0;
+const double _powerCardHeight = 119.0;
+const double _powerPosYRatio = 0.709; // Altura de la línea de 3 cartas
+const double _powerDropGap = 22.0; // Espacio (hueco) entre las 3 cartas
 
 // Qué tan grandes son los rectángulos invisibles para soltar cartas abajo.
 const double _powerDropZoneWidth = 110.0;
@@ -111,10 +126,11 @@ const double _handCardOverlapRatio = 0.40;
 const double _handSidePadding = 12.0;
 const double _handFanMaxAngleDeg = 25.0; // inclinacion
 const double _handFanCenterLift = 8.0;
-const double _handFanCurveDrop = 14.0; //curvatura 
+const double _handFanCurveDrop = 14.0; //curvatura
 const double _handSelectedLift = 42.0;
 const double _handSelectedScale = 1.16;
-const double _handSelectedAngleFactor = 0.0; // Hace que la carta se ponga recta al seleccionarla
+const double _handSelectedAngleFactor =
+    0.0; // Hace que la carta se ponga recta al seleccionarla
 const double _handBottomMargin = 6.0;
 const int _handSelectedPriority = 80;
 const int _handBasePriority = 20;
@@ -144,27 +160,36 @@ class MentalTcgGame extends FlameGame {
   MentalTcgGame();
 
   final Random _random = Random();
-  
+
   late final PositionComponent _background;
   late final RectangleComponent _backgroundTint;
   late final DropZoneComponent _dropZone;
   late final List<PowerDropZoneComponent> _powerZones;
 
-
   final List<DraggableCardComponent> _handCards = <DraggableCardComponent>[];
   final List<MentalCard> _drawPile = <MentalCard>[];
   final List<CardFaceComponent?> _powerCardViews =
       List<CardFaceComponent?>.filled(_powerSlotCount, null);
+  final List<CardFaceComponent?> _bossSupportCardViews =
+      List<CardFaceComponent?>.filled(_powerSlotCount, null);
   final ValueNotifier<String?> previewArtPath = ValueNotifier<String?>(null);
   final ValueNotifier<int> playerScore = ValueNotifier<int>(0);
   final ValueNotifier<int> bossScore = ValueNotifier<int>(0);
-  final ValueNotifier<int> playerHpNotifier = ValueNotifier<int>(_baseHealthPoints);
-  final ValueNotifier<int> bossHpNotifier = ValueNotifier<int>(_baseHealthPoints);
+  final ValueNotifier<int> playerHpNotifier = ValueNotifier<int>(
+    _baseHealthPoints,
+  );
+  final ValueNotifier<int> bossHpNotifier = ValueNotifier<int>(
+    _baseHealthPoints,
+  );
   final ValueNotifier<String> hintTextNotifier = ValueNotifier<String>('');
   final ValueNotifier<int> manaNotifier = ValueNotifier<int>(_initialMana);
   final ValueNotifier<int> manaCapNotifier = ValueNotifier<int>(_initialMana);
+  final ValueNotifier<int> bossManaNotifier = ValueNotifier<int>(_initialMana);
+  final ValueNotifier<int> bossManaCapNotifier = ValueNotifier<int>(
+    _initialMana,
+  );
   async.Timer? _hintTimer;
-  
+
   DraggableCardComponent? _selectedHandCard;
 
   CardFaceComponent? _bossCardView;
@@ -183,6 +208,12 @@ class MentalTcgGame extends FlameGame {
   int get manaCap => manaCapNotifier.value;
   set manaCap(int value) => manaCapNotifier.value = value;
 
+  int get bossMana => bossManaNotifier.value;
+  set bossMana(int value) => bossManaNotifier.value = value;
+
+  int get bossManaCap => bossManaCapNotifier.value;
+  set bossManaCap(int value) => bossManaCapNotifier.value = value;
+
   int get baseHealthPoints => _baseHealthPoints;
   int get maxManaPerTurn => _maxManaPerTurn;
 
@@ -191,6 +222,8 @@ class MentalTcgGame extends FlameGame {
 
   int _nextAttackBonus = 0;
   bool _bossAttackCancelled = false;
+  bool _playerHealBlocked = false;
+  bool _playerHealCancelledThisTurn = false;
 
   bool get isFinished => _isFinished;
 
@@ -268,14 +301,23 @@ class MentalTcgGame extends FlameGame {
       _powerCardViews[i] = null;
     }
 
+    for (var i = 0; i < _bossSupportCardViews.length; i++) {
+      _bossSupportCardViews[i]?.removeFromParent();
+      _bossSupportCardViews[i] = null;
+    }
+
     playerHp = _baseHealthPoints;
     bossHp = _baseHealthPoints;
     turn = 1;
     manaCap = _initialMana;
     mana = _initialMana;
+    bossManaCap = _initialMana;
+    bossMana = _initialMana;
     _isFinished = false;
     _nextAttackBonus = 0;
     _bossAttackCancelled = false;
+    _playerHealBlocked = false;
+    _playerHealCancelledThisTurn = false;
 
     _refillDrawPile();
     _drawUntilHandSize(4);
@@ -339,6 +381,46 @@ class MentalTcgGame extends FlameGame {
     );
     add(_bossCardView!);
     _animateEnemyDeploy(_bossCardView!);
+
+    // Spawn boss support cards (1-2 random from pool)
+    for (var i = 0; i < _bossSupportCardViews.length; i++) {
+      _bossSupportCardViews[i]?.removeFromParent();
+      _bossSupportCardViews[i] = null;
+    }
+    _playerHealBlocked = false;
+    _playerHealCancelledThisTurn = false;
+
+    final available = List<MentalCard>.from(_bossSoporteCardPool)
+      ..shuffle(_random);
+    int count = 1;
+    if (bossManaCap >= 5) count = 1 + _random.nextInt(2);
+    if (bossManaCap >= 8) count = 1 + _random.nextInt(3);
+    final slots = [0, 1, 2]..shuffle(_random);
+
+    int currentBossMana = bossMana;
+    int cardsPlayed = 0;
+
+    for (var k = 0; k < count; k++) {
+      final card = available[k];
+      if (currentBossMana >= card.energyCost) {
+        currentBossMana -= card.energyCost;
+
+        final view = CardFaceComponent(
+          card: card,
+          cardSize: Vector2(_bossSupportCardWidth, _bossSupportCardHeight),
+        );
+        _bossSupportCardViews[slots[cardsPlayed]] = view;
+        add(view);
+        _animateEnemyDeploy(view);
+
+        if (card.id == 'bsoporte_37') _playerHealBlocked = true;
+        if (card.id == 'bsoporte_38') _playerHealCancelledThisTurn = true;
+
+        cardsPlayed++;
+      }
+    }
+
+    bossMana = currentBossMana;
   }
 
   void _handleDrop(DraggableCardComponent cardView) {
@@ -433,18 +515,58 @@ class MentalTcgGame extends FlameGame {
     _powerCardViews[slotIndex] = powerCardView;
     add(powerCardView);
     _animatePowerDeploy(powerCardView);
-    
+
     // Ejecutar efecto del comodín
     if (card.type == MentalCardType.comodin) {
-      if (card.id == 'comodin_31') { // Pausa de Respiración
-        playerHp = min(_baseHealthPoints, playerHp + 4);
-      } else if (card.id == 'comodin_32') { // Red de Apoyo Activa
-        playerHp = min(_baseHealthPoints, playerHp + 6);
-      } else if (card.id == 'comodin_33') { // Enfoque con Intención
+      if (card.id == 'comodin_30') {
+        // Pedir Ayuda Profesional
+        if (_playerHealBlocked) {
+          _setHint(
+            'Culpa y Vergüenza bloquea la recuperación de ${card.name}.',
+          );
+        } else if (_playerHealCancelledThisTurn) {
+          _playerHealCancelledThisTurn = false;
+          _setHint('Gaslighting cancela la recuperación de ${card.name}.');
+        } else {
+          playerHp = min(_baseHealthPoints, playerHp + 8);
+          _setHint('Pedir Ayuda: +8 HP');
+        }
+      } else if (card.id == 'comodin_31') {
+        // Pausa de Respiración
+        if (_playerHealBlocked) {
+          _setHint(
+            'Culpa y Vergüenza bloquea la recuperación de ${card.name}.',
+          );
+        } else if (_playerHealCancelledThisTurn) {
+          _playerHealCancelledThisTurn = false;
+          _setHint('Gaslighting cancela la recuperación de ${card.name}.');
+        } else {
+          playerHp = min(_baseHealthPoints, playerHp + 4);
+          _setHint('Pausa de Respiración: +4 HP');
+        }
+      } else if (card.id == 'comodin_32') {
+        // Red de Apoyo Activa
+        if (_playerHealBlocked) {
+          _setHint(
+            'Culpa y Vergüenza bloquea la recuperación de ${card.name}.',
+          );
+        } else if (_playerHealCancelledThisTurn) {
+          _playerHealCancelledThisTurn = false;
+          _setHint('Gaslighting cancela la recuperación de ${card.name}.');
+        } else {
+          playerHp = min(_baseHealthPoints, playerHp + 6);
+          _setHint('Red de Apoyo Activa: +6 HP');
+        }
+      } else if (card.id == 'comodin_33') {
+        // Enfoque con Intención
         _nextAttackBonus += 3;
-      } else if (card.id == 'comodin_34') { // Romper el Bucle
+        _setHint('Enfoque con Intención: Próximo ataque +3');
+      } else if (card.id == 'comodin_34') {
+        // Romper el Bucle
         _bossAttackCancelled = true;
-      } else if (card.id == 'comodin_35') { // Tablero Organizado
+        _setHint('Romper el Bucle: Ataque de Boss cancelado');
+      } else if (card.id == 'comodin_35') {
+        // Tablero Organizado
         if (_handCards.isNotEmpty) {
           final randomCard = _handCards[_random.nextInt(_handCards.length)];
           _handCards.remove(randomCard);
@@ -452,7 +574,8 @@ class MentalTcgGame extends FlameGame {
         }
         // Robar 2 (El máximo es irrelevante si es un efecto especial, podemos forzar dibujo)
         for (var i = 0; i < 2; i++) {
-          if (_handCards.length < 10) { // Un pequeño cap de mano
+          if (_handCards.length < 10) {
+            // Un pequeño cap de mano
             final c = _takeToolCard();
             final cView = DraggableCardComponent(
               card: c,
@@ -464,6 +587,7 @@ class MentalTcgGame extends FlameGame {
             add(cView);
           }
         }
+        _setHint('Tablero Organizado: Cambiaste 1 carta por 2');
       }
     }
 
@@ -488,46 +612,77 @@ class MentalTcgGame extends FlameGame {
       bossHp = max(0, bossHp - playerDamage);
 
       logParts.add(
-        '${playerCard.name} pega $playerDamage a ${bossCard.name} (${_multiplierLabel(playerMultiplier)}).',
+        'Tú: $playerDamage Daño (${_multiplierLabel(playerMultiplier)})',
       );
 
       if (bossHp <= 0) {
         _isFinished = true;
-        _setHint('¡Ganaste! El Boss llegó a 0 puntos.');
+        _setHint('¡Ganaste!');
         _layoutBoard();
         return;
       }
     } else {
-      logParts.add('No jugaste carta principal.');
+      logParts.add('Tú: 0 Daño');
     }
 
-    if (_bossAttackCancelled) {
-      _bossAttackCancelled = false;
-      logParts.add('El Boss no pudo atacar (Romper el Bucle).');
-    } else {
-      final bossMultiplier =
-          playerCard == null ? 1.0 : _multiplier(bossCard.type, playerCard.type);
-      final bossDamage = _scaledDamage(bossCard.power, bossMultiplier);
-      playerHp = max(0, playerHp - bossDamage);
-
-      if (playerCard == null) {
-        logParts.add('${bossCard.name} te ataca y hace $bossDamage de daño.');
-      } else {
-        logParts.add(
-          '${bossCard.name} responde con $bossDamage (${_multiplierLabel(bossMultiplier)}).',
-        );
+    // Boss support card effects
+    for (var i = 0; i < _bossSupportCardViews.length; i++) {
+      final supportView = _bossSupportCardViews[i];
+      if (supportView == null) continue;
+      final sc = supportView.card;
+      if (sc.id == 'bsoporte_36') {
+        playerHp = max(0, playerHp - 6);
+        logParts.add('Sobrecarga Tóxica: -6 HP');
+      } else if (sc.id == 'bsoporte_37') {
+        logParts.add('Culpa y Vergüenza activa');
+      } else if (sc.id == 'bsoporte_38') {
+        logParts.add('Gaslighting activo');
+      } else if (sc.id == 'bsoporte_39') {
+        if (_handCards.isNotEmpty) {
+          final discarded = _handCards[_random.nextInt(_handCards.length)];
+          _handCards.remove(discarded);
+          discarded.removeFromParent();
+          logParts.add('Manipulación: Pierdes 1 carta');
+        }
+      } else if (sc.id == 'bsoporte_40') {
+        final steal = min(2, playerHp);
+        playerHp = max(0, playerHp - steal);
+        bossHp = min(_baseHealthPoints, bossHp + steal);
+        logParts.add('Drenaje: Roba $steal HP');
       }
     }
 
     if (playerHp <= 0) {
       _isFinished = true;
-      _setHint('Perdiste. Tus puntos llegaron a 0.');
+      _setHint('${logParts.join('\n')}\nPerdiste.');
+      _layoutBoard();
+      return;
+    }
+
+    if (_bossAttackCancelled) {
+      _bossAttackCancelled = false;
+      logParts.add('Boss: Atac. Cancelado');
+    } else {
+      final bossMultiplier = playerCard == null
+          ? 1.0
+          : _multiplier(bossCard.type, playerCard.type);
+      final bossDamage = _scaledDamage(bossCard.power, bossMultiplier);
+      playerHp = max(0, playerHp - bossDamage);
+
+      logParts.add(
+        'Boss: $bossDamage Daño (${_multiplierLabel(bossMultiplier)})',
+      );
+    }
+
+    if (playerHp <= 0) {
+      _isFinished = true;
+      _setHint('${logParts.join('\n')}\nPerdiste.');
       _layoutBoard();
       return;
     }
 
     _advanceTurn();
-    _setHint(logParts.join(' '));
+    _setHint(logParts.join('\n'));
     _layoutBoard();
   }
 
@@ -570,14 +725,22 @@ class MentalTcgGame extends FlameGame {
     _playerFieldCardView?.removeFromParent();
     _playerFieldCardView = null;
 
-    // Limpiar slots de comodín
     for (var i = 0; i < _powerCardViews.length; i++) {
-       _powerCardViews[i]?.removeFromParent();
-       _powerCardViews[i] = null;
+      _powerCardViews[i]?.removeFromParent();
+      _powerCardViews[i] = null;
     }
-    
+
+    for (var i = 0; i < _bossSupportCardViews.length; i++) {
+      _bossSupportCardViews[i]?.removeFromParent();
+      _bossSupportCardViews[i] = null;
+    }
+    _playerHealBlocked = false;
+    _playerHealCancelledThisTurn = false;
+
     manaCap = min(_maxManaPerTurn, manaCap + 1);
     mana = manaCap;
+    bossManaCap = min(_maxManaPerTurn, bossManaCap + 1);
+    bossMana = bossManaCap;
     _drawUntilHandSize(4);
     _spawnBossCard();
   }
@@ -691,22 +854,36 @@ class MentalTcgGame extends FlameGame {
       ..size = Vector2(_mainDropZoneWidth, _mainDropZoneHeight)
       ..refreshLayout();
 
+    // Boss support cards row (above boss card)
+    final totalSupportWidth =
+        (_bossSupportCardWidth * _powerSlotCount) +
+        (_bossSupportGap * (_powerSlotCount - 1));
+    final supportStartX = (size.x - totalSupportWidth) / 2;
+    final supportY = size.y * _bossSupportPosYRatio;
+    for (var i = 0; i < _bossSupportCardViews.length; i++) {
+      final cardX =
+          supportStartX + (i * (_bossSupportCardWidth + _bossSupportGap));
+      _bossSupportCardViews[i]?.position = Vector2(cardX, supportY);
+    }
+
     _bossCardView?.position = Vector2(bossCenterX, bossY);
     _playerFieldCardView?.position = Vector2(playerCenterX, playerY);
 
     // 2. DIBUJAR CAJAS DE DROP INFERIORES INDEPENDIENTES
     final totalPowerWidth =
-        (_powerCardWidth * _powerSlotCount) + (_powerDropGap * (_powerSlotCount - 1));
+        (_powerCardWidth * _powerSlotCount) +
+        (_powerDropGap * (_powerSlotCount - 1));
     final powerStartX = (size.x - totalPowerWidth) / 2;
 
     for (var i = 0; i < _powerZones.length; i++) {
       // Posición final de la carta si es colocada aquí
       final cardX = powerStartX + (i * (_powerCardWidth + _powerDropGap));
-      
+
       // Posición del RECÚADRO que detecta cuando la sueltas (centrado alrededor del 'slot' de la carta)
       final dropX = cardX + (_powerCardWidth / 2) - (_powerDropZoneWidth / 2);
-      final dropY = powerY + (_powerCardHeight / 2) - (_powerDropZoneHeight / 2);
-      
+      final dropY =
+          powerY + (_powerCardHeight / 2) - (_powerDropZoneHeight / 2);
+
       _powerZones[i]
         ..position = Vector2(dropX, dropY)
         ..size = Vector2(_powerDropZoneWidth, _powerDropZoneHeight)
@@ -732,8 +909,9 @@ class MentalTcgGame extends FlameGame {
     final overlap = _handCardOverlapRatio.clamp(0.15, 0.75).toDouble();
     final nominalStep = _handCardWidth * (1 - overlap);
     final availableWidth = max(0.0, size.x - (_handSidePadding * 2));
-    final maxStepByScreen =
-        count > 1 ? max(0.0, (availableWidth - _handCardWidth) / (count - 1)) : 0.0;
+    final maxStepByScreen = count > 1
+        ? max(0.0, (availableWidth - _handCardWidth) / (count - 1))
+        : 0.0;
     final step = count > 1 ? min(nominalStep, maxStepByScreen) : 0.0;
     final fanWidth = _handCardWidth + (step * (count - 1));
     final startCenterX = (size.x - fanWidth) / 2 + (_handCardWidth / 2);
@@ -749,7 +927,9 @@ class MentalTcgGame extends FlameGame {
       final isSelected = identical(cardView, _selectedHandCard);
       final selectedLift = isSelected ? _handSelectedLift : 0.0;
       final baseAngle = t * maxAngleRad;
-      final handAngle = isSelected ? baseAngle * _handSelectedAngleFactor : baseAngle;
+      final handAngle = isSelected
+          ? baseAngle * _handSelectedAngleFactor
+          : baseAngle;
 
       final homeCenter = Vector2(
         startCenterX + (i * step),
@@ -805,10 +985,8 @@ class PowerDropZoneComponent extends PositionComponent {
 
 class CardFaceComponent extends PositionComponent
     with HasGameReference<MentalTcgGame>, TapCallbacks {
-  CardFaceComponent({
-    required this.card,
-    required Vector2 cardSize,
-  }) : super(size: cardSize);
+  CardFaceComponent({required this.card, required Vector2 cardSize})
+    : super(size: cardSize);
 
   final MentalCard card;
   static const double _previewHoldDelay = 0.22;
@@ -816,44 +994,50 @@ class CardFaceComponent extends PositionComponent
   bool _isPressing = false;
   double _pressElapsed = 0;
   bool _previewVisible = false;
+  Sprite? _sprite;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
-    add(
-      RectangleComponent(
-        position: Vector2(6, 10),
-        size: size,
-        paint: Paint()
-          ..color = Colors.black.withOpacity(0.5)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8.0),
-      ),
-    );
-
     final imagePath = _artPathForCard(card);
-    Sprite sprite;
     try {
-      sprite = Sprite(game.images.fromCache(imagePath));
+      _sprite = Sprite(game.images.fromCache(imagePath));
     } catch (_) {
-      sprite = await Sprite.load(imagePath);
+      _sprite = await Sprite.load(imagePath);
     }
+  }
 
-    add(
-      SpriteComponent(
-        sprite: sprite,
-        size: size,
-      ),
+  @override
+  void render(Canvas canvas) {
+    final cardRadius = Radius.circular(8.0); // Ajusta el radio según tus cartas
+    final cardRRect = RRect.fromRectAndRadius(size.toRect(), cardRadius);
+
+    // 1. Sombra redondeada
+    final shadowRRect = RRect.fromRectAndRadius(
+      size.toRect().shift(const Offset(6, 10)),
+      cardRadius,
+    );
+    canvas.drawRRect(
+      shadowRRect,
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.5)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8.0),
     );
 
-    add(
-      RectangleComponent(
-        size: size,
-        paint: Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.4
-          ..color = card.type.color.withValues(alpha: 0.9),
-      ),
+    // 2. Imagen de la carta (Usando ClipRRect en Canvas es posible haciendo save() y clipRRect())
+    canvas.save();
+    canvas.clipRRect(cardRRect);
+    _sprite?.render(canvas, size: size);
+    canvas.restore();
+
+    // 3. Borde de color redondeado
+    canvas.drawRRect(
+      cardRRect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.4
+        ..color = card.type.color.withValues(alpha: 0.9),
     );
   }
 
@@ -1012,7 +1196,9 @@ class DraggableCardComponent extends CardFaceComponent with DragCallbacks {
 
 String _artPathForCard(MentalCard card) {
   final cardNumber = int.tryParse(card.id.split('_').last) ?? 0;
-  final index = _cardArtPaths.indexWhere((path) => path.contains('tcg$cardNumber.jpg'));
+  final index = _cardArtPaths.indexWhere(
+    (path) => path.contains('tcg$cardNumber.jpg'),
+  );
   return index != -1 ? _cardArtPaths[index] : _cardArtPaths.first;
 }
 
@@ -1115,16 +1301,16 @@ const List<MentalCard> _toolCardPool = <MentalCard>[
     energyCost: 2,
     power: 3,
   ),
-  MentalCard(
-    id: 'tool_30',
-    name: 'Pedir Ayuda Profesional',
-    type: MentalCardType.conductual,
-    energyCost: 3,
-    power: 4,
-  ),
 ];
 
 const List<MentalCard> _comodinesCardPool = <MentalCard>[
+  MentalCard(
+    id: 'comodin_30',
+    name: 'Pedir Ayuda Profesional',
+    type: MentalCardType.comodin,
+    energyCost: 3,
+    power: 0,
+  ),
   MentalCard(
     id: 'comodin_31',
     name: 'Pausa de Respiración',
@@ -1159,6 +1345,44 @@ const List<MentalCard> _comodinesCardPool = <MentalCard>[
     type: MentalCardType.comodin,
     energyCost: 3,
     power: 0,
+  ),
+];
+
+const List<MentalCard> _bossSoporteCardPool = <MentalCard>[
+  MentalCard(
+    id: 'bsoporte_36',
+    name: 'Sobrecarga Tóxica',
+    type: MentalCardType.bossSoporte,
+    energyCost: 3,
+    power: 6,
+  ),
+  MentalCard(
+    id: 'bsoporte_37',
+    name: 'Culpa y Vergüenza',
+    type: MentalCardType.bossSoporte,
+    energyCost: 2,
+    power: 0,
+  ),
+  MentalCard(
+    id: 'bsoporte_38',
+    name: 'Gaslighting',
+    type: MentalCardType.bossSoporte,
+    energyCost: 2,
+    power: 0,
+  ),
+  MentalCard(
+    id: 'bsoporte_39',
+    name: 'Manipulación Mental',
+    type: MentalCardType.bossSoporte,
+    energyCost: 3,
+    power: 0,
+  ),
+  MentalCard(
+    id: 'bsoporte_40',
+    name: 'Drenaje Emocional',
+    type: MentalCardType.bossSoporte,
+    energyCost: 2,
+    power: 2,
   ),
 ];
 
