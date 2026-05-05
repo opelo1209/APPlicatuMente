@@ -188,6 +188,7 @@ class MentalTcgGame extends FlameGame {
   final ValueNotifier<int> bossManaCapNotifier = ValueNotifier<int>(
     _initialMana,
   );
+  final ValueNotifier<String?> coinTossNotifier = ValueNotifier<String?>(null);
   async.Timer? _hintTimer;
 
   DraggableCardComponent? _selectedHandCard;
@@ -224,8 +225,19 @@ class MentalTcgGame extends FlameGame {
   bool _bossAttackCancelled = false;
   bool _playerHealBlocked = false;
   bool _playerHealCancelledThisTurn = false;
+  bool? playerGoesFirst;
+  bool turnSummaryActive = false;
+  final canPassTurnNotifier = ValueNotifier<bool>(false);
 
   bool get isFinished => _isFinished;
+
+  void _updateCanPassTurn() {
+    canPassTurnNotifier.value = !_isFinished &&
+                                coinTossNotifier.value == null && 
+                                playerGoesFirst != null && 
+                                !turnSummaryActive &&
+                                _playerFieldCardView != null;
+  }
 
   @override
   Future<void> onLoad() async {
@@ -318,12 +330,17 @@ class MentalTcgGame extends FlameGame {
     _bossAttackCancelled = false;
     _playerHealBlocked = false;
     _playerHealCancelledThisTurn = false;
+    playerGoesFirst = null;
+    turnSummaryActive = false;
+    hintTextNotifier.value = '';
+    _hintTimer?.cancel();
+    _updateCanPassTurn();
 
     _refillDrawPile();
     _drawUntilHandSize(4);
-    _spawnBossCard();
 
     _layoutBoard();
+    _startCoinToss(isFirstTurn: true);
   }
 
   void newSession() {
@@ -411,7 +428,7 @@ class MentalTcgGame extends FlameGame {
         );
         _bossSupportCardViews[slots[cardsPlayed]] = view;
         add(view);
-        _animateEnemyDeploy(view);
+        _animateSupportDeploy(view, cardsPlayed);
 
         if (card.id == 'bsoporte_37') _playerHealBlocked = true;
         if (card.id == 'bsoporte_38') _playerHealCancelledThisTurn = true;
@@ -424,7 +441,7 @@ class MentalTcgGame extends FlameGame {
   }
 
   void _handleDrop(DraggableCardComponent cardView) {
-    if (_isFinished) {
+    if (_isFinished || coinTossNotifier.value != null || playerGoesFirst == null || turnSummaryActive) {
       cardView.returnToHome();
       return;
     }
@@ -469,6 +486,7 @@ class MentalTcgGame extends FlameGame {
     mana -= card.energyCost;
     _placeOnField(card);
     _layoutBoard();
+    _updateCanPassTurn();
   }
 
   int _findPowerSlotAt(DraggableCardComponent cardView) {
@@ -518,20 +536,7 @@ class MentalTcgGame extends FlameGame {
 
     // Ejecutar efecto del comodín
     if (card.type == MentalCardType.comodin) {
-      if (card.id == 'comodin_30') {
-        // Pedir Ayuda Profesional
-        if (_playerHealBlocked) {
-          _setHint(
-            'Culpa y Vergüenza bloquea la recuperación de ${card.name}.',
-          );
-        } else if (_playerHealCancelledThisTurn) {
-          _playerHealCancelledThisTurn = false;
-          _setHint('Gaslighting cancela la recuperación de ${card.name}.');
-        } else {
-          playerHp = min(_baseHealthPoints, playerHp + 8);
-          _setHint('Pedir Ayuda: +8 HP');
-        }
-      } else if (card.id == 'comodin_31') {
+    if (card.id == 'comodin_31') {
         // Pausa de Respiración
         if (_playerHealBlocked) {
           _setHint(
@@ -595,95 +600,174 @@ class MentalTcgGame extends FlameGame {
   }
 
   void passTurn() {
-    if (_isFinished) return;
-    _resolveTurnFromBoard();
+    if (!canPassTurnNotifier.value) return;
+    
+    // El boss juega sus cartas después de que el usuario finaliza su turno si el jugador tiene la iniciativa
+    turnSummaryActive = true;
+    _updateCanPassTurn();
+
+    if (playerGoesFirst == true) {
+      _spawnBossCard();
+      _layoutBoard();
+
+      // Esperamos 3 segundos para que el usuario vea qué cartas tiró el boss
+      Future.delayed(const Duration(seconds: 3), () {
+        if (_isFinished || playerGoesFirst == null) return;
+        _resolveTurnFromBoard(playerGoesFirst!);
+      });
+    } else {
+      // El Boss ya tiró sus cartas al inicio del turno
+      _resolveTurnFromBoard(playerGoesFirst!);
+    }
   }
 
-  void _resolveTurnFromBoard() {
+  void _startCoinToss({bool isFirstTurn = false}) {
+    coinTossNotifier.value = 'flip';
+    final tossResult = _random.nextBool();
+    
+    Future.delayed(const Duration(seconds: 2), () {
+      if (_isFinished) return;
+      coinTossNotifier.value = tossResult ? 'player' : 'boss';
+      _updateCanPassTurn();
+      
+      Future.delayed(const Duration(seconds: 2), () {
+        if (_isFinished) return;
+        coinTossNotifier.value = null;
+        playerGoesFirst = tossResult;
+
+        if (isFirstTurn) {
+          if (playerGoesFirst == false) {
+             _spawnBossCard();
+          }
+          _layoutBoard();
+        }
+        _updateCanPassTurn();
+      });
+    });
+  }
+
+  void _resolveTurnFromBoard(bool playerGoesFirstTurn) {
     final bossCard = _bossCard!;
     final playerCard = _playerFieldCardView?.card;
     final logParts = <String>[];
 
-    if (playerCard != null) {
-      final playerMultiplier = _multiplier(playerCard.type, bossCard.type);
-      final playerDamage =
-          _scaledDamage(playerCard.power, playerMultiplier) + _nextAttackBonus;
-      _nextAttackBonus = 0;
-      bossHp = max(0, bossHp - playerDamage);
+    void playerAttack() {
+      if (playerCard != null) {
+        final playerMultiplier = _multiplier(playerCard.type, bossCard.type);
+        final playerDamage =
+            _scaledDamage(playerCard.power, playerMultiplier) + _nextAttackBonus;
+        _nextAttackBonus = 0;
+        bossHp = max(0, bossHp - playerDamage);
 
-      logParts.add(
-        'Tú: $playerDamage Daño (${_multiplierLabel(playerMultiplier)})',
-      );
+        logParts.add(
+          'Tú: $playerDamage Daño (${_multiplierLabel(playerMultiplier)})',
+        );
+      } else {
+        logParts.add('Tú: 0 Daño');
+      }
+    }
 
+    void bossAttack() {
+      if (_bossAttackCancelled) {
+        _bossAttackCancelled = false;
+        logParts.add('Boss: Atac. Cancelado');
+      } else {
+        final bossMultiplier = playerCard == null
+            ? 1.0
+            : _multiplier(bossCard.type, playerCard.type);
+        final bossDamage = _scaledDamage(bossCard.power, bossMultiplier);
+        playerHp = max(0, playerHp - bossDamage);
+
+        logParts.add(
+          'Boss: $bossDamage Daño (${_multiplierLabel(bossMultiplier)})',
+        );
+      }
+    }
+
+    void bossSupports() {
+      for (var i = 0; i < _bossSupportCardViews.length; i++) {
+        final supportView = _bossSupportCardViews[i];
+        if (supportView == null) continue;
+        final sc = supportView.card;
+        if (sc.id == 'bsoporte_36') {
+          playerHp = max(0, playerHp - 6);
+          logParts.add('Sobrecarga Tóxica: -6 HP');
+        } else if (sc.id == 'bsoporte_37') {
+          logParts.add('Culpa y Vergüenza activa');
+        } else if (sc.id == 'bsoporte_38') {
+          logParts.add('Gaslighting activo');
+        } else if (sc.id == 'bsoporte_39') {
+          if (_handCards.isNotEmpty) {
+            final discarded = _handCards[_random.nextInt(_handCards.length)];
+            _handCards.remove(discarded);
+            discarded.removeFromParent();
+            logParts.add('Manipulación: Pierdes 1 carta');
+          }
+        } else if (sc.id == 'bsoporte_40') {
+          final steal = min(2, playerHp);
+          playerHp = max(0, playerHp - steal);
+          bossHp = min(_baseHealthPoints, bossHp + steal);
+          logParts.add('Drenaje: Roba $steal HP');
+        }
+      }
+    }
+
+    if (playerGoesFirstTurn) {
+      playerAttack();
       if (bossHp <= 0) {
         _isFinished = true;
-        _setHint('¡Ganaste!');
+        _setHint('¡Ganaste!', isTurnSummary: true);
         _layoutBoard();
         return;
       }
-    } else {
-      logParts.add('Tú: 0 Daño');
-    }
-
-    // Boss support card effects
-    for (var i = 0; i < _bossSupportCardViews.length; i++) {
-      final supportView = _bossSupportCardViews[i];
-      if (supportView == null) continue;
-      final sc = supportView.card;
-      if (sc.id == 'bsoporte_36') {
-        playerHp = max(0, playerHp - 6);
-        logParts.add('Sobrecarga Tóxica: -6 HP');
-      } else if (sc.id == 'bsoporte_37') {
-        logParts.add('Culpa y Vergüenza activa');
-      } else if (sc.id == 'bsoporte_38') {
-        logParts.add('Gaslighting activo');
-      } else if (sc.id == 'bsoporte_39') {
-        if (_handCards.isNotEmpty) {
-          final discarded = _handCards[_random.nextInt(_handCards.length)];
-          _handCards.remove(discarded);
-          discarded.removeFromParent();
-          logParts.add('Manipulación: Pierdes 1 carta');
-        }
-      } else if (sc.id == 'bsoporte_40') {
-        final steal = min(2, playerHp);
-        playerHp = max(0, playerHp - steal);
-        bossHp = min(_baseHealthPoints, bossHp + steal);
-        logParts.add('Drenaje: Roba $steal HP');
+      bossSupports();
+      if (playerHp <= 0) {
+        _isFinished = true;
+        _setHint('${logParts.join('\n')}\nPerdiste.', isTurnSummary: true);
+        _layoutBoard();
+        return;
       }
-    }
-
-    if (playerHp <= 0) {
-      _isFinished = true;
-      _setHint('${logParts.join('\n')}\nPerdiste.');
-      _layoutBoard();
-      return;
-    }
-
-    if (_bossAttackCancelled) {
-      _bossAttackCancelled = false;
-      logParts.add('Boss: Atac. Cancelado');
+      bossAttack();
     } else {
-      final bossMultiplier = playerCard == null
-          ? 1.0
-          : _multiplier(bossCard.type, playerCard.type);
-      final bossDamage = _scaledDamage(bossCard.power, bossMultiplier);
-      playerHp = max(0, playerHp - bossDamage);
-
-      logParts.add(
-        'Boss: $bossDamage Daño (${_multiplierLabel(bossMultiplier)})',
-      );
+      bossSupports();
+      if (playerHp <= 0) {
+        _isFinished = true;
+        _setHint('${logParts.join('\n')}\nPerdiste.', isTurnSummary: true);
+        _layoutBoard();
+        return;
+      }
+      bossAttack();
+      if (playerHp <= 0) {
+        _isFinished = true;
+        _setHint('${logParts.join('\n')}\nPerdiste.', isTurnSummary: true);
+        _layoutBoard();
+        return;
+      }
+      playerAttack();
     }
 
     if (playerHp <= 0) {
       _isFinished = true;
-      _setHint('${logParts.join('\n')}\nPerdiste.');
+      _setHint('${logParts.join('\n')}\nPerdiste.', isTurnSummary: true);
       _layoutBoard();
       return;
     }
 
-    _advanceTurn();
-    _setHint(logParts.join('\n'));
+    if (bossHp <= 0) {
+      _isFinished = true;
+      _setHint('${logParts.join('\n')}\n¡Ganaste!', isTurnSummary: true);
+      _layoutBoard();
+      return;
+    }
+
+    _setHint(logParts.join('\n'), isTurnSummary: true);
     _layoutBoard();
+
+    Future.delayed(const Duration(milliseconds: 3500), () {
+      if (_isFinished) return;
+      _advanceTurn();
+      _layoutBoard();
+    });
   }
 
   int _scaledDamage(int basePower, double factor) {
@@ -742,7 +826,11 @@ class MentalTcgGame extends FlameGame {
     bossManaCap = min(_maxManaPerTurn, bossManaCap + 1);
     bossMana = bossManaCap;
     _drawUntilHandSize(4);
-    _spawnBossCard();
+    
+    if (playerGoesFirst == false) {
+      _spawnBossCard();
+    }
+    _updateCanPassTurn();
   }
 
   void _placeOnField(MentalCard card) {
@@ -769,6 +857,34 @@ class MentalTcgGame extends FlameGame {
         ),
       ]),
     );
+  }
+
+  void _animateSupportDeploy(CardFaceComponent cardView, int index) {
+    cardView.scale = Vector2.all(0.1);
+    
+    Future.delayed(Duration(milliseconds: 250 * index), () {
+      cardView.add(
+        SequenceEffect([
+          ScaleEffect.to(
+            Vector2.all(1.15),
+            EffectController(duration: 0.35, curve: Curves.easeOutBack),
+          ),
+          ScaleEffect.to(
+            Vector2.all(1.0),
+            EffectController(duration: 0.20, curve: Curves.easeInOut),
+          ),
+        ]),
+      );
+
+      final targetY = cardView.position.y;
+      cardView.position.y -= 250;
+      cardView.add(
+        MoveEffect.to(
+          Vector2(cardView.position.x, targetY),
+          EffectController(duration: 0.55, curve: Curves.bounceOut),
+        ),
+      );
+    });
   }
 
   void _animatePlayerDeploy(CardFaceComponent cardView) {
@@ -814,12 +930,16 @@ class MentalTcgGame extends FlameGame {
     previewArtPath.value = null;
   }
 
-  void _setHint(String text) {
+  void _setHint(String text, {bool isTurnSummary = false}) {
     hintTextNotifier.value = text;
+    turnSummaryActive = isTurnSummary;
+    _updateCanPassTurn();
     _hintTimer?.cancel();
     if (text.isNotEmpty) {
-      _hintTimer = async.Timer(const Duration(seconds: 4), () {
+      _hintTimer = async.Timer(const Duration(milliseconds: 3500), () {
         hintTextNotifier.value = '';
+        turnSummaryActive = false;
+        _updateCanPassTurn();
       });
     }
   }
@@ -1301,16 +1421,16 @@ const List<MentalCard> _toolCardPool = <MentalCard>[
     energyCost: 2,
     power: 3,
   ),
+    MentalCard(
+    id: 'tool_30',
+    name: 'Pedir Ayuda Profesional',
+    type: MentalCardType.conductual,
+    energyCost: 3,
+    power: 4,
+  ),
 ];
 
 const List<MentalCard> _comodinesCardPool = <MentalCard>[
-  MentalCard(
-    id: 'comodin_30',
-    name: 'Pedir Ayuda Profesional',
-    type: MentalCardType.comodin,
-    energyCost: 3,
-    power: 0,
-  ),
   MentalCard(
     id: 'comodin_31',
     name: 'Pausa de Respiración',

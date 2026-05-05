@@ -20,11 +20,11 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   bool _obscurePassword = true;
   bool _isLoading = false;
-  
+
   // Controladores para los campos de texto
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
+
   // Servicios con los nombres CORRECTOS: Auth y User
   final Auth _auth = Auth();
   final User _user = User();
@@ -55,7 +55,7 @@ class _LoginState extends State<Login> {
   // Función de login
   Future<void> _handleLogin() async {
     // Validar campos
-    if (_usernameController.text.trim().isEmpty || 
+    if (_usernameController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty) {
       _showMessage('Por favor completa todos los campos', isError: true);
       return;
@@ -66,20 +66,19 @@ class _LoginState extends State<Login> {
     });
 
     try {
-
-      if(_usernameController.text.trim()=="said"){
-        //   Navigator.pushAndRemoveUntil(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => const Principal()),
-        //   (route) => false,
-        // );
-
-        Navigator.pushReplacement(
+      if (_usernameController.text.trim() == "said") {
+        Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const CuestionarioWrapper()),
+          MaterialPageRoute(builder: (context) => const Principal()),
+          (route) => false,
         );
 
-            return;
+        // Navigator.pushReplacement(
+        //   context,
+        //   MaterialPageRoute(builder: (context) => const CuestionarioWrapper()),
+        // );
+
+        return;
       }
       // 1. Hacer login usando _auth (NO _authService)
       final loginResult = await _auth.login(
@@ -88,7 +87,10 @@ class _LoginState extends State<Login> {
       );
 
       if (!loginResult['success']) {
-        _showMessage(loginResult['message'] ?? 'Error al iniciar sesión', isError: true);
+        _showMessage(
+          loginResult['message'] ?? 'Error al iniciar sesión',
+          isError: true,
+        );
         setState(() {
           _isLoading = false;
         });
@@ -97,7 +99,7 @@ class _LoginState extends State<Login> {
 
       // 2. Obtener información del usuario usando _user (NO _userService)
       final userResult = await _user.getUserMe();
-      
+
       if (!userResult['success']) {
         _showMessage('Error al obtener información del usuario', isError: true);
         setState(() {
@@ -108,7 +110,8 @@ class _LoginState extends State<Login> {
 
       // 3. Verificar si completó el cuestionario
       final prefs = await SharedPreferences.getInstance();
-      final bool cuestionarioCompletado = prefs.getBool('cuestionario_completado') ?? false;
+      final bool cuestionarioCompletado =
+          prefs.getBool('cuestionario_completado') ?? false;
 
       if (!mounted) return;
 
@@ -128,7 +131,6 @@ class _LoginState extends State<Login> {
           MaterialPageRoute(builder: (context) => const CuestionarioWrapper()),
         );
       }
-
     } catch (e) {
       print('Error en login: $e');
       _showMessage('Error de conexión. Verifica tu red', isError: true);
@@ -158,11 +160,12 @@ class _LoginState extends State<Login> {
       // Con el nuevo endpoint del backend, la validación del token de Google y la creación del usuario
       // se realizan internamente y nos devuelve directamente un token de acceso válido.
       // Ya no necesitamos llamar a syncUser porque ya se guarda en base de datos.
-      
+
       final prefs = await SharedPreferences.getInstance();
-      final bool cuestionarioCompletado = prefs.getBool('cuestionario_completado') ?? false;
+      final bool cuestionarioCompletado =
+          prefs.getBool('cuestionario_completado') ?? false;
       if (!mounted) return;
-      
+
       setState(() {
         _isLoading = false;
       });
@@ -179,7 +182,6 @@ class _LoginState extends State<Login> {
           MaterialPageRoute(builder: (context) => const CuestionarioWrapper()),
         );
       }
-
     } catch (error) {
       print('Error en login Google: $error');
       _showMessage('Error al iniciar sesión con Google', isError: true);
@@ -197,7 +199,7 @@ class _LoginState extends State<Login> {
     final size = MediaQuery.of(context).size;
 
     // Colores basados en la imagen (Verdes)
-    final primaryGreen = const Color(0xFF43A047); 
+    final primaryGreen = const Color(0xFF43A047);
     final buttonColor = const Color(0xFF2E7D32);
 
     return Scaffold(
@@ -244,7 +246,12 @@ class _LoginState extends State<Login> {
                 color: isDarkMode
                     ? Color.fromARGB(255, 29, 54, 39)
                     : Colors.white.withOpacity(0.95),
-                padding: const EdgeInsets.only(top: 80, left: 30, right: 30, bottom: 20),
+                padding: const EdgeInsets.only(
+                  top: 80,
+                  left: 30,
+                  right: 30,
+                  bottom: 20,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -267,7 +274,9 @@ class _LoginState extends State<Login> {
                               "¡Bienvenido de nuevo!",
                               style: TextStyle(
                                 fontSize: 18,
-                                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.6,
+                                ),
                               ),
                             ),
                           ],
@@ -277,11 +286,12 @@ class _LoginState extends State<Login> {
                             isDarkMode ? Icons.light_mode : Icons.dark_mode,
                             color: primaryGreen,
                           ),
-                          onPressed: () => themeProvider.toogleTheme(!isDarkMode),
+                          onPressed: () =>
+                              themeProvider.toogleTheme(!isDarkMode),
                         ),
                       ],
                     ),
-                    
+
                     const Spacer(flex: 2),
 
                     // Input Usuario
@@ -293,7 +303,7 @@ class _LoginState extends State<Login> {
                       accentColor: primaryGreen,
                       controller: _usernameController,
                     ),
-                    
+
                     const SizedBox(height: 15),
 
                     // Input Contraseña
@@ -383,7 +393,9 @@ class _LoginState extends State<Login> {
                           child: Text(
                             "o inicia con",
                             style: TextStyle(
-                              color: theme.colorScheme.onSurface.withOpacity(0.55),
+                              color: theme.colorScheme.onSurface.withOpacity(
+                                0.55,
+                              ),
                               fontSize: 12,
                             ),
                           ),
@@ -421,15 +433,15 @@ class _LoginState extends State<Login> {
                       children: [
                         Text(
                           "¿No tienes cuenta? ",
-                          style: TextStyle(
-                            color: theme.colorScheme.onSurface,
-                          ),
+                          style: TextStyle(color: theme.colorScheme.onSurface),
                         ),
                         GestureDetector(
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const Registro()),
+                              MaterialPageRoute(
+                                builder: (context) => const Registro(),
+                              ),
                             );
                           },
                           child: Text(
@@ -464,7 +476,9 @@ class _LoginState extends State<Login> {
     bool isObscure = false,
     VoidCallback? onToggleVisibility,
   }) {
-    final fillColor = isDarkMode ? const Color(0xFF1C222B) : const Color(0xFFF1F8E9);
+    final fillColor = isDarkMode
+        ? const Color(0xFF1C222B)
+        : const Color(0xFFF1F8E9);
 
     return TextField(
       controller: controller,
@@ -478,11 +492,7 @@ class _LoginState extends State<Login> {
           color: isDarkMode ? Colors.white70 : accentColor.withOpacity(0.8),
           fontSize: 14,
         ),
-        prefixIcon: Icon(
-          icon,
-          color: accentColor,
-          size: 20,
-        ),
+        prefixIcon: Icon(icon, color: accentColor, size: 20),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -505,16 +515,19 @@ class _LoginState extends State<Login> {
             width: 2,
           ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 15,
+        ),
       ),
     );
   }
 
   Widget _socialButton({
-    required IconData icon, 
-    required Color color, 
+    required IconData icon,
+    required Color color,
     required bool isDarkMode,
-    required VoidCallback onTap
+    required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
@@ -524,7 +537,9 @@ class _LoginState extends State<Login> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: isDarkMode ? Colors.white.withOpacity(0.10) : Colors.grey[300]!,
+            color: isDarkMode
+                ? Colors.white.withOpacity(0.10)
+                : Colors.grey[300]!,
           ),
           color: isDarkMode ? const Color(0xFF1C222B) : Colors.white,
           boxShadow: [
@@ -547,16 +562,24 @@ class WaveClipper extends CustomClipper<Path> {
   Path getClip(Size size) {
     var path = Path();
     path.moveTo(0, 40);
-    
+
     var firstControlPoint = Offset(size.width / 4, 0);
     var firstEndPoint = Offset(size.width / 2.25, 30);
-    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy,
-        firstEndPoint.dx, firstEndPoint.dy);
+    path.quadraticBezierTo(
+      firstControlPoint.dx,
+      firstControlPoint.dy,
+      firstEndPoint.dx,
+      firstEndPoint.dy,
+    );
 
     var secondControlPoint = Offset(size.width - (size.width / 3.25), 65);
     var secondEndPoint = Offset(size.width, 20);
-    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy,
-        secondEndPoint.dx, secondEndPoint.dy);
+    path.quadraticBezierTo(
+      secondControlPoint.dx,
+      secondControlPoint.dy,
+      secondEndPoint.dx,
+      secondEndPoint.dy,
+    );
 
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);
