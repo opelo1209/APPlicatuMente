@@ -3,7 +3,7 @@ services:
     image: postgres:16
     container_name: aptm_front_postgres_temporal
     network_mode: host
-    command: ["postgres", "-c", "port=55432"]
+    command: ["postgres", "-c", "port=55432", "-c", "listen_addresses=127.0.0.1,100.75.157.119"]
     environment:
       POSTGRES_DB: aptm_tmp
       POSTGRES_USER: postgres
