@@ -16,16 +16,26 @@ class _RegistroState extends State<Registro> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
-  
+  String _perfilTipo = 'estudiante';
+
   // Controladores para los campos
-  final TextEditingController _nombreUsuarioController = TextEditingController();
+  final TextEditingController _nombreUsuarioController =
+      TextEditingController();
   final TextEditingController _correoController = TextEditingController();
   final TextEditingController _nombresController = TextEditingController();
-  final TextEditingController _apellidoPaternoController = TextEditingController();
-  final TextEditingController _apellidoMaternoController = TextEditingController();
+  final TextEditingController _apellidoPaternoController =
+      TextEditingController();
+  final TextEditingController _apellidoMaternoController =
+      TextEditingController();
+  final TextEditingController _estudiantesIdsController =
+      TextEditingController();
+  final TextEditingController _parentescoController = TextEditingController(
+    text: 'padre/madre/tutor',
+  );
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
   // Servicio con el nombre CORRECTO: Auth (NO AuthService)
   final Auth _auth = Auth();
 
@@ -36,6 +46,8 @@ class _RegistroState extends State<Registro> {
     _nombresController.dispose();
     _apellidoPaternoController.dispose();
     _apellidoMaternoController.dispose();
+    _estudiantesIdsController.dispose();
+    _parentescoController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -67,7 +79,10 @@ class _RegistroState extends State<Registro> {
         _apellidoPaternoController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty ||
         _confirmPasswordController.text.trim().isEmpty) {
-      _showMessage('Por favor completa todos los campos obligatorios', isError: true);
+      _showMessage(
+        'Por favor completa todos los campos obligatorios',
+        isError: true,
+      );
       return;
     }
 
@@ -77,11 +92,15 @@ class _RegistroState extends State<Registro> {
     }
 
     if (_passwordController.text.trim().length < 6) {
-      _showMessage('La contraseña debe tener al menos 6 caracteres', isError: true);
+      _showMessage(
+        'La contraseña debe tener al menos 6 caracteres',
+        isError: true,
+      );
       return;
     }
 
-    if (_passwordController.text.trim() != _confirmPasswordController.text.trim()) {
+    if (_passwordController.text.trim() !=
+        _confirmPasswordController.text.trim()) {
       _showMessage('Las contraseñas no coinciden', isError: true);
       return;
     }
@@ -91,14 +110,14 @@ class _RegistroState extends State<Registro> {
     });
 
     try {
+      final estudiantesIds = _parseEstudiantesIds();
+      if (estudiantesIds == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
 
-  //       if (_nombreUsuarioController.text.trim() == "said"){
-  //           Navigator.pushReplacement(
-  //         context,
-  //         MaterialPageRoute(builder: (context) => const Login()),
-  //       );
-  //           return;
-  // }
       // Usar _auth (NO _authService)
       final result = await _auth.register(
         nombreUsuario: _nombreUsuarioController.text.trim(),
@@ -107,6 +126,11 @@ class _RegistroState extends State<Registro> {
         nombres: _nombresController.text.trim(),
         apellidoPaterno: _apellidoPaternoController.text.trim(),
         apellidoMaterno: _apellidoMaternoController.text.trim(),
+        perfilTipo: _perfilTipo,
+        estudiantesIds: estudiantesIds,
+        parentesco: _parentescoController.text.trim().isEmpty
+            ? 'padre/madre/tutor'
+            : _parentescoController.text.trim(),
       );
 
       if (!mounted) return;
@@ -117,19 +141,21 @@ class _RegistroState extends State<Registro> {
 
       if (result['success']) {
         _showMessage('¡Registro exitoso! Ahora puedes iniciar sesión');
-        
+
         // Esperar un momento y regresar al login
         await Future.delayed(const Duration(seconds: 2));
         if (!mounted) return;
-        
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const Login()),
         );
       } else {
-        _showMessage(result['message'] ?? 'Error al registrar usuario', isError: true);
+        _showMessage(
+          result['message'] ?? 'Error al registrar usuario',
+          isError: true,
+        );
       }
-
     } catch (e) {
       print('Error en registro: $e');
       _showMessage('Error de conexión. Verifica tu red', isError: true);
@@ -137,6 +163,27 @@ class _RegistroState extends State<Registro> {
         _isLoading = false;
       });
     }
+  }
+
+  List<int>? _parseEstudiantesIds() {
+    if (_perfilTipo != 'padre') return const [];
+
+    final rawValue = _estudiantesIdsController.text.trim();
+    if (rawValue.isEmpty) return const [];
+
+    final ids = <int>[];
+    for (final part in rawValue.split(',')) {
+      final parsed = int.tryParse(part.trim());
+      if (parsed == null || parsed <= 0) {
+        _showMessage(
+          'Los IDs de estudiantes deben ser números separados por coma',
+          isError: true,
+        );
+        return null;
+      }
+      ids.add(parsed);
+    }
+    return ids;
   }
 
   @override
@@ -209,7 +256,8 @@ class _RegistroState extends State<Registro> {
                               isDarkMode ? Icons.light_mode : Icons.dark_mode,
                               color: primaryGreen,
                             ),
-                            onPressed: () => themeProvider.toogleTheme(!isDarkMode),
+                            onPressed: () =>
+                                themeProvider.toogleTheme(!isDarkMode),
                           ),
                         ],
                       ),
@@ -249,10 +297,37 @@ class _RegistroState extends State<Registro> {
                             "Completa tus datos para registrarte",
                             style: TextStyle(
                               fontSize: 14,
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              color: theme.colorScheme.onSurface.withOpacity(
+                                0.6,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 30),
+
+                          _buildPerfilSelector(theme, isDarkMode, primaryGreen),
+                          const SizedBox(height: 20),
+
+                          if (_perfilTipo == 'padre') ...[
+                            _buildInput(
+                              theme,
+                              isDarkMode,
+                              label: "IDs de estudiantes vinculados",
+                              icon: Icons.group_add_outlined,
+                              accentColor: primaryGreen,
+                              controller: _estudiantesIdsController,
+                              keyboardType: TextInputType.text,
+                            ),
+                            const SizedBox(height: 15),
+                            _buildInput(
+                              theme,
+                              isDarkMode,
+                              label: "Parentesco",
+                              icon: Icons.diversity_1_outlined,
+                              accentColor: primaryGreen,
+                              controller: _parentescoController,
+                            ),
+                            const SizedBox(height: 15),
+                          ],
 
                           // Campos del formulario
                           _buildInput(
@@ -334,7 +409,8 @@ class _RegistroState extends State<Registro> {
                             controller: _confirmPasswordController,
                             onToggleVisibility: () {
                               setState(() {
-                                _obscureConfirmPassword = !_obscureConfirmPassword;
+                                _obscureConfirmPassword =
+                                    !_obscureConfirmPassword;
                               });
                             },
                           ),
@@ -387,7 +463,9 @@ class _RegistroState extends State<Registro> {
                                 onTap: () {
                                   Navigator.pushReplacement(
                                     context,
-                                    MaterialPageRoute(builder: (context) => const Login()),
+                                    MaterialPageRoute(
+                                      builder: (context) => const Login(),
+                                    ),
                                   );
                                 },
                                 child: Text(
@@ -426,7 +504,9 @@ class _RegistroState extends State<Registro> {
     VoidCallback? onToggleVisibility,
     TextInputType? keyboardType,
   }) {
-    final fillColor = isDarkMode ? const Color(0xFF1C222B) : const Color(0xFFF1F8E9);
+    final fillColor = isDarkMode
+        ? const Color(0xFF1C222B)
+        : const Color(0xFFF1F8E9);
 
     return TextField(
       controller: controller,
@@ -441,11 +521,7 @@ class _RegistroState extends State<Registro> {
           color: isDarkMode ? Colors.white70 : accentColor.withOpacity(0.8),
           fontSize: 14,
         ),
-        prefixIcon: Icon(
-          icon,
-          color: accentColor,
-          size: 20,
-        ),
+        prefixIcon: Icon(icon, color: accentColor, size: 20),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -468,8 +544,94 @@ class _RegistroState extends State<Registro> {
             width: 2,
           ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 15,
+        ),
       ),
+    );
+  }
+
+  Widget _buildPerfilSelector(
+    ThemeData theme,
+    bool isDarkMode,
+    Color accentColor,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Tipo de cuenta *",
+          style: TextStyle(
+            color: theme.colorScheme.onSurface.withOpacity(0.75),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _buildPerfilChip(
+              value: 'estudiante',
+              label: 'Estudiante',
+              icon: Icons.school_outlined,
+              isDarkMode: isDarkMode,
+              accentColor: accentColor,
+            ),
+            _buildPerfilChip(
+              value: 'padre',
+              label: 'Padre/Madre',
+              icon: Icons.family_restroom_outlined,
+              isDarkMode: isDarkMode,
+              accentColor: accentColor,
+            ),
+            _buildPerfilChip(
+              value: 'administrador',
+              label: 'Admin',
+              icon: Icons.admin_panel_settings_outlined,
+              isDarkMode: isDarkMode,
+              accentColor: accentColor,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPerfilChip({
+    required String value,
+    required String label,
+    required IconData icon,
+    required bool isDarkMode,
+    required Color accentColor,
+  }) {
+    final isSelected = _perfilTipo == value;
+    return ChoiceChip(
+      selected: isSelected,
+      avatar: Icon(
+        icon,
+        size: 18,
+        color: isSelected ? Colors.white : accentColor,
+      ),
+      label: Text(label),
+      labelStyle: TextStyle(
+        color: isSelected
+            ? Colors.white
+            : (isDarkMode ? Colors.white70 : const Color(0xFF263238)),
+        fontWeight: FontWeight.w700,
+      ),
+      selectedColor: accentColor,
+      backgroundColor: isDarkMode
+          ? const Color(0xFF1C222B)
+          : const Color(0xFFF1F8E9),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected ? accentColor : accentColor.withOpacity(0.25),
+        ),
+      ),
+      onSelected: (_) => setState(() => _perfilTipo = value),
     );
   }
 }

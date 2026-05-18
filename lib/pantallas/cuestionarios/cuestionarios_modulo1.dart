@@ -27,9 +27,13 @@ class _CuestionarioState extends State<Cuestionario> {
   int _currentIndex = 0;
   final Map<String, Map<String, dynamic>> _respuestas = {};
   bool _enviando = false;
+  bool _cargandoPreguntas = true;
+  late List<Map<String, dynamic>> _preguntas = List<Map<String, dynamic>>.from(
+    _defaultPreguntas,
+  );
 
   // ── Definición de todas las preguntas ─────────────────────────────────────
-  static const List<Map<String, dynamic>> _preguntas = [
+  static const List<Map<String, dynamic>> _defaultPreguntas = [
     // PHQ-9 ── Preguntas 1-9 (Likert 0-3)
     {
       'bloque': 'PHQ9',
@@ -37,7 +41,8 @@ class _CuestionarioState extends State<Cuestionario> {
       'numero': 1,
       'id': 'deprimido_irritable',
       'tipo': 'likert4',
-      'pregunta': '¿Has estado sintiéndote triste, irritado(a) o sin ganas de nada?',
+      'pregunta':
+          '¿Has estado sintiéndote triste, irritado(a) o sin ganas de nada?',
     },
     {
       'bloque': 'PHQ9',
@@ -45,7 +50,8 @@ class _CuestionarioState extends State<Cuestionario> {
       'numero': 2,
       'id': 'poco_interes',
       'tipo': 'likert4',
-      'pregunta': '¿Has sentido falta de interés en las cosas, o que ya casi nada te da placer o gusto, aunque antes sí te gustaran?',
+      'pregunta':
+          '¿Has sentido falta de interés en las cosas, o que ya casi nada te da placer o gusto, aunque antes sí te gustaran?',
     },
     {
       'bloque': 'PHQ9',
@@ -62,7 +68,8 @@ class _CuestionarioState extends State<Cuestionario> {
       'numero': 4,
       'id': 'apetito',
       'tipo': 'likert4',
-      'pregunta': '¿Tu apetito ha cambiado mucho? ¿Comes muy poco o demasiado, o has bajado o subido de peso sin querer?',
+      'pregunta':
+          '¿Tu apetito ha cambiado mucho? ¿Comes muy poco o demasiado, o has bajado o subido de peso sin querer?',
     },
     {
       'bloque': 'PHQ9',
@@ -133,7 +140,8 @@ class _CuestionarioState extends State<Cuestionario> {
       'numero': 12,
       'id': 'intento_suicidio',
       'tipo': 'binario',
-      'pregunta': '¿Alguna vez en tu vida intentaste suicidarte o hacerte daño para morir?',
+      'pregunta':
+          '¿Alguna vez en tu vida intentaste suicidarte o hacerte daño para morir?',
     },
     // C-SSRS ── 5 preguntas (binario)
     {
@@ -151,7 +159,8 @@ class _CuestionarioState extends State<Cuestionario> {
       'numero': 2,
       'id': 'idea_suicidarse',
       'tipo': 'binario',
-      'pregunta': '¿Has tenido pensamientos de suicidarte, aunque sea por un momento?',
+      'pregunta':
+          '¿Has tenido pensamientos de suicidarte, aunque sea por un momento?',
     },
     {
       'bloque': 'CSSRS',
@@ -190,12 +199,70 @@ class _CuestionarioState extends State<Cuestionario> {
       'etiqueta': 'Más de la mitad de los días',
       'color': Color(0xFFFF7043),
     },
-    {
-      'valor': 3,
-      'etiqueta': 'Casi todos los días',
-      'color': Color(0xFFE53935),
-    },
+    {'valor': 3, 'etiqueta': 'Casi todos los días', 'color': Color(0xFFE53935)},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreguntas();
+  }
+
+  Future<void> _loadPreguntas() async {
+    final result = await User().getCuestionarioConfig(modulo: 'suicidio');
+    if (!mounted) return;
+
+    final data = result['data'];
+    final rawQuestions = data is Map ? data['preguntas'] : null;
+    if (result['success'] == true &&
+        rawQuestions is List &&
+        rawQuestions.isNotEmpty) {
+      final defaultsById = {
+        for (final question in _defaultPreguntas)
+          question['id'] as String: Map<String, dynamic>.from(question),
+      };
+      final loaded = rawQuestions
+          .whereType<Map>()
+          .map((raw) {
+            final codigo = raw['codigo']?.toString() ?? '';
+            final base = defaultsById[codigo] ?? <String, dynamic>{};
+            return {
+              ...base,
+              'bloque': raw['bloque']?.toString() ?? base['bloque'] ?? 'PHQ9',
+              'bloque_nombre':
+                  base['bloque_nombre'] ??
+                  (raw['bloque'] == 'CSSRS'
+                      ? 'Ideación Suicida (C-SSRS)'
+                      : 'Depresión y Riesgo (PHQ-9)'),
+              'numero': raw['numero'] is int
+                  ? raw['numero']
+                  : int.tryParse(raw['numero']?.toString() ?? '') ??
+                        base['numero'] ??
+                        0,
+              'id': codigo,
+              'tipo':
+                  raw['tipo_respuesta']?.toString() ??
+                  base['tipo'] ??
+                  'binario',
+              'pregunta': raw['pregunta']?.toString() ?? base['pregunta'] ?? '',
+              'puntaje': raw['puntaje'] is int
+                  ? raw['puntaje']
+                  : int.tryParse(raw['puntaje']?.toString() ?? '') ?? 0,
+            };
+          })
+          .where((question) => (question['id'] as String).isNotEmpty)
+          .toList();
+
+      loaded.sort((a, b) => (a['numero'] as int).compareTo(b['numero'] as int));
+      setState(() {
+        _preguntas = loaded;
+        _cargandoPreguntas = false;
+      });
+      return;
+    }
+
+    setState(() => _cargandoPreguntas = false);
+  }
 
   // ── Lógica de respuesta ───────────────────────────────────────────────────
   void _responder(int valor, String etiqueta) {
@@ -206,6 +273,7 @@ class _CuestionarioState extends State<Cuestionario> {
       'id': p['id'],
       'pregunta': p['pregunta'],
       'tipo_respuesta': p['tipo'],
+      'puntaje_configurado': p['puntaje'] ?? 0,
       'respuesta_valor': valor,
       'respuesta_etiqueta': etiqueta,
     };
@@ -223,17 +291,13 @@ class _CuestionarioState extends State<Cuestionario> {
   Future<void> _finalizarYEnviar() async {
     setState(() => _enviando = true);
 
-    final phq9Reactivos = _respuestas.values
-        .where((r) => r['bloque'] == 'PHQ9')
-        .toList()
-      ..sort((a, b) =>
-          (a['numero'] as int).compareTo(b['numero'] as int));
+    final phq9Reactivos =
+        _respuestas.values.where((r) => r['bloque'] == 'PHQ9').toList()
+          ..sort((a, b) => (a['numero'] as int).compareTo(b['numero'] as int));
 
-    final cssrsReactivos = _respuestas.values
-        .where((r) => r['bloque'] == 'CSSRS')
-        .toList()
-      ..sort((a, b) =>
-          (a['numero'] as int).compareTo(b['numero'] as int));
+    final cssrsReactivos =
+        _respuestas.values.where((r) => r['bloque'] == 'CSSRS').toList()
+          ..sort((a, b) => (a['numero'] as int).compareTo(b['numero'] as int));
 
     // Puntuación PHQ-9: suma de preguntas 1-9 (likert4)
     final phq9Score = phq9Reactivos
@@ -242,7 +306,12 @@ class _CuestionarioState extends State<Cuestionario> {
 
     // Puntuación C-SSRS: cantidad de "Sí"
     final cssrsScore = cssrsReactivos.fold<int>(
-        0, (sum, r) => sum + (r['respuesta_valor'] as int));
+      0,
+      (sum, r) =>
+          sum +
+          ((r['respuesta_valor'] as int) *
+              ((r['puntaje_configurado'] as int?) ?? 1)),
+    );
 
     final payload = {
       'tipo_cuestionario': 'suicidio',
@@ -268,15 +337,24 @@ class _CuestionarioState extends State<Cuestionario> {
     // Guardar localmente
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('cuestionario_suicidio', jsonEncode(payload));
-    await prefs.setBool('cuestionario_completado', true);
-
-      // Enviar al backend
-      final userService = User();
-      final resultado = await userService.updateCuestionario(
-        tipoCuestionario: 'suicidio',
-        respuestas: payload,
+    await prefs.setBool('cuestionario_suicidio_completado', true);
+    await prefs.setBool('modulo_suicidio_completado', true);
+    final perfilTipo = prefs.getString('perfil_tipo') ?? 'estudiante';
+    final idUsuario = prefs.getInt('id_usuario');
+    if (idUsuario != null) {
+      await prefs.setBool(
+        'modulo_suicidio_completado_${perfilTipo}_$idUsuario',
+        true,
       );
-      print('Backend cuestionario suicidio: $resultado');
+    }
+
+    // Enviar al backend
+    final userService = User();
+    final resultado = await userService.updateCuestionario(
+      tipoCuestionario: 'suicidio',
+      respuestas: payload,
+    );
+    print('Backend cuestionario suicidio: $resultado');
 
     if (!mounted) return;
     setState(() => _enviando = false);
@@ -285,8 +363,10 @@ class _CuestionarioState extends State<Cuestionario> {
   }
 
   void _mostrarResultado(int phq9Score, int cssrsScore) {
-    final isDark =
-        Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+    final isDark = Provider.of<ThemeProvider>(
+      context,
+      listen: false,
+    ).isDarkMode;
 
     String nivel = 'Mínimo';
     Color nivelColor = const Color(0xFF43A047);
@@ -309,8 +389,7 @@ class _CuestionarioState extends State<Cuestionario> {
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF1E272E) : Colors.white,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -346,7 +425,6 @@ class _CuestionarioState extends State<Cuestionario> {
                   : const Color(0xFFE53935),
               isDark: isDark,
             ),
-
           ],
         ),
         actions: [
@@ -363,9 +441,12 @@ class _CuestionarioState extends State<Cuestionario> {
                 backgroundColor: const Color(0xFF43A047),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30)),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 12,
+                ),
               ),
               child: const Text('Finalizar'),
             ),
@@ -380,7 +461,9 @@ class _CuestionarioState extends State<Cuestionario> {
     if (_enviando) {
       final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
       return Scaffold(
-        backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA),
+        backgroundColor: isDark
+            ? const Color(0xFF121212)
+            : const Color(0xFFFAFAFA),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -428,7 +511,9 @@ class _CuestionarioState extends State<Cuestionario> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA),
+      backgroundColor: isDark
+          ? const Color(0xFF121212)
+          : const Color(0xFFFAFAFA),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -444,7 +529,8 @@ class _CuestionarioState extends State<Cuestionario> {
         questions: binaryQuestions,
         headerTitle: '',
         instructionTitle: 'Preguntas de Sí o No',
-        instructionDescription: 'Aquí responderás las preguntas finales de PHQ-9 y luego el bloque de ideación suicida C-SSRS. Desliza a la derecha para Sí y a la izquierda para No.',
+        instructionDescription:
+            'Aquí responderás las preguntas finales de PHQ-9 y luego el bloque de ideación suicida C-SSRS. Desliza a la derecha para Sí y a la izquierda para No.',
         readyButtonText: '¡Entendido!',
         rightSwipeLabel: 'SÍ',
         leftSwipeLabel: 'NO',
@@ -466,6 +552,7 @@ class _CuestionarioState extends State<Cuestionario> {
               'id': pId,
               'pregunta': p['pregunta'],
               'tipo_respuesta': p['tipo'],
+              'puntaje_configurado': p['puntaje'] ?? 0,
               'respuesta_valor': valor,
               'respuesta_etiqueta': etiqueta,
             };
@@ -479,20 +566,30 @@ class _CuestionarioState extends State<Cuestionario> {
   // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    if (_cargandoPreguntas) {
+      final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
+      return Scaffold(
+        backgroundColor: isDark
+            ? const Color(0xFF121212)
+            : const Color(0xFFFAFAFA),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     if (_currentIndex >= 9) {
       return _buildSwipePhase(context);
     }
 
     final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
-    final bgColor =
-        isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA);
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA);
     final total = _preguntas.length;
     final pregunta = _preguntas[_currentIndex];
     final bloque = pregunta['bloque'] as String;
     final tipo = pregunta['tipo'] as String;
     final isCssrs = bloque == 'CSSRS';
-    final bloqueColor =
-        isCssrs ? const Color(0xFF5C6BC0) : const Color(0xFF43A047);
+    final bloqueColor = isCssrs
+        ? const Color(0xFF5C6BC0)
+        : const Color(0xFF43A047);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -523,8 +620,7 @@ class _CuestionarioState extends State<Cuestionario> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const CircularProgressIndicator(
-                      color: Color(0xFF43A047)),
+                  const CircularProgressIndicator(color: Color(0xFF43A047)),
                   const SizedBox(height: 16),
                   Text(
                     'Enviando respuestas...',
@@ -540,10 +636,8 @@ class _CuestionarioState extends State<Cuestionario> {
                 // Barra de progreso
                 LinearProgressIndicator(
                   value: (_currentIndex + 1) / total,
-                  backgroundColor:
-                      isDark ? Colors.white12 : Colors.black12,
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(bloqueColor),
+                  backgroundColor: isDark ? Colors.white12 : Colors.black12,
+                  valueColor: AlwaysStoppedAnimation<Color>(bloqueColor),
                   minHeight: 4,
                 ),
                 Expanded(
@@ -555,7 +649,9 @@ class _CuestionarioState extends State<Cuestionario> {
                         // Chip de bloque
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: bloqueColor.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(20),
@@ -576,9 +672,7 @@ class _CuestionarioState extends State<Cuestionario> {
                           'Pregunta ${pregunta['numero']}',
                           style: TextStyle(
                             fontSize: 13,
-                            color: isDark
-                                ? Colors.white38
-                                : Colors.black38,
+                            color: isDark ? Colors.white38 : Colors.black38,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -600,13 +694,13 @@ class _CuestionarioState extends State<Cuestionario> {
                               value: op['valor'] as int,
                               color: op['color'] as Color,
                               isDark: isDark,
-                              isSelected: _respuestas[
-                                          pregunta['id']]?[
-                                      'respuesta_valor'] ==
+                              isSelected:
+                                  _respuestas[pregunta['id']]?['respuesta_valor'] ==
                                   op['valor'],
                               onTap: () => _responder(
-                                  op['valor'] as int,
-                                  op['etiqueta'] as String),
+                                op['valor'] as int,
+                                op['etiqueta'] as String,
+                              ),
                             ),
                           )
                         else
@@ -617,9 +711,8 @@ class _CuestionarioState extends State<Cuestionario> {
                                   label: 'No',
                                   color: const Color(0xFF5C6BC0),
                                   isDark: isDark,
-                                  isSelected: _respuestas[
-                                              pregunta['id']]?[
-                                          'respuesta_valor'] ==
+                                  isSelected:
+                                      _respuestas[pregunta['id']]?['respuesta_valor'] ==
                                       0,
                                   onTap: () => _responder(0, 'No'),
                                 ),
@@ -630,9 +723,8 @@ class _CuestionarioState extends State<Cuestionario> {
                                   label: 'Sí',
                                   color: const Color(0xFF43A047),
                                   isDark: isDark,
-                                  isSelected: _respuestas[
-                                              pregunta['id']]?[
-                                          'respuesta_valor'] ==
+                                  isSelected:
+                                      _respuestas[pregunta['id']]?['respuesta_valor'] ==
                                       1,
                                   onTap: () => _responder(1, 'Sí'),
                                 ),
@@ -712,8 +804,7 @@ class _OptionButton extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 15,
-                  fontWeight:
-                      isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   color: isSelected
                       ? Colors.white
                       : (isDark ? Colors.white : Colors.black87),
@@ -721,8 +812,11 @@ class _OptionButton extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle_rounded,
-                  color: Colors.white, size: 20),
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
           ],
         ),
       ),
@@ -835,13 +929,9 @@ class _ScoreRow extends StatelessWidget {
             children: [
               Text(
                 score,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, color: color),
+                style: TextStyle(fontWeight: FontWeight.bold, color: color),
               ),
-              Text(
-                extra,
-                style: TextStyle(fontSize: 11, color: color),
-              ),
+              Text(extra, style: TextStyle(fontSize: 11, color: color)),
             ],
           ),
         ],

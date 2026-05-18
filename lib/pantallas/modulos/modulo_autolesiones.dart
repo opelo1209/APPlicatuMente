@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:aptm/text_utils.dart';
 import '../cuestionarios/cuestionario_autolesion.dart';
+import '../servicios/user.dart';
 
 class ModuloAutolesiones extends StatefulWidget {
   const ModuloAutolesiones({super.key});
@@ -11,6 +12,27 @@ class ModuloAutolesiones extends StatefulWidget {
 
 class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
   bool _isForTeens = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final result = await User().getSessionContext();
+    String perfilTipo = 'estudiante';
+    if (result['success'] == true) {
+      final data = result['data'];
+      if (data is Map) {
+        perfilTipo = data['perfil_tipo']?.toString() ?? perfilTipo;
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _isForTeens = perfilTipo == 'estudiante';
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +48,9 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
         ? 'Aunque no es para morir, hacerlo mucho sí aumenta el riesgo de tener pensamientos o conductas mucho más peligrosas.'
         : 'Aunque el objetivo inicial no es terminar con la vida, la repetición de autolesiones incrementa significativamente el riesgo de conducta suicida futura.';
 
-    final String pkTitle = _isForTeens ? '¿Por qué lo hacen?' : '¿Por qué sucede?';
+    final String pkTitle = _isForTeens
+        ? '¿Por qué lo hacen?'
+        : '¿Por qué sucede?';
     final String pkContent = _isForTeens
         ? 'Las personas pueden lastimarse por varias razones:\n\n1. Para calmar emociones fuertes (tristeza, enojo, ansiedad).\n2. Para castigarse por sentir mucha culpa o creer que hicieron algo mal.\n3. Para sentir "algo" o sentir control cuando se sienten muy vacíos.\n4. Para mostrar que están sufriendo cuando es difícil usar palabras.'
         : 'Principales funciones de la conducta:\n\n1. Regulación emocional: Aliviar tensión, ansiedad o angustia severa.\n2. Autocastigo: Asociado a sentimientos profundos de culpa o vergüenza.\n3. Anti-disociación: Sentir dolor físico para contrarrestar gran desconexión.\n4. Comunicación: Expresar de forma no verbal un sufrimiento profundo.';
@@ -35,12 +59,16 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
         ? 'Cosas que pueden hacer que pase:\n• Estar muy triste o con mucha ansiedad.\n• Problemas familiares o bullying.\n• Haber pasado por cosas muy difíciles o traumáticas.\n• Tomar alcohol o drogas.\n\nTener estos problemas no significa que alguien se lastimará.'
         : 'Factores de vulnerabilidad asociados:\n• Trastornos de estado de ánimo (depresión, ansiedad extrema).\n• Conflictos familiares, situaciones de bullying o acoso escolar.\n• Historial de trauma o abuso.\n• Consumo de sustancias.\n\nLa presencia de estos factores no determina la conducta, pero incrementa el riesgo.';
 
-    final String actionTitle = _isForTeens ? '¿Qué más puedo hacer?' : '¿Cómo puedo ayudar?';
+    final String actionTitle = _isForTeens
+        ? '¿Qué más puedo hacer?'
+        : '¿Cómo puedo ayudar?';
     final String actionContent = _isForTeens
         ? 'Sentirse triste o enojado es parte de la vida, pero hay formas sanas de manejarlo como:\n• Hablar con alguien de confianza o un psicólogo.\n• Escribir o dibujar lo que sientes.\n• Hacer ejercicio o escuchar música.\n\nPedir ayuda no es debilidad. Es de valientes.'
         : '• Mantenga la calma: Una reacción de pánico o reprensión puede empeorar la situación y generar asilamiento.\n• Escuche sin juzgar: Valide su malestar emocional sin justificar la conducta autolesiva.\n• Busque ayuda profesional: Requiere evaluación y acompañamiento clínico adecuado.';
 
-    final String footerTitle = _isForTeens ? '¡No estás solo/a!' : 'El apoyo es fundamental';
+    final String footerTitle = _isForTeens
+        ? '¡No estás solo/a!'
+        : 'El apoyo es fundamental';
     final String footerMsg = _isForTeens
         ? 'Pedir ayuda es el acto más grande de valentía. Hablar con alguien de confianza puede cambiarlo todo.'
         : 'Abordar el tema con empatía, contención y sin juicios de valor, es el primer paso vital para su recuperación.';
@@ -136,70 +164,6 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
               ),
               const SizedBox(height: 28),
 
-              // Toggle Adolescentes / Padres
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.all(4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _isForTeens = true),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: _isForTeens ? Colors.white : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: _isForTeens
-                                ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))]
-                                : [],
-                          ),
-                          child: Center(
-                            child: Text(
-                              'Para ti (Adolescente)',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: _isForTeens ? const Color(0xFF00897B) : Colors.black54,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _isForTeens = false),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: !_isForTeens ? Colors.white : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: !_isForTeens
-                                ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))]
-                                : [],
-                          ),
-                          child: Center(
-                            child: Text(
-                              'Para padres',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: !_isForTeens ? Colors.deepOrange : Colors.black54,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-
               const Text(
                 'Información Clave',
                 style: TextStyle(
@@ -209,7 +173,7 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               _buildSection(
                 title: '¿Qué es y qué no es?',
                 content: qyaContent,
@@ -223,12 +187,19 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF7ED), // Fondo naranja muy suave
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFFDBA74), width: 1.5), // Borde naranja pastel
+                  border: Border.all(
+                    color: const Color(0xFFFDBA74),
+                    width: 1.5,
+                  ), // Borde naranja pastel
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.warning_amber_rounded, color: Color(0xFFF97316), size: 28),
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Color(0xFFF97316),
+                      size: 28,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -272,7 +243,10 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF9FAFB),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
+                  border: Border.all(
+                    color: const Color(0xFFE5E7EB),
+                    width: 1.5,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.02),

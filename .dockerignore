@@ -1,0 +1,13 @@
+.dart_tool/
+.idea/
+.vscode/
+build/
+.git/
+android/.gradle/
+ios/Pods/
+linux/flutter/ephemeral/
+macos/Flutter/ephemeral/
+windows/flutter/ephemeral/
+mock_backend/.venv/
+mock_backend/__pycache__/
+*.iml

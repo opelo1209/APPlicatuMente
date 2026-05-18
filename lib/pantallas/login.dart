@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'theme_provider.dart';
 import 'registro.dart';
@@ -66,20 +65,6 @@ class _LoginState extends State<Login> {
     });
 
     try {
-      if (_usernameController.text.trim() == "said") {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const Principal()),
-          (route) => false,
-        );
-
-        // Navigator.pushReplacement(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => const CuestionarioWrapper()),
-        // );
-
-        return;
-      }
       // 1. Hacer login usando _auth (NO _authService)
       final loginResult = await _auth.login(
         username: _usernameController.text.trim(),
@@ -97,10 +82,10 @@ class _LoginState extends State<Login> {
         return;
       }
 
-      // 2. Obtener información del usuario usando _user (NO _userService)
-      final userResult = await _user.getUserMe();
+      // 2. Obtener contexto vivo del usuario usando permisos del backend
+      final sessionResult = await _user.getSessionContext();
 
-      if (!userResult['success']) {
+      if (!sessionResult['success']) {
         _showMessage('Error al obtener información del usuario', isError: true);
         setState(() {
           _isLoading = false;
@@ -108,10 +93,14 @@ class _LoginState extends State<Login> {
         return;
       }
 
-      // 3. Verificar si completó el cuestionario
-      final prefs = await SharedPreferences.getInstance();
+      // 3. Verificar en Postgres temporal si completó el cuestionario
+      final sessionData = sessionResult['data'];
+      final String perfilTipo = sessionData is Map
+          ? sessionData['perfil_tipo']?.toString() ?? 'estudiante'
+          : 'estudiante';
+      final progress = sessionData is Map ? sessionData['progress'] : null;
       final bool cuestionarioCompletado =
-          prefs.getBool('cuestionario_completado') ?? false;
+          progress is Map && progress['cuestionario_completado'] == true;
 
       if (!mounted) return;
 
@@ -120,7 +109,8 @@ class _LoginState extends State<Login> {
       });
 
       // 4. Navegar a la pantalla correspondiente
-      if (cuestionarioCompletado) {
+
+      if (perfilTipo != 'estudiante' || cuestionarioCompletado) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const Principal()),
           (Route<dynamic> route) => false,
@@ -161,9 +151,15 @@ class _LoginState extends State<Login> {
       // se realizan internamente y nos devuelve directamente un token de acceso válido.
       // Ya no necesitamos llamar a syncUser porque ya se guarda en base de datos.
 
-      final prefs = await SharedPreferences.getInstance();
+      final sessionResult = await _user.getSessionContext();
+      final sessionData = sessionResult['data'];
+      final String perfilTipo =
+          sessionResult['success'] == true && sessionData is Map
+          ? sessionData['perfil_tipo']?.toString() ?? 'estudiante'
+          : 'estudiante';
+      final progress = sessionData is Map ? sessionData['progress'] : null;
       final bool cuestionarioCompletado =
-          prefs.getBool('cuestionario_completado') ?? false;
+          progress is Map && progress['cuestionario_completado'] == true;
       if (!mounted) return;
 
       setState(() {
@@ -171,7 +167,7 @@ class _LoginState extends State<Login> {
       });
 
       // Navegar a la pantalla correspondiente limpiando el stack anterior
-      if (cuestionarioCompletado) {
+      if (perfilTipo != 'estudiante' || cuestionarioCompletado) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const Principal()),
           (Route<dynamic> route) => false,

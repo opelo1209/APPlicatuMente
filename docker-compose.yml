@@ -1,0 +1,49 @@
+services:
+  postgres-temporal:
+    image: postgres:16
+    container_name: aptm_front_postgres_temporal
+    network_mode: host
+    command: ["postgres", "-c", "port=55432"]
+    environment:
+      POSTGRES_DB: aptm_tmp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGPORT: 55432
+    volumes:
+      - aptm_front_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 55432 -U postgres -d aptm_tmp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  mini-backend:
+    build:
+      context: ./mock_backend
+      dockerfile: Dockerfile
+      network: host
+    container_name: aptm_front_mini_backend
+    network_mode: host
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55432/aptm_tmp
+    depends_on:
+      postgres-temporal:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      network: host
+      args:
+        API_BASE_URL: ${API_BASE_URL:-http://localhost:8001}
+    container_name: aptm_frontend
+    network_mode: host
+    depends_on:
+      - mini-backend
+    restart: unless-stopped
+
+volumes:
+  aptm_front_pgdata:

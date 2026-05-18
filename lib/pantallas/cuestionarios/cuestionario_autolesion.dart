@@ -17,7 +17,21 @@ class CuestionarioAutolesion extends StatefulWidget {
 
 class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
   bool _enviando = false;
+  bool _cargandoPreguntas = true;
   final _formKey = GlobalKey<FormState>();
+  Map<String, String> _preguntas = const {
+    'cortado_piel':
+        '¿Alguna vez te has hecho cortadas en la piel, pero sin querer hacerte daño grave ni quitarte la vida?',
+    'primera_vez': '¿Cuándo fue la primera vez que lo hiciste?',
+    'cuantas_veces': '¿Cuántas veces lo has hecho?',
+    'donde_aprendiste': '¿Dónde o cómo te enteraste de hacerlo?',
+  };
+  Map<String, int> _puntajes = const {
+    'cortado_piel': 1,
+    'primera_vez': 0,
+    'cuantas_veces': 0,
+    'donde_aprendiste': 0,
+  };
 
   // Respuestas
   bool? _q1Respuesta; // true = Sí, false = No
@@ -26,6 +40,46 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
   final _dondeCtrl = TextEditingController();
 
   static const Color _teal = Color(0xFF00897B);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreguntas();
+  }
+
+  Future<void> _loadPreguntas() async {
+    final result = await User().getCuestionarioConfig(modulo: 'autolesion');
+    if (!mounted) return;
+
+    final data = result['data'];
+    final rawQuestions = data is Map ? data['preguntas'] : null;
+    if (result['success'] == true &&
+        rawQuestions is List &&
+        rawQuestions.isNotEmpty) {
+      final preguntas = Map<String, String>.from(_preguntas);
+      final puntajes = Map<String, int>.from(_puntajes);
+      for (final raw in rawQuestions.whereType<Map>()) {
+        final codigo = raw['codigo']?.toString() ?? '';
+        if (codigo.isEmpty) continue;
+        preguntas[codigo] =
+            raw['pregunta']?.toString() ?? preguntas[codigo] ?? '';
+        puntajes[codigo] = raw['puntaje'] is int
+            ? raw['puntaje'] as int
+            : int.tryParse(raw['puntaje']?.toString() ?? '') ??
+                  puntajes[codigo] ??
+                  0;
+      }
+
+      setState(() {
+        _preguntas = preguntas;
+        _puntajes = puntajes;
+        _cargandoPreguntas = false;
+      });
+      return;
+    }
+
+    setState(() => _cargandoPreguntas = false);
+  }
 
   @override
   void dispose() {
@@ -44,7 +98,7 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
       );
       return;
     }
-    
+
     if (_q1Respuesta == true && !_formKey.currentState!.validate()) {
       return;
     }
@@ -55,8 +109,9 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
       {
         'numero': 1,
         'id': 'cortado_piel',
-        'pregunta': '¿Alguna vez te has hecho cortadas en la piel, pero sin querer hacerte daño grave ni quitarte la vida?',
+        'pregunta': _preguntas['cortado_piel'],
         'tipo_respuesta': 'binario',
+        'puntaje_configurado': _puntajes['cortado_piel'] ?? 1,
         'respuesta_valor': _q1Respuesta == true ? 1 : 0,
         'respuesta_etiqueta': _q1Respuesta == true ? 'Sí' : 'No',
       },
@@ -67,24 +122,27 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
         {
           'numero': 2,
           'id': 'primera_vez',
-          'pregunta': '¿Cuándo fue la primera vez que lo hiciste?',
+          'pregunta': _preguntas['primera_vez'],
           'tipo_respuesta': 'texto',
+          'puntaje_configurado': _puntajes['primera_vez'] ?? 0,
           'respuesta_valor': null,
           'respuesta_etiqueta': _primeraVezCtrl.text.trim(),
         },
         {
           'numero': 3,
           'id': 'cuantas_veces',
-          'pregunta': '¿Cuántas veces lo has hecho?',
+          'pregunta': _preguntas['cuantas_veces'],
           'tipo_respuesta': 'numero',
+          'puntaje_configurado': _puntajes['cuantas_veces'] ?? 0,
           'respuesta_valor': _cuantasVeces,
           'respuesta_etiqueta': '$_cuantasVeces',
         },
         {
           'numero': 4,
           'id': 'donde_aprendiste',
-          'pregunta': '¿Dónde o cómo te enteraste de hacerlo?',
+          'pregunta': _preguntas['donde_aprendiste'],
           'tipo_respuesta': 'texto',
+          'puntaje_configurado': _puntajes['donde_aprendiste'] ?? 0,
           'respuesta_valor': null,
           'respuesta_etiqueta': _dondeCtrl.text.trim(),
         },
@@ -98,7 +156,9 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
         {
           'bloque': 'NSSI',
           'nombre': 'Autolesión No Suicida (NSSI)',
-          'puntuacion_total': _q1Respuesta == true ? 1 : 0,
+          'puntuacion_total': _q1Respuesta == true
+              ? (_puntajes['cortado_piel'] ?? 1)
+              : 0,
           'reactivos': reactivos,
         },
       ],
@@ -107,14 +167,23 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('cuestionario_autolesion', jsonEncode(payload));
     await prefs.setBool('cuestionario_autolesion_completado', true);
-
-      // Enviar al backend
-      final userService = User();
-      final resultado = await userService.updateCuestionario(
-        tipoCuestionario: 'autolesion',
-        respuestas: payload,
+    await prefs.setBool('modulo_autolesion_completado', true);
+    final perfilTipo = prefs.getString('perfil_tipo') ?? 'estudiante';
+    final idUsuario = prefs.getInt('id_usuario');
+    if (idUsuario != null) {
+      await prefs.setBool(
+        'modulo_autolesion_completado_${perfilTipo}_$idUsuario',
+        true,
       );
-      print('Backend cuestionario autolesion: $resultado');
+    }
+
+    // Enviar al backend
+    final userService = User();
+    final resultado = await userService.updateCuestionario(
+      tipoCuestionario: 'autolesion',
+      respuestas: payload,
+    );
+    print('Backend cuestionario autolesion: $resultado');
 
     if (!mounted) return;
     setState(() => _enviando = false);
@@ -123,7 +192,10 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
   }
 
   void _mostrarResultado() {
-    final isDark = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+    final isDark = Provider.of<ThemeProvider>(
+      context,
+      listen: false,
+    ).isDarkMode;
 
     showDialog(
       context: context,
@@ -168,8 +240,13 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _teal,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 12,
+                ),
               ),
               child: const Text('Finalizar'),
             ),
@@ -181,21 +258,21 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
   }
 
   InputDecoration _inputDec(bool isDark) => InputDecoration(
-        filled: true,
-        fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
-        ),
-        focusedBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(14)),
-          borderSide: BorderSide(color: _teal, width: 2),
-        ),
-      );
+    filled: true,
+    fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+    ),
+    focusedBorder: const OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: _teal, width: 2),
+    ),
+  );
 
   Widget _buildInfo(bool isDark) {
     return Container(
@@ -250,8 +327,16 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
     final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
     final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA);
 
-    final labelStyle = TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54);
-    final questionStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.35, color: isDark ? Colors.white : Colors.black87);
+    final labelStyle = TextStyle(
+      fontSize: 12,
+      color: isDark ? Colors.white54 : Colors.black54,
+    );
+    final questionStyle = TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.bold,
+      height: 1.35,
+      color: isDark ? Colors.white : Colors.black87,
+    );
     final textStyle = TextStyle(color: isDark ? Colors.white : Colors.black87);
 
     return Scaffold(
@@ -269,7 +354,9 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
         ),
         centerTitle: true,
       ),
-      body: _enviando
+      body: _cargandoPreguntas
+          ? const Center(child: CircularProgressIndicator(color: _teal))
+          : _enviando
           ? const Center(child: CircularProgressIndicator(color: _teal))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -279,9 +366,9 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
                   _buildInfo(isDark),
                   Text('Pregunta 1', style: labelStyle),
                   const SizedBox(height: 6),
-                  Text('¿Alguna vez te has hecho cortadas en la piel, pero sin querer hacerte daño grave ni quitarte la vida?', style: questionStyle),
+                  Text(_preguntas['cortado_piel'] ?? '', style: questionStyle),
                   const SizedBox(height: 16),
-                  
+
                   // Botones Sí / No
                   Row(
                     children: [
@@ -291,8 +378,18 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
-                              color: _q1Respuesta == true ? _teal : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
-                              border: Border.all(color: _q1Respuesta == true ? _teal : (isDark ? Colors.white24 : Colors.black26)),
+                              color: _q1Respuesta == true
+                                  ? _teal
+                                  : (isDark
+                                        ? const Color(0xFF1E1E1E)
+                                        : Colors.white),
+                              border: Border.all(
+                                color: _q1Respuesta == true
+                                    ? _teal
+                                    : (isDark
+                                          ? Colors.white24
+                                          : Colors.black26),
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             alignment: Alignment.center,
@@ -301,7 +398,11 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: _q1Respuesta == true ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                                color: _q1Respuesta == true
+                                    ? Colors.white
+                                    : (isDark
+                                          ? Colors.white70
+                                          : Colors.black87),
                               ),
                             ),
                           ),
@@ -320,8 +421,18 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
-                              color: _q1Respuesta == false ? Colors.redAccent : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
-                              border: Border.all(color: _q1Respuesta == false ? Colors.redAccent : (isDark ? Colors.white24 : Colors.black26)),
+                              color: _q1Respuesta == false
+                                  ? Colors.redAccent
+                                  : (isDark
+                                        ? const Color(0xFF1E1E1E)
+                                        : Colors.white),
+                              border: Border.all(
+                                color: _q1Respuesta == false
+                                    ? Colors.redAccent
+                                    : (isDark
+                                          ? Colors.white24
+                                          : Colors.black26),
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             alignment: Alignment.center,
@@ -330,7 +441,11 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: _q1Respuesta == false ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                                color: _q1Respuesta == false
+                                    ? Colors.white
+                                    : (isDark
+                                          ? Colors.white70
+                                          : Colors.black87),
                               ),
                             ),
                           ),
@@ -350,30 +465,46 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
                         children: [
                           Text('Pregunta 2', style: labelStyle),
                           const SizedBox(height: 6),
-                          Text('¿Cuándo fue la primera vez que lo hiciste?', style: questionStyle),
+                          Text(
+                            _preguntas['primera_vez'] ?? '',
+                            style: questionStyle,
+                          ),
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _primeraVezCtrl,
                             style: textStyle,
-                            decoration: _inputDec(isDark).copyWith(hintText: 'Ej: hace 2 años, a los 14...'),
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
+                            decoration: _inputDec(isDark).copyWith(
+                              hintText: 'Ej: hace 2 años, a los 14...',
+                            ),
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Campo requerido'
+                                : null,
                           ),
                           const SizedBox(height: 28),
 
                           Text('Pregunta 3', style: labelStyle),
                           const SizedBox(height: 6),
-                          Text('¿Cuántas veces lo has hecho?', style: questionStyle),
+                          Text(
+                            _preguntas['cuantas_veces'] ?? '',
+                            style: questionStyle,
+                          ),
                           const SizedBox(height: 12),
                           Container(
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                              color: isDark
+                                  ? const Color(0xFF1E1E1E)
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
+                              border: Border.all(
+                                color: isDark ? Colors.white12 : Colors.black12,
+                              ),
                             ),
                             child: Row(
                               children: [
                                 IconButton(
-                                  onPressed: _cuantasVeces > 1 ? () => setState(() => _cuantasVeces--) : null,
+                                  onPressed: _cuantasVeces > 1
+                                      ? () => setState(() => _cuantasVeces--)
+                                      : null,
                                   icon: const Icon(Icons.remove_circle_outline),
                                   color: _teal,
                                   iconSize: 30,
@@ -385,13 +516,16 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
                                       style: TextStyle(
                                         fontSize: 28,
                                         fontWeight: FontWeight.bold,
-                                        color: isDark ? Colors.white : Colors.black87,
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black87,
                                       ),
                                     ),
                                   ),
                                 ),
                                 IconButton(
-                                  onPressed: () => setState(() => _cuantasVeces++),
+                                  onPressed: () =>
+                                      setState(() => _cuantasVeces++),
                                   icon: const Icon(Icons.add_circle_outline),
                                   color: _teal,
                                   iconSize: 30,
@@ -403,13 +537,20 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
 
                           Text('Pregunta 4', style: labelStyle),
                           const SizedBox(height: 6),
-                          Text('¿Dónde o cómo te enteraste de hacerlo?', style: questionStyle),
+                          Text(
+                            _preguntas['donde_aprendiste'] ?? '',
+                            style: questionStyle,
+                          ),
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _dondeCtrl,
                             style: textStyle,
-                            decoration: _inputDec(isDark).copyWith(hintText: 'Ej: amigos, internet...'),
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
+                            decoration: _inputDec(
+                              isDark,
+                            ).copyWith(hintText: 'Ej: amigos, internet...'),
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Campo requerido'
+                                : null,
                           ),
                         ],
                       ),
@@ -424,7 +565,9 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
                       onPressed: _enviar,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _teal,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: 0,
                       ),
                       child: const Text(

@@ -11,16 +11,31 @@ class Auth {
     if (!_googleInitialized) {
       GoogleSignIn.instance.initialize(
         // Es obligatorio en Android para poder obtener el idToken
-        serverClientId: '773970807427-dqu2tgcoq7sbklofmlr9bbhmv48g9631.apps.googleusercontent.com',
+        serverClientId:
+            '773970807427-dqu2tgcoq7sbklofmlr9bbhmv48g9631.apps.googleusercontent.com',
       );
       _googleInitialized = true;
     }
   }
 
-  // Almacenar token en SharedPreferences
-  Future<void> _saveToken(String token) async {
+  Future<void> _saveSessionData(Map<String, dynamic> data) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('access_token', token);
+    if (data['access_token'] != null) {
+      await prefs.setString('access_token', data['access_token']);
+    }
+    if (data['perfil_tipo'] != null) {
+      await prefs.setString('perfil_tipo', data['perfil_tipo']);
+    }
+
+    final user = data['user'];
+    if (user is Map<String, dynamic>) {
+      if (user['id_usuario'] != null) {
+        await prefs.setInt('id_usuario', user['id_usuario']);
+      }
+      if (user['nombre_usuario'] != null) {
+        await prefs.setString('nombre_usuario', user['nombre_usuario']);
+      }
+    }
   }
 
   // Obtener token guardado
@@ -36,6 +51,9 @@ class Auth {
     await prefs.remove('id_token');
     await prefs.remove('refresh_token');
     await prefs.remove('cuestionario_completado');
+    await prefs.remove('perfil_tipo');
+    await prefs.remove('id_usuario');
+    await prefs.remove('nombre_usuario');
   }
 
   String _normalizeBase64(String value) {
@@ -77,10 +95,7 @@ class Auth {
       final response = await http.post(
         Uri.parse(Peticiones.login),
         headers: Peticiones.headers,
-        body: jsonEncode({
-          'username': username,
-          'password': password,
-        }),
+        body: jsonEncode({'username': username, 'password': password}),
       );
 
       print('Login Status Code: ${response.statusCode}');
@@ -88,17 +103,10 @@ class Auth {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
-        // Guardar el access_token
-        if (data['access_token'] != null) {
-          await _saveToken(data['access_token']);
-        }
-        
-        return {
-          'success': true,
-          'data': data,
-          'message': 'Login exitoso',
-        };
+
+        await _saveSessionData(data);
+
+        return {'success': true, 'data': data, 'message': 'Login exitoso'};
       } else {
         return {
           'success': false,
@@ -108,10 +116,7 @@ class Auth {
       }
     } catch (e) {
       print('Error en login: $e');
-      return {
-        'success': false,
-        'message': 'Error de conexión: $e',
-      };
+      return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
 
@@ -122,6 +127,9 @@ class Auth {
     required String password,
     required String nombres,
     required String apellidoPaterno,
+    required String perfilTipo,
+    List<int> estudiantesIds = const [],
+    String parentesco = 'padre/madre/tutor',
     String apellidoMaterno = '',
   }) async {
     try {
@@ -132,9 +140,12 @@ class Auth {
           'nombre_usuario': nombreUsuario,
           'correo': correo,
           'password': password,
+          'perfil_tipo': perfilTipo,
           'nombres': nombres,
           'apellido_paterno': apellidoPaterno,
           'apellido_materno': apellidoMaterno,
+          'estudiantes_ids': estudiantesIds,
+          'parentesco': parentesco,
         }),
       );
 
@@ -162,10 +173,7 @@ class Auth {
       }
     } catch (e) {
       print('Error en register: $e');
-      return {
-        'success': false,
-        'message': 'Error de conexión: $e',
-      };
+      return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
 
@@ -179,7 +187,8 @@ class Auth {
   Future<Map<String, dynamic>> loginWithGoogle() async {
     try {
       _initGoogle();
-      final GoogleSignInAccount? googleUser = await GoogleSignIn.instance.authenticate();
+      final GoogleSignInAccount? googleUser = await GoogleSignIn.instance
+          .authenticate();
       if (googleUser == null) {
         return {
           'success': false,
@@ -201,9 +210,7 @@ class Auth {
       final response = await http.post(
         Uri.parse(Peticiones.loginGoogle),
         headers: Peticiones.headers,
-        body: jsonEncode({
-          'token': idToken,
-        }),
+        body: jsonEncode({'token': idToken}),
       );
 
       print('Google Login Backend Status: ${response.statusCode}');
@@ -211,12 +218,9 @@ class Auth {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
-        // Guardar el access_token retornado por nuestro backend
-        if (data['access_token'] != null) {
-          await _saveToken(data['access_token']);
-        }
-        
+
+        await _saveSessionData(data);
+
         return {
           'success': true,
           'data': data,

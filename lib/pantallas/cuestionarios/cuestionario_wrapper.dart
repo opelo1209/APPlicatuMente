@@ -41,21 +41,30 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
   Future<void> _finishQuestionnaire() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('cuestionario_completado', true);
+    final perfilTipo = prefs.getString('perfil_tipo') ?? 'estudiante';
+    final idUsuario = prefs.getInt('id_usuario');
+    if (idUsuario != null) {
+      await prefs.setBool(
+        'cuestionario_completado_${perfilTipo}_$idUsuario',
+        true,
+      );
+    }
 
     debugPrint("Respuestas Finales: $_respuestas");
 
-      // Enviar al backend
-      final userService = User();
-      final resultado = await userService.updateCuestionario(
-        tipoCuestionario: 'informacion_general',
-        respuestas: _respuestas,
-      );
-      print('Backend informacion general: $resultado');
+    // Enviar al backend
+    final userService = User();
+    final resultado = await userService.updateCuestionario(
+      tipoCuestionario: 'informacion_general',
+      respuestas: _respuestas,
+    );
+    print('Backend informacion general: $resultado');
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const Principal(),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const Principal(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -67,7 +76,9 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    final backgroundColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
+    final backgroundColor = isDarkMode
+        ? const Color(0xFF121212)
+        : const Color(0xFFF8F9FA);
     final primaryColor = const Color(0xFF43A047);
 
     return Scaffold(
@@ -94,7 +105,8 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
                     children: [
                       if (_currentPage > 0)
                         IconButton(
-                          icon: Icon(Icons.arrow_back_ios_new, 
+                          icon: Icon(
+                            Icons.arrow_back_ios_new,
                             color: isDarkMode ? Colors.white : Colors.black87,
                             size: 20,
                           ),
@@ -105,7 +117,7 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
                         )
                       else
                         const SizedBox(width: 48), // Placeholder for alignment
-                      
+
                       Expanded(
                         child: Text(
                           "Conociéndote",
@@ -118,7 +130,7 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(width: 48), // Placeholder for alignment
                     ],
                   ),
@@ -135,18 +147,22 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
                         height: 12,
                         width: _currentPage == index ? 40 : 12,
                         decoration: BoxDecoration(
-                          color: _currentPage >= index 
-                              ? primaryColor 
-                              : (isDarkMode ? Colors.white12 : Colors.grey[300]),
+                          color: _currentPage >= index
+                              ? primaryColor
+                              : (isDarkMode
+                                    ? Colors.white12
+                                    : Colors.grey[300]),
                           borderRadius: BorderRadius.circular(10),
-                          boxShadow: _currentPage == index ? [
-                            BoxShadow(
-                              color: primaryColor.withOpacity(0.5),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                              offset: const Offset(0, 3),
-                            )
-                          ] : null,
+                          boxShadow: _currentPage == index
+                              ? [
+                                  BoxShadow(
+                                    color: primaryColor.withOpacity(0.5),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ]
+                              : null,
                         ),
                       ),
                     ),
@@ -154,7 +170,7 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
                 ],
               ),
             ),
-            
+
             // Page Content
             Expanded(
               child: PageView(
