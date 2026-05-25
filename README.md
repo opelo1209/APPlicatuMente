@@ -1,16 +1,34 @@
-# aptm
+# Front APTM
 
-A new Flutter project.
+Frontend Flutter web de Aplicate Por Tu Mente.
 
-## Getting Started
+## Ejecutar con Docker
 
-This project is a starting point for a Flutter application.
+No necesitas tener Flutter instalado en la computadora o servidor. Docker usa la
+imagen `ghcr.io/cirruslabs/flutter:stable` para descargar dependencias y compilar
+el build web dentro del contenedor.
 
-A few resources to get you started if this is your first Flutter project:
+Desde la carpeta `aplicate_por_tu_mente`:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+docker compose up --build frontend
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+La app queda disponible en `http://localhost:8080`.
+
+Puedes cambiar la URL del backend al compilar:
+
+```bash
+API_BASE_URL=http://localhost:8001 docker compose up --build frontend
+```
+
+## Ejecutar en local
+
+Si tienes Flutter instalado, este script solo instala dependencias y ejecuta el
+comando pedido. Si no tienes Flutter, usa Docker para `build` o `pub-get`.
+
+```bash
+./scripts/flutter_web.sh pub-get
+./scripts/flutter_web.sh build
+./scripts/flutter_web.sh run
+```
