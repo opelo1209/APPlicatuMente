@@ -183,7 +183,7 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
       tipoCuestionario: 'autolesion',
       respuestas: payload,
     );
-    print('Backend cuestionario autolesion: $resultado');
+    debugPrint('Backend cuestionario autolesion: $resultado');
 
     if (!mounted) return;
     setState(() => _enviando = false);
@@ -283,7 +283,7 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'peticiones.dart';
@@ -24,8 +25,8 @@ class User {
         headers: Peticiones.getAuthHeaders(token),
       );
 
-      print('Get User Me Status Code: ${response.statusCode}');
-      print('Get User Me Response: ${response.body}');
+      debugPrint('Get User Me Status Code: ${response.statusCode}');
+      debugPrint('Get User Me Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -43,7 +44,7 @@ class User {
         };
       }
     } catch (e) {
-      print('Error en getUserMe: $e');
+      debugPrint('Error en getUserMe: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -62,8 +63,8 @@ class User {
         headers: Peticiones.getAuthHeaders(token),
       );
 
-      print('Get Session Context Status Code: ${response.statusCode}');
-      print('Get Session Context Response: ${response.body}');
+      debugPrint('Get Session Context Status Code: ${response.statusCode}');
+      debugPrint('Get Session Context Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -82,7 +83,7 @@ class User {
         'body': response.body,
       };
     } catch (e) {
-      print('Error en getSessionContext: $e');
+      debugPrint('Error en getSessionContext: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -116,8 +117,8 @@ class User {
         }),
       );
 
-      print('Sync User Status Code: ${response.statusCode}');
-      print('Sync User Response: ${response.body}');
+      debugPrint('Sync User Status Code: ${response.statusCode}');
+      debugPrint('Sync User Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -126,7 +127,7 @@ class User {
         return {'success': false, 'message': 'Error al sincronizar usuario'};
       }
     } catch (e) {
-      print('Error en syncUser: $e');
+      debugPrint('Error en syncUser: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -154,8 +155,8 @@ class User {
         }),
       );
 
-      print('Update Cuestionario Status Code: ${response.statusCode}');
-      print('Update Cuestionario Response: ${response.body}');
+      debugPrint('Update Cuestionario Status Code: ${response.statusCode}');
+      debugPrint('Update Cuestionario Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -168,7 +169,7 @@ class User {
         'body': response.body,
       };
     } catch (e) {
-      print('Error en updateCuestionario: $e');
+      debugPrint('Error en updateCuestionario: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -187,8 +188,8 @@ class User {
         headers: Peticiones.getAuthHeaders(token),
       );
 
-      print('Get Cuestionario Status Code: ${response.statusCode}');
-      print('Get Cuestionario Status Response: ${response.body}');
+      debugPrint('Get Cuestionario Status Code: ${response.statusCode}');
+      debugPrint('Get Cuestionario Status Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -200,7 +201,7 @@ class User {
         };
       }
     } catch (e) {
-      print('Error en getCuestionarioStatus: $e');
+      debugPrint('Error en getCuestionarioStatus: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -224,8 +225,8 @@ class User {
         headers: Peticiones.getAuthHeaders(token),
       );
 
-      print('Get Cuestionario Config Status Code: ${response.statusCode}');
-      print('Get Cuestionario Config Response: ${response.body}');
+      debugPrint('Get Cuestionario Config Status Code: ${response.statusCode}');
+      debugPrint('Get Cuestionario Config Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -238,7 +239,7 @@ class User {
         'body': response.body,
       };
     } catch (e) {
-      print('Error en getCuestionarioConfig: $e');
+      debugPrint('Error en getCuestionarioConfig: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -257,8 +258,8 @@ class User {
         headers: Peticiones.getAuthHeaders(token),
       );
 
-      print('Get Perfil Status Code: ${response.statusCode}');
-      print('Get Perfil Response: ${response.body}');
+      debugPrint('Get Perfil Status Code: ${response.statusCode}');
+      debugPrint('Get Perfil Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -267,7 +268,7 @@ class User {
         return {'success': false, 'message': 'Error al obtener perfil'};
       }
     } catch (e) {
-      print('Error en getPerfil: $e');
+      debugPrint('Error en getPerfil: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -286,8 +287,8 @@ class User {
         headers: Peticiones.getAuthHeaders(token),
       );
 
-      print('Get Estudiantes Vinculados Status Code: ${response.statusCode}');
-      print('Get Estudiantes Vinculados Response: ${response.body}');
+      debugPrint('Get Estudiantes Vinculados Status Code: ${response.statusCode}');
+      debugPrint('Get Estudiantes Vinculados Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -300,7 +301,7 @@ class User {
         'body': response.body,
       };
     } catch (e) {
-      print('Error en getEstudiantesVinculados: $e');
+      debugPrint('Error en getEstudiantesVinculados: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -326,8 +327,8 @@ class User {
         }),
       );
 
-      print('Vincular Estudiante Status Code: ${response.statusCode}');
-      print('Vincular Estudiante Response: ${response.body}');
+      debugPrint('Vincular Estudiante Status Code: ${response.statusCode}');
+      debugPrint('Vincular Estudiante Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -340,7 +341,7 @@ class User {
         'body': response.body,
       };
     } catch (e) {
-      print('Error en vincularEstudiante: $e');
+      debugPrint('Error en vincularEstudiante: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -359,8 +360,8 @@ class User {
         headers: Peticiones.getAuthHeaders(token),
       );
 
-      print('Get Monitoreo Admin Status Code: ${response.statusCode}');
-      print('Get Monitoreo Admin Response: ${response.body}');
+      debugPrint('Get Monitoreo Admin Status Code: ${response.statusCode}');
+      debugPrint('Get Monitoreo Admin Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -373,7 +374,7 @@ class User {
         'body': response.body,
       };
     } catch (e) {
-      print('Error en getMonitoreoAdmin: $e');
+      debugPrint('Error en getMonitoreoAdmin: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -392,8 +393,8 @@ class User {
         headers: Peticiones.getAuthHeaders(token),
       );
 
-      print('Get Admin Cuestionarios Status Code: ${response.statusCode}');
-      print('Get Admin Cuestionarios Response: ${response.body}');
+      debugPrint('Get Admin Cuestionarios Status Code: ${response.statusCode}');
+      debugPrint('Get Admin Cuestionarios Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -406,7 +407,7 @@ class User {
         'body': response.body,
       };
     } catch (e) {
-      print('Error en getAdminCuestionarios: $e');
+      debugPrint('Error en getAdminCuestionarios: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -435,8 +436,8 @@ class User {
         }),
       );
 
-      print('Update Admin Cuestionario Status Code: ${response.statusCode}');
-      print('Update Admin Cuestionario Response: ${response.body}');
+      debugPrint('Update Admin Cuestionario Status Code: ${response.statusCode}');
+      debugPrint('Update Admin Cuestionario Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -449,7 +450,40 @@ class User {
         'body': response.body,
       };
     } catch (e) {
-      print('Error en updateAdminCuestionario: $e');
+      debugPrint('Error en updateAdminCuestionario: $e');
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
+  // GET /users/padres/alertas - Obtener alertas de estudiantes vinculados
+  Future<Map<String, dynamic>> getAlertas() async {
+    try {
+      final token = await _getToken();
+
+      if (token == null) {
+        return {'success': false, 'message': 'No hay token de autenticación'};
+      }
+
+      final response = await http.get(
+        Uri.parse(Peticiones.padresAlertas),
+        headers: Peticiones.getAuthHeaders(token),
+      );
+
+      debugPrint('Get Alertas Status Code: ${response.statusCode}');
+      debugPrint('Get Alertas Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {'success': true, 'data': data};
+      }
+
+      return {
+        'success': false,
+        'message': 'Error al obtener alertas',
+        'body': response.body,
+      };
+    } catch (e) {
+      debugPrint('Error en getAlertas: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -468,8 +502,8 @@ class User {
         headers: Peticiones.getAuthHeaders(token),
       );
 
-      print('Activar Usuario Status Code: ${response.statusCode}');
-      print('Activar Usuario Response: ${response.body}');
+      debugPrint('Activar Usuario Status Code: ${response.statusCode}');
+      debugPrint('Activar Usuario Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -478,7 +512,7 @@ class User {
         return {'success': false, 'message': 'Error al activar usuario'};
       }
     } catch (e) {
-      print('Error en activarUsuario: $e');
+      debugPrint('Error en activarUsuario: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -497,8 +531,8 @@ class User {
         headers: Peticiones.getAuthHeaders(token),
       );
 
-      print('Desactivar Usuario Status Code: ${response.statusCode}');
-      print('Desactivar Usuario Response: ${response.body}');
+      debugPrint('Desactivar Usuario Status Code: ${response.statusCode}');
+      debugPrint('Desactivar Usuario Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -507,7 +541,7 @@ class User {
         return {'success': false, 'message': 'Error al desactivar usuario'};
       }
     } catch (e) {
-      print('Error en desactivarUsuario: $e');
+      debugPrint('Error en desactivarUsuario: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }

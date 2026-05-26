@@ -233,7 +233,7 @@ class _InfoBox extends StatelessWidget {
             ? []
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.07),
+                  color: Colors.black.withValues(alpha: 0.07),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -247,7 +247,7 @@ class _InfoBox extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF43A047).withOpacity(0.12),
+                  color: const Color(0xFF43A047).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -311,7 +311,7 @@ class _ModuleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cardColor = enabled
-        ? (isDarkMode ? color.withOpacity(0.25) : color)
+        ? (isDarkMode ? color.withValues(alpha: 0.25) : color)
         : (isDarkMode ? Colors.grey.shade800 : Colors.grey.shade400);
 
     return Container(
@@ -322,7 +322,7 @@ class _ModuleCard extends StatelessWidget {
             ? []
             : [
                 BoxShadow(
-                  color: color.withOpacity(0.30),
+                  color: color.withValues(alpha: 0.30),
                   blurRadius: 14,
                   offset: const Offset(0, 5),
                 ),
@@ -344,7 +344,7 @@ class _ModuleCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.20),
+                        color: Colors.white.withValues(alpha: 0.20),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Icon(icon, color: Colors.white, size: 26),
@@ -355,7 +355,7 @@ class _ModuleCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.20),
+                        color: Colors.white.withValues(alpha: 0.20),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
@@ -391,7 +391,7 @@ class _ModuleCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.4,
-                    color: Colors.white.withOpacity(0.88),
+                    color: Colors.white.withValues(alpha: 0.88),
                   ),
                 ),
               ],

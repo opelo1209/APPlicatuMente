@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -7,10 +8,9 @@ import 'peticiones.dart';
 class Auth {
   bool _googleInitialized = false;
 
-  void _initGoogle() {
+  Future<void> _initGoogle() async {
     if (!_googleInitialized) {
-      GoogleSignIn.instance.initialize(
-        // Es obligatorio en Android para poder obtener el idToken
+      await GoogleSignIn.instance.initialize(
         serverClientId:
             '773970807427-dqu2tgcoq7sbklofmlr9bbhmv48g9631.apps.googleusercontent.com',
       );
@@ -81,7 +81,7 @@ class Auth {
       final payload = utf8.decode(base64Decode(_normalizeBase64(parts[1])));
       return jsonDecode(payload) as Map<String, dynamic>;
     } catch (e) {
-      print('Error al leer claims del token: $e');
+      debugPrint('Error al leer claims del token: $e');
       return null;
     }
   }
@@ -98,8 +98,8 @@ class Auth {
         body: jsonEncode({'username': username, 'password': password}),
       );
 
-      print('Login Status Code: ${response.statusCode}');
-      print('Login Response: ${response.body}');
+      debugPrint('Login Status Code: ${response.statusCode}');
+      debugPrint('Login Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -115,7 +115,7 @@ class Auth {
         };
       }
     } catch (e) {
-      print('Error en login: $e');
+      debugPrint('Error en login: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -131,6 +131,7 @@ class Auth {
     List<int> estudiantesIds = const [],
     String parentesco = 'padre/madre/tutor',
     String apellidoMaterno = '',
+    String curp = '',
   }) async {
     try {
       final response = await http.post(
@@ -146,11 +147,12 @@ class Auth {
           'apellido_materno': apellidoMaterno,
           'estudiantes_ids': estudiantesIds,
           'parentesco': parentesco,
+          if (curp.isNotEmpty) 'curp': curp,
         }),
       );
 
-      print('Register Status Code: ${response.statusCode}');
-      print('Register Response: ${response.body}');
+      debugPrint('Register Status Code: ${response.statusCode}');
+      debugPrint('Register Response: ${response.body}');
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
@@ -172,7 +174,7 @@ class Auth {
         };
       }
     } catch (e) {
-      print('Error en register: $e');
+      debugPrint('Error en register: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -186,15 +188,9 @@ class Auth {
   // Login con Google usando backend
   Future<Map<String, dynamic>> loginWithGoogle() async {
     try {
-      _initGoogle();
-      final GoogleSignInAccount? googleUser = await GoogleSignIn.instance
+      await _initGoogle();
+      final GoogleSignInAccount googleUser = await GoogleSignIn.instance
           .authenticate();
-      if (googleUser == null) {
-        return {
-          'success': false,
-          'message': 'Login con Google cancelado por el usuario',
-        };
-      }
 
       final GoogleSignInAuthentication googleAuth = googleUser.authentication;
       final String? idToken = googleAuth.idToken;
@@ -213,8 +209,8 @@ class Auth {
         body: jsonEncode({'token': idToken}),
       );
 
-      print('Google Login Backend Status: ${response.statusCode}');
-      print('Google Login Backend Response: ${response.body}');
+      debugPrint('Google Login Backend Status: ${response.statusCode}');
+      debugPrint('Google Login Backend Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -234,7 +230,7 @@ class Auth {
         };
       }
     } catch (e) {
-      print('Error en loginWithGoogle: $e');
+      debugPrint('Error en loginWithGoogle: $e');
       return {
         'success': false,
         'message': 'Error en autenticación con Google: $e',

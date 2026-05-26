@@ -48,11 +48,11 @@ class _PasoEscrituraState extends State<PasoEscritura> {
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: primaryGreen.withOpacity(0.15),
+                      color: primaryGreen.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: primaryGreen.withOpacity(0.2),
+                          color: primaryGreen.withValues(alpha: 0.2),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -82,7 +82,7 @@ class _PasoEscrituraState extends State<PasoEscritura> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: primaryGreen.withOpacity(0.1),
+                  color: primaryGreen.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -91,7 +91,7 @@ class _PasoEscrituraState extends State<PasoEscritura> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white70 : primaryGreen.withOpacity(0.8),
+                    color: isDarkMode ? Colors.white70 : primaryGreen.withValues(alpha: 0.8),
                   ),
                 ),
               ),
@@ -143,7 +143,7 @@ class _PasoEscrituraState extends State<PasoEscritura> {
                 decoration: BoxDecoration(
                   boxShadow: [
                     BoxShadow(
-                      color: primaryGreen.withOpacity(0.3),
+                      color: primaryGreen.withValues(alpha: 0.3),
                       blurRadius: 15,
                       offset: const Offset(0, 8),
                     ),
@@ -209,7 +209,7 @@ class _PasoEscrituraState extends State<PasoEscritura> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFF43A047).withOpacity(0.2),
+                color: const Color(0xFF43A047).withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: 24, color: const Color(0xFF43A047)),
@@ -266,7 +266,7 @@ class _PasoEscrituraState extends State<PasoEscritura> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

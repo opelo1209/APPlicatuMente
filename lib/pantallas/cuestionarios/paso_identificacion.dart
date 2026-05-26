@@ -336,7 +336,7 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
                   onHorizontalDragEnd: _onDragEnd,
                   child: Transform(
                     transform: Matrix4.identity()
-                      ..translate(_dragX, -_dragX.abs() * 0.04)
+                      ..translateByDouble(_dragX, -_dragX.abs() * 0.04, 0.0, 1.0)
                       ..rotateZ(_dragX * 0.0014),
                     alignment: Alignment.bottomCenter,
                     child: _buildCard(
@@ -397,7 +397,7 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
     final rawGradient = question['gradient'] as List<dynamic>?;
     final gradColors = rawGradient != null && rawGradient.length >= 2
         ? rawGradient.cast<Color>()
-        : [widget.accentColor, widget.accentColor.withOpacity(0.6)];
+        : [widget.accentColor, widget.accentColor.withValues(alpha: 0.6)];
 
     final text = question['text'] as String;
     final section = question['section'] as String?;
@@ -408,9 +408,9 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
             : 23.0;
 
     final overlayColor = dragX > 0
-        ? const Color(0xFF4CAF50).withOpacity(swipeProgress * 0.45)
+        ? const Color(0xFF4CAF50).withValues(alpha: swipeProgress * 0.45)
         : dragX < 0
-            ? const Color(0xFFEF5350).withOpacity(swipeProgress * 0.45)
+            ? const Color(0xFFEF5350).withValues(alpha: swipeProgress * 0.45)
             : Colors.transparent;
 
     return Container(
@@ -425,7 +425,7 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: gradColors.first.withOpacity(0.35),
+            color: gradColors.first.withValues(alpha: 0.35),
             blurRadius: 28,
             offset: const Offset(0, 14),
           ),
@@ -481,7 +481,7 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.22),
+                        color: Colors.white.withValues(alpha: 0.22),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text.rich(
@@ -530,7 +530,7 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
                       Text(
                         'Desliza para responder',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
+                          color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -550,7 +550,7 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color, width: 3),
       ),
@@ -578,9 +578,9 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: color.withOpacity(isDark ? 0.15 : 0.08),
+          color: color.withValues(alpha: isDark ? 0.15 : 0.08),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: color.withOpacity(0.35), width: 1.5),
+          border: Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

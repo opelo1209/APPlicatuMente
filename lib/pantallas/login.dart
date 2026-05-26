@@ -122,7 +122,7 @@ class _LoginState extends State<Login> {
         );
       }
     } catch (e) {
-      print('Error en login: $e');
+      debugPrint('Error en login: $e');
       _showMessage('Error de conexión. Verifica tu red', isError: true);
       setState(() {
         _isLoading = false;
@@ -179,7 +179,7 @@ class _LoginState extends State<Login> {
         );
       }
     } catch (error) {
-      print('Error en login Google: $error');
+      debugPrint('Error en login Google: $error');
       _showMessage('Error al iniciar sesión con Google', isError: true);
       setState(() {
         _isLoading = false;
@@ -221,8 +221,8 @@ class _LoginState extends State<Login> {
                     end: Alignment.bottomCenter,
                     colors: isDarkMode
                         ? [
-                            primaryGreen.withOpacity(0.34),
-                            Colors.black.withOpacity(0.92),
+                            primaryGreen.withValues(alpha: 0.34),
+                            Colors.black.withValues(alpha: 0.92),
                           ]
                         : const [Colors.transparent, Colors.transparent],
                   ),
@@ -241,7 +241,7 @@ class _LoginState extends State<Login> {
                 width: double.infinity,
                 color: isDarkMode
                     ? Color.fromARGB(255, 29, 54, 39)
-                    : Colors.white.withOpacity(0.95),
+                    : Colors.white.withValues(alpha: 0.95),
                 padding: const EdgeInsets.only(
                   top: 80,
                   left: 30,
@@ -270,7 +270,7 @@ class _LoginState extends State<Login> {
                               "¡Bienvenido de nuevo!",
                               style: TextStyle(
                                 fontSize: 18,
-                                color: theme.colorScheme.onSurface.withOpacity(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 
                                   0.6,
                                 ),
                               ),
@@ -351,7 +351,7 @@ class _LoginState extends State<Login> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                         elevation: 8,
-                        shadowColor: buttonColor.withOpacity(0.5),
+                        shadowColor: buttonColor.withValues(alpha: 0.5),
                       ),
                       child: _isLoading
                           ? const SizedBox(
@@ -380,7 +380,7 @@ class _LoginState extends State<Login> {
                         Expanded(
                           child: Divider(
                             color: isDarkMode
-                                ? Colors.white.withOpacity(0.12)
+                                ? Colors.white.withValues(alpha: 0.12)
                                 : Colors.grey[300],
                           ),
                         ),
@@ -389,7 +389,7 @@ class _LoginState extends State<Login> {
                           child: Text(
                             "o inicia con",
                             style: TextStyle(
-                              color: theme.colorScheme.onSurface.withOpacity(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 
                                 0.55,
                               ),
                               fontSize: 12,
@@ -399,7 +399,7 @@ class _LoginState extends State<Login> {
                         Expanded(
                           child: Divider(
                             color: isDarkMode
-                                ? Colors.white.withOpacity(0.12)
+                                ? Colors.white.withValues(alpha: 0.12)
                                 : Colors.grey[300],
                           ),
                         ),
@@ -485,7 +485,7 @@ class _LoginState extends State<Login> {
         fillColor: fillColor,
         labelText: label,
         labelStyle: TextStyle(
-          color: isDarkMode ? Colors.white70 : accentColor.withOpacity(0.8),
+          color: isDarkMode ? Colors.white70 : accentColor.withValues(alpha: 0.8),
           fontSize: 14,
         ),
         prefixIcon: Icon(icon, color: accentColor, size: 20),
@@ -495,7 +495,7 @@ class _LoginState extends State<Login> {
                   isObscure
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
-                  color: accentColor.withOpacity(0.6),
+                  color: accentColor.withValues(alpha: 0.6),
                 ),
                 onPressed: onToggleVisibility,
               )
@@ -507,7 +507,7 @@ class _LoginState extends State<Login> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
           borderSide: BorderSide(
-            color: accentColor.withOpacity(0.55),
+            color: accentColor.withValues(alpha: 0.55),
             width: 2,
           ),
         ),
@@ -520,7 +520,7 @@ class _LoginState extends State<Login> {
   }
 
   Widget _socialButton({
-    required IconData icon,
+    required FaIconData icon,
     required Color color,
     required bool isDarkMode,
     required VoidCallback onTap,
@@ -534,19 +534,19 @@ class _LoginState extends State<Login> {
           shape: BoxShape.circle,
           border: Border.all(
             color: isDarkMode
-                ? Colors.white.withOpacity(0.10)
+                ? Colors.white.withValues(alpha: 0.10)
                 : Colors.grey[300]!,
           ),
           color: isDarkMode ? const Color(0xFF1C222B) : Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDarkMode ? 0.25 : 0.05),
+              color: Colors.black.withValues(alpha: isDarkMode ? 0.25 : 0.05),
               blurRadius: 5,
               offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Icon(icon, color: color, size: 22),
+        child: FaIcon(icon, color: color, size: 22),
       ),
     );
   }

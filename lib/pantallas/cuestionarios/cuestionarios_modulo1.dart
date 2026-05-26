@@ -354,7 +354,7 @@ class _CuestionarioState extends State<Cuestionario> {
       tipoCuestionario: 'suicidio',
       respuestas: payload,
     );
-    print('Backend cuestionario suicidio: $resultado');
+    debugPrint('Backend cuestionario suicidio: $resultado');
 
     if (!mounted) return;
     setState(() => _enviando = false);
@@ -483,7 +483,7 @@ class _CuestionarioState extends State<Cuestionario> {
     }
 
     final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
-    const _cardGradients = [
+    const cardGradients = [
       [Color(0xFF1565C0), Color(0xFF42A5F5)], // azul profundo
       [Color(0xFF283593), Color(0xFF5C6BC0)], // índigo
       [Color(0xFF00695C), Color(0xFF26A69A)], // teal
@@ -498,7 +498,7 @@ class _CuestionarioState extends State<Cuestionario> {
       final bloque = p['bloque'] as String;
       final bloqueNombre = p['bloque_nombre'] as String;
       final numero = p['numero'];
-      final grad = _cardGradients[idx % _cardGradients.length];
+      final grad = cardGradients[idx % cardGradients.length];
 
       return {
         'id': p['id'],
@@ -653,7 +653,7 @@ class _CuestionarioState extends State<Cuestionario> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: bloqueColor.withOpacity(0.12),
+                            color: bloqueColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text.rich(
@@ -775,14 +775,14 @@ class _OptionButton extends StatelessWidget {
               : (isDark ? const Color(0xFF1E272E) : Colors.white),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? color : color.withOpacity(0.3),
+            color: isSelected ? color : color.withValues(alpha: 0.3),
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
               color: isSelected
-                  ? color.withOpacity(0.3)
-                  : Colors.black.withOpacity(isDark ? 0.12 : 0.04),
+                  ? color.withValues(alpha: 0.3)
+                  : Colors.black.withValues(alpha: isDark ? 0.12 : 0.04),
               blurRadius: isSelected ? 10 : 6,
               offset: const Offset(0, 4),
             ),
@@ -862,14 +862,14 @@ class _BinaryButton extends StatelessWidget {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.4),
+                    color: color.withValues(alpha: 0.4),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
                 ]
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -911,7 +911,7 @@ class _ScoreRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

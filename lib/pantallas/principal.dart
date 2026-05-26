@@ -362,6 +362,16 @@ class _PrincipalState extends State<Principal> {
           onTap: _showLinkedStudents,
         ),
       );
+      cards.add(
+        _buildOptionCard(
+          context,
+          imagePath: 'assets/imagenes/quetzal_3.png',
+          title: "Bandeja de alertas",
+          subtitle: "Notificaciones de tus hijos vinculados",
+          color: const Color(0xFF42A5F5),
+          onTap: _showMailbox,
+        ),
+      );
     }
 
     if (_can('can_play_tcg')) {
@@ -451,6 +461,246 @@ class _PrincipalState extends State<Principal> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showMailbox() async {
+    final result = await User().getAlertas();
+    if (!mounted) return;
+
+    final data = result['data'];
+    final alertas = result['success'] == true && data is Map
+        ? data['alertas']
+        : const [];
+    final items = alertas is List ? alertas : const [];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.inbox_rounded,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Bandeja de alertas',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Notificaciones de tus hijos vinculados',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDarkMode ? Colors.white60 : Colors.black45,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Divider(
+                    color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                  ),
+                  if (items.isEmpty)
+                    Expanded(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.inbox_outlined,
+                              size: 64,
+                              color: isDarkMode
+                                  ? Colors.white24
+                                  : Colors.black26,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No hay alertas nuevas',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: isDarkMode
+                                    ? Colors.white54
+                                    : Colors.black45,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Las notificaciones de tus hijos\naparecerán aquí',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isDarkMode
+                                    ? Colors.white38
+                                    : Colors.black38,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: ListView.separated(
+                        controller: scrollController,
+                        itemCount: items.length,
+                        separatorBuilder: (context, index) => Divider(
+                          height: 1,
+                          color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                        ),
+                        itemBuilder: (context, index) {
+                          final alerta = items[index] is Map
+                              ? items[index] as Map
+                              : <String, dynamic>{};
+                          final estudiante = alerta['estudiante'] is Map
+                              ? alerta['estudiante'] as Map
+                              : null;
+                          final nombreEstudiante =
+                              estudiante?['nombre_completo']?.toString() ??
+                              estudiante?['nombre_usuario']?.toString() ??
+                              'Estudiante';
+                          final tipo = alerta['tipo']?.toString() ?? '';
+                          final mensaje =
+                              alerta['mensaje']?.toString() ?? '';
+                          final leida = alerta['leida'] == true;
+                          final fechaRaw = alerta['fecha']?.toString() ?? '';
+                          final fecha = fechaRaw.length >= 16
+                              ? fechaRaw.substring(0, 16).replaceAll('T', ' ')
+                              : fechaRaw;
+
+                          IconData tipoIcon;
+                          Color tipoColor;
+                          switch (tipo) {
+                            case 'cuestionario_completado':
+                              tipoIcon = Icons.checklist_rounded;
+                              tipoColor = const Color(0xFF43A047);
+                              break;
+                            case 'riesgo_alto':
+                              tipoIcon = Icons.warning_amber_rounded;
+                              tipoColor = const Color(0xFFE53935);
+                              break;
+                            case 'mensaje':
+                              tipoIcon = Icons.chat_bubble_outline_rounded;
+                              tipoColor = const Color(0xFF42A5F5);
+                              break;
+                            default:
+                              tipoIcon = Icons.notifications_outlined;
+                              tipoColor = const Color(0xFFFB8C00);
+                          }
+
+                          return ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: tipoColor.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(tipoIcon, color: tipoColor, size: 22),
+                            ),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    nombreEstudiante,
+                                    style: TextStyle(
+                                      fontWeight: leida
+                                          ? FontWeight.normal
+                                          : FontWeight.bold,
+                                      color: isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ),
+                                if (!leida)
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF43A047),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 2),
+                                Text(
+                                  mensaje,
+                                  style: TextStyle(
+                                    color: isDarkMode
+                                        ? Colors.white60
+                                        : Colors.black54,
+                                    fontSize: 13,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (fecha.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    fecha,
+                                    style: TextStyle(
+                                      color: isDarkMode
+                                          ? Colors.white38
+                                          : Colors.black38,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 4,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -650,7 +900,10 @@ class _PrincipalState extends State<Principal> {
                 _buildDrawerItem(
                   icon: Icons.notifications_none_rounded,
                   title: "Notificaciones",
-                  onTap: () => Navigator.pop(context),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showMailbox();
+                  },
                   color: Colors.blue,
                 ),
                 if (isAdmin) ...[

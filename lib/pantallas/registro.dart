@@ -32,6 +32,7 @@ class _RegistroState extends State<Registro> {
   final TextEditingController _parentescoController = TextEditingController(
     text: 'padre/madre/tutor',
   );
+  final TextEditingController _curpController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
@@ -48,6 +49,7 @@ class _RegistroState extends State<Registro> {
     _apellidoMaternoController.dispose();
     _estudiantesIdsController.dispose();
     _parentescoController.dispose();
+    _curpController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -70,6 +72,13 @@ class _RegistroState extends State<Registro> {
     return emailRegex.hasMatch(email);
   }
 
+  bool _isValidCurp(String curp) {
+    final curpRegex = RegExp(
+      r'^[A-Z][AEIOU][A-Z]{2}\d{6}[HM][A-Z]{5}\d{2}$',
+    );
+    return curpRegex.hasMatch(curp.toUpperCase());
+  }
+
   // Función de registro
   Future<void> _handleRegistro() async {
     // Validaciones
@@ -84,6 +93,17 @@ class _RegistroState extends State<Registro> {
         isError: true,
       );
       return;
+    }
+
+    if (_perfilTipo == 'estudiante') {
+      if (_curpController.text.trim().isEmpty) {
+        _showMessage('El CURP es obligatorio para estudiantes', isError: true);
+        return;
+      }
+      if (!_isValidCurp(_curpController.text.trim())) {
+        _showMessage('El CURP no tiene un formato válido', isError: true);
+        return;
+      }
     }
 
     if (!_isValidEmail(_correoController.text.trim())) {
@@ -131,6 +151,7 @@ class _RegistroState extends State<Registro> {
         parentesco: _parentescoController.text.trim().isEmpty
             ? 'padre/madre/tutor'
             : _parentescoController.text.trim(),
+        curp: _curpController.text.trim(),
       );
 
       if (!mounted) return;
@@ -157,7 +178,7 @@ class _RegistroState extends State<Registro> {
         );
       }
     } catch (e) {
-      print('Error en registro: $e');
+      debugPrint('Error en registro: $e');
       _showMessage('Error de conexión. Verifica tu red', isError: true);
       setState(() {
         _isLoading = false;
@@ -219,8 +240,8 @@ class _RegistroState extends State<Registro> {
                     end: Alignment.bottomCenter,
                     colors: isDarkMode
                         ? [
-                            primaryGreen.withOpacity(0.34),
-                            Colors.black.withOpacity(0.92),
+                            primaryGreen.withValues(alpha: 0.34),
+                            Colors.black.withValues(alpha: 0.92),
                           ]
                         : const [Colors.transparent, Colors.transparent],
                   ),
@@ -269,12 +290,12 @@ class _RegistroState extends State<Registro> {
                       padding: const EdgeInsets.all(30),
                       decoration: BoxDecoration(
                         color: isDarkMode
-                            ? Color.fromARGB(255, 29, 54, 39).withOpacity(0.9)
-                            : Colors.white.withOpacity(0.95),
+                            ? Color.fromARGB(255, 29, 54, 39).withValues(alpha: 0.9)
+                            : Colors.white.withValues(alpha: 0.95),
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 10,
                             offset: const Offset(0, 5),
                           ),
@@ -297,7 +318,7 @@ class _RegistroState extends State<Registro> {
                             "Completa tus datos para registrarte",
                             style: TextStyle(
                               fontSize: 14,
-                              color: theme.colorScheme.onSurface.withOpacity(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 
                                 0.6,
                               ),
                             ),
@@ -306,6 +327,19 @@ class _RegistroState extends State<Registro> {
 
                           _buildPerfilSelector(theme, isDarkMode, primaryGreen),
                           const SizedBox(height: 20),
+
+                          if (_perfilTipo == 'estudiante') ...[
+                            _buildInput(
+                              theme,
+                              isDarkMode,
+                              label: "CURP *",
+                              icon: Icons.badge_outlined,
+                              accentColor: primaryGreen,
+                              controller: _curpController,
+                              keyboardType: TextInputType.text,
+                            ),
+                            const SizedBox(height: 15),
+                          ],
 
                           if (_perfilTipo == 'padre') ...[
                             _buildInput(
@@ -427,7 +461,7 @@ class _RegistroState extends State<Registro> {
                                 borderRadius: BorderRadius.circular(30),
                               ),
                               elevation: 8,
-                              shadowColor: buttonColor.withOpacity(0.5),
+                              shadowColor: buttonColor.withValues(alpha: 0.5),
                             ),
                             child: _isLoading
                                 ? const SizedBox(
@@ -518,7 +552,7 @@ class _RegistroState extends State<Registro> {
         fillColor: fillColor,
         labelText: label,
         labelStyle: TextStyle(
-          color: isDarkMode ? Colors.white70 : accentColor.withOpacity(0.8),
+          color: isDarkMode ? Colors.white70 : accentColor.withValues(alpha: 0.8),
           fontSize: 14,
         ),
         prefixIcon: Icon(icon, color: accentColor, size: 20),
@@ -528,7 +562,7 @@ class _RegistroState extends State<Registro> {
                   isObscure
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
-                  color: accentColor.withOpacity(0.6),
+                  color: accentColor.withValues(alpha: 0.6),
                 ),
                 onPressed: onToggleVisibility,
               )
@@ -540,7 +574,7 @@ class _RegistroState extends State<Registro> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
           borderSide: BorderSide(
-            color: accentColor.withOpacity(0.55),
+            color: accentColor.withValues(alpha: 0.55),
             width: 2,
           ),
         ),
@@ -563,7 +597,7 @@ class _RegistroState extends State<Registro> {
         Text(
           "Tipo de cuenta *",
           style: TextStyle(
-            color: theme.colorScheme.onSurface.withOpacity(0.75),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -628,7 +662,7 @@ class _RegistroState extends State<Registro> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: isSelected ? accentColor : accentColor.withOpacity(0.25),
+          color: isSelected ? accentColor : accentColor.withValues(alpha: 0.25),
         ),
       ),
       onSelected: (_) => setState(() => _perfilTipo = value),

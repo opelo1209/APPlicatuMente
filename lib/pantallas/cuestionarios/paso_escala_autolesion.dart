@@ -91,7 +91,7 @@ class _PasoEscalaAutolesionState extends State<PasoEscalaAutolesion> {
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF00897B).withOpacity(0.1),
+                  color: const Color(0xFF00897B).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -128,7 +128,7 @@ class _PasoEscalaAutolesionState extends State<PasoEscalaAutolesion> {
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF26A69A).withOpacity(0.1),
+                  color: const Color(0xFF26A69A).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Row(
@@ -255,7 +255,7 @@ class _PasoEscalaAutolesionState extends State<PasoEscalaAutolesion> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icono, size: 50, color: color),
@@ -278,7 +278,7 @@ class _PasoEscalaAutolesionState extends State<PasoEscalaAutolesion> {
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Column(
@@ -361,7 +361,7 @@ class _PasoEscalaAutolesionState extends State<PasoEscalaAutolesion> {
                 boxShadow: [
                   if (!isDarkMode)
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 16,
                       offset: const Offset(0, 8),
                     ),
@@ -401,11 +401,11 @@ class _PasoEscalaAutolesionState extends State<PasoEscalaAutolesion> {
                             vertical: 16,
                           ),
                           decoration: BoxDecoration(
-                            color: (opcion['color'] as Color).withOpacity(0.10),
+                            color: (opcion['color'] as Color).withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
                               color:
-                                  (opcion['color'] as Color).withOpacity(0.18),
+                                  (opcion['color'] as Color).withValues(alpha: 0.18),
                             ),
                           ),
                           child: Row(

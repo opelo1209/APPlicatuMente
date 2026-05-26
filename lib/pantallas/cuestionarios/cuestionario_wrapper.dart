@@ -58,7 +58,7 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
       tipoCuestionario: 'informacion_general',
       respuestas: _respuestas,
     );
-    print('Backend informacion general: $resultado');
+    debugPrint('Backend informacion general: $resultado');
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
@@ -93,7 +93,7 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
                 color: isDarkMode ? const Color(0xFF1E272E) : Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -156,7 +156,7 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
                           boxShadow: _currentPage == index
                               ? [
                                   BoxShadow(
-                                    color: primaryColor.withOpacity(0.5),
+                                    color: primaryColor.withValues(alpha: 0.5),
                                     blurRadius: 10,
                                     spreadRadius: 2,
                                     offset: const Offset(0, 3),

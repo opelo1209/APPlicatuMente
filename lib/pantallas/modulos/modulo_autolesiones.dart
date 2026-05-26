@@ -106,7 +106,7 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF00897B).withOpacity(0.3),
+                      color: const Color(0xFF00897B).withValues(alpha: 0.3),
                       blurRadius: 15,
                       offset: const Offset(0, 8),
                     ),
@@ -249,7 +249,7 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
+                      color: Colors.black.withValues(alpha: 0.02),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -343,12 +343,12 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.08),
+            color: color.withValues(alpha: 0.08),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
         ],
-        border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -361,7 +361,7 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color: color, size: 24),
@@ -373,7 +373,7 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
-                      color: color.withOpacity(0.9),
+                      color: color.withValues(alpha: 0.9),
                     ),
                   ),
                 ),

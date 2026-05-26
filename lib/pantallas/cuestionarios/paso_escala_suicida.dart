@@ -82,7 +82,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF43A047).withOpacity(0.1),
+                  color: const Color(0xFF43A047).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -119,7 +119,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3).withOpacity(0.1),
+                  color: const Color(0xFF2196F3).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Row(
@@ -246,7 +246,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -273,7 +273,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Column(
@@ -303,7 +303,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
                 Container(
                   padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2196F3).withOpacity(0.1),
+                    color: const Color(0xFF2196F3).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Column(
@@ -444,14 +444,14 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
                     gradient: LinearGradient(
                       colors: isDarkMode
                           ? [const Color(0xFF2C3E50), const Color(0xFF1E272E)]
-                          : [colorPregunta.withOpacity(0.92), colorPregunta.withOpacity(0.65)],
+                          : [colorPregunta.withValues(alpha: 0.92), colorPregunta.withValues(alpha: 0.65)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: colorPregunta.withOpacity(isDarkMode ? 0.15 : 0.28),
+                        color: colorPregunta.withValues(alpha: isDarkMode ? 0.15 : 0.28),
                         blurRadius: 18,
                         offset: const Offset(0, 8),
                       ),
@@ -463,7 +463,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.18),
+                          color: Colors.white.withValues(alpha: 0.18),
                           shape: BoxShape.circle,
                         ),
                         child: Text(
@@ -486,7 +486,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.14),
+                          color: Colors.white.withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Text(
@@ -553,12 +553,12 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
             color: isDarkMode ? const Color(0xFF2C3E50) : Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: color.withOpacity(0.5),
+              color: color.withValues(alpha: 0.5),
               width: 2.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.08),
+                color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.08),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
@@ -569,7 +569,7 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(

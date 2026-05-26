@@ -32,6 +32,9 @@ class Peticiones {
   static const String serenaHistorial = '$baseUrl/chat/historial';
   static const String serenaSalud = '$baseUrl/salud';
 
+  // Alertas para padres
+  static const String padresAlertas = '$baseUrl/users/padres/alertas';
+
   // Análisis médico — endpoint externo
   static const String postCuestionario = '$baseUrl/users/cuestionario';
 

@@ -392,8 +392,9 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                         return ValueListenableBuilder<String?>(
                           valueListenable: game.previewArtPath,
                           builder: (context, imagePath, child) {
-                            if (imagePath == null)
+                            if (imagePath == null) {
                               return const SizedBox.shrink();
+                            }
                             return GestureDetector(
                               onTap: game.hideCardPreview,
                               behavior: HitTestBehavior.opaque,
