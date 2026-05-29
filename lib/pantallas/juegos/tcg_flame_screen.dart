@@ -1,36 +1,106 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 
 import 'tcg_flame_game.dart';
+import 'models/game_state.dart';
+import 'tutorial/tutor_service.dart';
+import 'tutorial/tutor_overlay.dart';
+import 'tutorial/tutor_definitions.dart';
+import 'tutorial/tutor_step.dart';
 
-import 'package:just_audio/just_audio.dart';
-import 'package:vector_math/vector_math_64.dart' as vmath;
-
-enum _GameMenuAction { toggleSound, continueGame, exitGame }
+enum _GameMenuAction { toggleSound, continueGame, retutorial, exitGame }
 
 class TcgFlameScreen extends StatefulWidget {
   const TcgFlameScreen({super.key});
+
   @override
   State<TcgFlameScreen> createState() => _TcgFlameScreenState();
 }
 
-class _TcgFlameScreenState extends State<TcgFlameScreen> {
-  late final MentalTcgGame _game;
+class _TcgFlameScreenState extends State<TcgFlameScreen>
+    with WidgetsBindingObserver {
+  late final TcgGame _game;
+  late final TutorService _tutorService;
   bool _soundEnabled = true;
-  late final AudioPlayer player;
+  AudioPlayer? _player;
+  bool _started = false;
+  bool _disposed = false;
+  Size _gameAreaSize = Size.zero;
+  bool _tutorReady = false;
 
   @override
   void initState() {
     super.initState();
-    _game = MentalTcgGame();
-    _initializeAudio();
+    WidgetsBinding.instance.addObserver(this);
+    _game = TcgGame();
+    _tutorService = TutorService();
+    _tutorService.addListener(_onTutorChanged);
+    _initTutor();
+    _initAudio();
   }
 
-  Future<void> _initializeAudio() async {
-    player = AudioPlayer();
-    await player.setAsset('assets/musica/tcg/The_Keeper_s_Ledger.mp3');
-    player.setLoopMode(LoopMode.all);
-    player.play();
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final p = _player;
+    if (p == null) return;
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (!_disposed && _soundEnabled && p.playing) {
+        p.pause();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (!_disposed && _soundEnabled && !p.playing) {
+        p.play();
+      }
+    }
+  }
+
+  Future<void> _initTutor() async {
+    await _tutorService.load();
+    if (!mounted) return;
+    setState(() => _tutorReady = true);
+  }
+
+  void _onTutorChanged() {
+    if (!mounted) return;
+    setState(() {});
+    final step = _tutorService.currentStep;
+    if (step == null) return;
+    if (step.autoAdvance) {
+      Future.delayed(const Duration(milliseconds: 2000), () {
+        if (mounted &&
+            _tutorService.active &&
+            _tutorService.currentStep?.id == step.id) {
+          _tutorService.nextStep();
+        }
+      });
+    }
+    if (step.requiredAction == TutorAction.dropCard) {
+      _game.state.addListener(_onGameStateChanged);
+    } else {
+      _game.state.removeListener(_onGameStateChanged);
+    }
+  }
+
+  void _initAudio() {
+    final p = AudioPlayer();
+    _player = p;
+    p.setAsset('assets/musica/tcg/The_Keeper_s_Ledger.mp3').then((_) {
+      if (_disposed) return;
+      p.setLoopMode(LoopMode.all);
+      if (_soundEnabled) p.play();
+    }).catchError((_) {});
+  }
+
+  void _toggleSound() {
+    _soundEnabled = !_soundEnabled;
+    final p = _player;
+    if (p == null) return;
+    if (_soundEnabled) {
+      p.play();
+    } else {
+      p.pause();
+    }
   }
 
   Future<void> _openGameMenu() async {
@@ -61,8 +131,8 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                 ListTile(
                   leading: Icon(
                     _soundEnabled
-                        ? Icons.volume_off_rounded
-                        : Icons.volume_up_rounded,
+                        ? Icons.volume_up_rounded
+                        : Icons.volume_off_rounded,
                     color: Colors.white,
                   ),
                   title: Text(
@@ -92,6 +162,21 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                 ),
                 ListTile(
                   leading: const Icon(
+                    Icons.replay_rounded,
+                    color: Color(0xFF66BB6A),
+                  ),
+                  title: const Text(
+                    'Volver a ver tutorial',
+                    style: TextStyle(
+                      color: Color(0xFF66BB6A),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () => Navigator.of(context)
+                      .pop(_GameMenuAction.retutorial),
+                ),
+                ListTile(
+                  leading: const Icon(
                     Icons.exit_to_app,
                     color: Colors.redAccent,
                   ),
@@ -102,10 +187,8 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  onTap: () => {
-                    player.stop(),
-                    Navigator.of(context).pop(_GameMenuAction.exitGame),
-                  },
+                  onTap: () =>
+                      Navigator.of(context).pop(_GameMenuAction.exitGame),
                 ),
               ],
             ),
@@ -114,9 +197,7 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
       },
     );
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     if (action == null || action == _GameMenuAction.continueGame) {
       _game.resumeEngine();
@@ -124,641 +205,110 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
     }
 
     if (action == _GameMenuAction.toggleSound) {
-      setState(() {
-        _soundEnabled = !_soundEnabled;
-        if (_soundEnabled) {
-          player.play();
-        } else {
-          player.pause();
-        }
-      });
+      setState(() => _toggleSound());
       _game.resumeEngine();
       return;
     }
 
+    if (action == _GameMenuAction.retutorial) {
+      _startTutorial();
+      _game.resumeEngine();
+      return;
+    }
+
+    _player?.stop();
     Navigator.of(context).pop();
+  }
+
+  void _startMatch() {
+    setState(() => _started = true);
+    _game.startGame();
+    if (_tutorReady && !_tutorService.completed) {
+      _startTutorial();
+    }
+  }
+
+  void _startTutorial() {
+    final steps = createTutorialSteps();
+    if (_tutorService.completed) {
+      _tutorService.restart(steps);
+    } else {
+      _tutorService.start(steps);
+    }
+  }
+
+  void _onTutorNext() {
+    final step = _tutorService.currentStep;
+    if (step != null && step.requiredAction == TutorAction.tap) {
+      _tutorService.nextStep();
+    }
+  }
+
+  void _onTutorSkip() {
+    _tutorService.skip();
+  }
+
+  void _onGameStateChanged() {
+    if (!_tutorService.active) {
+      _game.state.removeListener(_onGameStateChanged);
+      return;
+    }
+    final step = _tutorService.currentStep;
+    if (step == null) return;
+    if (step.id == 'play_card' && _game.state.playerSlotCard != null) {
+      _game.state.removeListener(_onGameStateChanged);
+      _tutorService.nextStep();
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
+    _tutorService.removeListener(_onTutorChanged);
+    _game.state.removeListener(_onGameStateChanged);
+    _player?.stop();
+    _player?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 121, 185, 121), // Fondo color verde salvia para ocultar las esquinas grises
+      backgroundColor: const Color(0xFF79B979),
       body: SafeArea(
         child: Column(
           children: [
-            // 1. COMPONENTE 1: La Barra de Estado de Juego
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 78, 120, 82), // Verde Musgo Profundo
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-                border: Border.all(color: const Color(0xFF3B5E40), width: 1.5), // Bisel sutil madera/metal (Ajustado)
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF28402C).withValues(alpha: 0.45), // Sombra ajustada al nuevo tono
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // MENU
-                      GestureDetector(
-                        onTap: _openGameMenu,
-                        behavior: HitTestBehavior.opaque,
-                        child: Semantics(
-                          label: 'Menú',
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Icon(
-                                  Icons.menu_rounded,
-                                  size: 26,
-                                  color: Colors.black.withValues(alpha: 0.3),
-                                ),
-                                const Icon(
-                                  Icons.menu_rounded,
-                                  size: 24,
-                                  color: Color(0xFFF3E5AB), // Ocre suave/Crema
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // BARRA CENTRAL DE ESTADO (PUNTOS Y ELIXIR)
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: ValueListenableBuilder<int>(
-                            valueListenable: _game.playerHpNotifier,
-                            builder: (context, playerHp, _) {
-                              return ValueListenableBuilder<int>(
-                                valueListenable: _game.bossHpNotifier,
-                                builder: (context, bossHp, _) {
-                                  return ValueListenableBuilder<int>(
-                                    valueListenable: _game.manaNotifier,
-                                    builder: (context, mana, _) {
-                                      return ValueListenableBuilder<int>(
-                                        valueListenable: _game.manaCapNotifier,
-                                        builder: (context, manaCap, _) {
-                                          return ValueListenableBuilder<int>(
-                                            valueListenable:
-                                                _game.bossManaNotifier,
-                                            builder: (context, bossMana, _) {
-                                              return ValueListenableBuilder<
-                                                int
-                                              >(
-                                                valueListenable:
-                                                    _game.bossManaCapNotifier,
-                                                builder: (context, bossManaCap, _) {
-                                                  return Column(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      Row(
-                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                        crossAxisAlignment: CrossAxisAlignment.center,
-                                                        children: [
-                                                          Row(
-                                                            children: [
-                                                              const Icon(Icons.favorite_rounded, color: Color(0xFFA8D5BA), size: 16), // Verde menta
-                                                              const SizedBox(width: 6),
-                                                              Row(
-                                                                children: List.generate(10, (index) {
-                                                                  final blocksActive = (playerHp / 25 * 10).ceil();
-                                                                  final isActive = index < blocksActive;
-                                                                  return Container(
-                                                                    width: 4, // Reducido para evitar overflow
-                                                                    height: 10,
-                                                                    margin: const EdgeInsets.only(right: 2),
-                                                                    decoration: BoxDecoration(
-                                                                      color: isActive ? const Color(0xFFA8D5BA) : const Color(0xFF28402C).withValues(alpha: 0.6),
-                                                                      borderRadius: BorderRadius.circular(5), // Completamente ovalado
-                                                                      boxShadow: isActive ? [
-                                                                        BoxShadow(
-                                                                          color: const Color(0xFFA8D5BA).withValues(alpha: 0.4),
-                                                                          blurRadius: 2,
-                                                                          offset: const Offset(0, 0),
-                                                                        )
-                                                                      ] : null,
-                                                                    ),
-                                                                  );
-                                                                }),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          Text(
-                                                            'Bienestar',
-                                                            style: TextStyle(
-                                                              color: const Color(0xFFCFD8DC).withValues(alpha: 0.9), // Gris verdoso claro/Beige
-                                                              fontWeight: FontWeight.w700,
-                                                              fontSize: 15,
-                                                              letterSpacing: 0.5,
-                                                            ),
-                                                          ),
-                                                          Row(
-                                                            children: [
-                                                              Row(
-                                                                children: List.generate(10, (index) {
-                                                                  final blocksActive = (bossHp / 25 * 10).ceil();
-                                                                  final isActive = index < blocksActive;
-                                                                  return Container(
-                                                                    width: 4, // Reducido para evitar overflow
-                                                                    height: 10,
-                                                                    margin: const EdgeInsets.only(right: 2),
-                                                                    decoration: BoxDecoration(
-                                                                      color: isActive ? const Color(0xFFD87D2F) : const Color(0xFF28402C).withValues(alpha: 0.6),
-                                                                      borderRadius: BorderRadius.circular(5), // Completamente ovalado
-                                                                      boxShadow: isActive ? [
-                                                                        BoxShadow(
-                                                                          color: const Color(0xFFD87D2F).withValues(alpha: 0.4),
-                                                                          blurRadius: 2,
-                                                                          offset: const Offset(0, 0),
-                                                                        )
-                                                                      ] : null,
-                                                                    ),
-                                                                  );
-                                                                }),
-                                                              ),
-                                                              const SizedBox(width: 6),
-                                                              const Icon(Icons.local_fire_department_rounded, color: Color(0xFFD87D2F), size: 16), // Coral terracota
-                                                            ],
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      const SizedBox(height: 6),
-                                                      // BARRA DE ELIXIR ESTILO VECTOR MINIMALISTA
-                                                      Container(
-                                                        height: 14,
-                                                        padding: const EdgeInsets.all(2),
-                                                        decoration: BoxDecoration(
-                                                          color: Colors.black.withValues(alpha: 0.15),
-                                                          borderRadius: BorderRadius.circular(6),
-                                                        ),
-                                                        child: Row(
-                                                          children: List.generate(_game.maxManaPerTurn, (index) {
-                                                            final isUnlocked = index < manaCap;
-                                                            final isAvailable = index < mana;
-                                                            const activeColor = Color(0xFF66BB6A); // Verde natural/curativo
-                                                            
-                                                            return Expanded(
-                                                              child: Container(
-                                                                margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                                                                decoration: BoxDecoration(
-                                                                  color: isAvailable
-                                                                      ? activeColor
-                                                                      : (isUnlocked ? Colors.black26 : Colors.black12),
-                                                                  border: Border.all(
-                                                                    color: isAvailable
-                                                                        ? activeColor.withValues(alpha: 0.5)
-                                                                        : Colors.black12,
-                                                                    width: 1.0,
-                                                                  ),
-                                                                  borderRadius: BorderRadius.circular(4),
-                                                                ),
-                                                              ),
-                                                            );
-                                                          }),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  );
-                                                },
-                                              );
-                                            },
-                                          );
-                                        },
-                                      );
-                                    },
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-
-                      // REINICIAR
-                      GestureDetector(
-                        onTap: () {
-                          _game.resetMatch();
-                        },
-                        behavior: HitTestBehavior.opaque,
-                        child: Semantics(
-                          label: 'Reiniciar',
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Icon(
-                                  Icons.refresh_rounded,
-                                  size: 26,
-                                  color: Colors.black.withValues(alpha: 0.3),
-                                ),
-                                const Icon(
-                                  Icons.refresh_rounded,
-                                  size: 24,
-                                  color: Color(0xFFF3E5AB), // Ocre suave/Crema
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // 2. COMPONENTE 2: El Tablero del Juego (Flame)
+            if (_started) _buildTopBar(),
             Expanded(
-              child: Stack(
-                children: [
-                  GameWidget<MentalTcgGame>(
-                    game: _game,
-                    overlayBuilderMap: {
-                      'preview': (context, game) {
-                        return ValueListenableBuilder<String?>(
-                          valueListenable: game.previewArtPath,
-                          builder: (context, imagePath, child) {
-                            if (imagePath == null) {
-                              return const SizedBox.shrink();
-                            }
-                            return GestureDetector(
-                              onTap: game.hideCardPreview,
-                              behavior: HitTestBehavior.opaque,
-                              child: Container(
-                                color: Colors.black.withValues(alpha: 0.72),
-                                child: Center(
-                                  child: Container(
-                                    width:
-                                        MediaQuery.of(context).size.width *
-                                        0.82,
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 360,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(16),
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          color: Colors.black54,
-                                          blurRadius: 20,
-                                          offset: Offset(0, 12),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: Image.asset(
-                                        imagePath,
-                                        fit: BoxFit.contain,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    },
-                    initialActiveOverlays: const ['preview'],
-                  ),
-
-                  // MENSAJES / INDICACIONES FLOTANTES
-                  ValueListenableBuilder<String>(
-                    valueListenable: _game.hintTextNotifier,
-                    builder: (context, hint, _) {
-                      if (hint.isEmpty) return const SizedBox.shrink();
-
-                      final bool isTurnResult = hint.contains('Tú:') || hint.contains('Boss:');
-                      final bool isGameOver = hint.contains('¡Ganaste!') || hint.contains('Perdiste');
-
-                      if (isTurnResult || isGameOver) {
-                        String playerText = 'Tú: 0 Daño';
-                        String bossText = 'Boss: 0 Daño';
-                        List<String> otherTexts = [];
-
-                        for (String line in hint.split('\n')) {
-                          if (line.startsWith('Tú:')) {
-                            playerText = line.replaceFirst('Tú: ', '');
-                          } else if (line.startsWith('Boss:')) {
-                            bossText = line.replaceFirst('Boss: ', '');
-                          } else if (line.isNotEmpty) {
-                            otherTexts.add(line);
-                          }
-                        }
-
-                        return Positioned.fill(
-                          child: Center(
-                            child: IgnorePointer(
-                              child: Container(
-                                width: MediaQuery.of(context).size.width * 0.92,
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF28402C).withValues(alpha: 0.98), // Fondo verde salvia oscuro
-                                  borderRadius: BorderRadius.circular(24),
-                                  border: Border.all(color: const Color(0xFFF3E5AB).withValues(alpha: 0.5), width: 2), // Borde crema
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Colors.black54,
-                                      blurRadius: 20,
-                                      offset: Offset(0, 10),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      isGameOver ? "RESULTADO FINAL" : "RESUMEN DEL TURNO",
-                                      style: const TextStyle(
-                                        color: Color(0xFFF3E5AB),
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 2.0,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 32),
-                                    // Boss (Arriba Derecha)
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.end,
-                                            children: [
-                                              Builder(
-                                                builder: (context) {
-                                                  final displayTxt = bossText.split(RegExp(r'\s*Daño')).first.trim();
-                                                  final isText = double.tryParse(displayTxt) == null;
-                                                  return Text(
-                                                    displayTxt,
-                                                    textAlign: TextAlign.right,
-                                                    style: TextStyle(color: const Color(0xFFE27D60), fontSize: isText ? 26 : 48, fontWeight: FontWeight.w900, height: 1.1),
-                                                  );
-                                                }
-                                              ),
-                                              if (bossText.contains('(')) // Extraemos el multiplicador
-                                                Text(
-                                                  bossText.substring(bossText.indexOf('(')),
-                                                  style: const TextStyle(color: Color(0xFFE27D60), fontSize: 14, fontWeight: FontWeight.w500),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(16),
-                                          child: Image.asset('assets/imagenes/tcg/Boss.png', width: 100, height: 100, fit: BoxFit.cover),
-                                        ),
-                                      ],
-                                    ),
-                                    const Padding(
-                                      padding: EdgeInsets.symmetric(vertical: 16),
-                                      child: Text("VS", style: TextStyle(color: Color(0xFFD87D2F), fontSize: 32, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic)),
-                                    ),
-                                    // Player (Abajo Izquierda)
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.start,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(16),
-                                          child: Image.asset('assets/imagenes/tcg/Player.png', width: 100, height: 100, fit: BoxFit.cover),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Builder(
-                                                builder: (context) {
-                                                  final displayTxt = playerText.split(RegExp(r'\s*Daño')).first.trim();
-                                                  final isText = double.tryParse(displayTxt) == null;
-                                                  return Text(
-                                                    displayTxt,
-                                                    textAlign: TextAlign.left,
-                                                    style: TextStyle(color: const Color(0xFFA8D5BA), fontSize: isText ? 26 : 48, fontWeight: FontWeight.w900, height: 1.1),
-                                                  );
-                                                }
-                                              ),
-                                              if (playerText.contains('(')) // Extraemos el multiplicador
-                                                Text(
-                                                  playerText.substring(playerText.indexOf('(')),
-                                                  style: const TextStyle(color: Color(0xFFA8D5BA), fontSize: 14, fontWeight: FontWeight.w500),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    if (otherTexts.isNotEmpty) ...[
-                                      const SizedBox(height: 20),
-                                      const Divider(color: Colors.white24, height: 1),
-                                      const SizedBox(height: 12),
-                                      ...otherTexts.map((e) => Padding(
-                                        padding: const EdgeInsets.only(bottom: 6),
-                                        child: Text(
-                                          e, 
-                                          style: TextStyle(
-                                            color: e.contains('Ganaste') || e.contains('Perdiste.') ? const Color(0xFFF3E5AB) : Colors.white,
-                                            fontSize: e.contains('Ganaste') || e.contains('Perdiste.') ? 20 : 15,
-                                            fontWeight: e.contains('Ganaste') || e.contains('Perdiste.') ? FontWeight.w900 : FontWeight.w600,
-                                          ), 
-                                          textAlign: TextAlign.center
-                                        ),
-                                      )),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  if (_gameAreaSize != constraints.biggest) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        setState(() =>
+                            _gameAreaSize = constraints.biggest);
                       }
-
-                      // Mini modal horizontal para cartas de soporte u otras notificaciones
-                      return Positioned(
-                        top: 20, // Aparece justo debajo de la barra superior
-                        left: 20,
-                        right: 20,
-                        child: IgnorePointer(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2E4D31).withValues(alpha: 0.95),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFF456B4D), width: 1.5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.3),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.info_outline_rounded, color: Color(0xFFA8D5BA), size: 22),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    hint,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      height: 1.2,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                    });
+                  }
+                  return Stack(
+                    children: [
+                      GameWidget(
+                        key: const ValueKey('game_widget'),
+                        game: _game,
+                      ),
+                      if (!_started) _buildStartScreen(),
+                      if (_started) _buildHudOverlay(),
+                      if (_started && _tutorService.active)
+                        TutorOverlay(
+                          service: _tutorService,
+                          gameAreaSize: _gameAreaSize,
+                          onSkip: _onTutorSkip,
+                          onNext: _onTutorNext,
                         ),
-                      );
-                    },
-                  ),
-
-                  // COIN TOSS OVERLAY
-                  ValueListenableBuilder<String?>(
-                    valueListenable: _game.coinTossNotifier,
-                    builder: (context, coinTossState, _) {
-                      if (coinTossState == null) return const SizedBox.shrink();
-
-                      Widget coinWidget;
-                      if (coinTossState == 'flip') {
-                        coinWidget = const _CoinFlipAnimation();
-                      } else {
-                        coinWidget = Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFF3E5AB), width: 4),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black45,
-                                blurRadius: 20,
-                                offset: Offset(0, 10),
-                              )
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(100),
-                            child: Image.asset(
-                              coinTossState == 'player' ? 'assets/imagenes/tcg/Player.png' : 'assets/imagenes/tcg/Boss.png',
-                              width: 150,
-                              height: 150,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        );
-                      }
-
-                      return Positioned.fill(
-                        child: Container(
-                          color: Colors.black.withValues(alpha: 0.7),
-                          child: Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text(
-                                  "LANZAMIENTO DE MONEDA",
-                                  style: TextStyle(
-                                    color: Color(0xFFF3E5AB),
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 2.0,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  coinTossState == 'flip' ? "¿Quién atacará primero?" : (coinTossState == 'player' ? "¡Atacas primero!" : "El Boss ataca primero"),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 40),
-                                coinWidget,
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  // BOTON RENDONDO PARA FINALIZAR TURNO (INFERIOR DERECHO)
-                  Positioned(
-                    bottom: 24,
-                    right: 20,
-                    child: ValueListenableBuilder<bool>(
-                      valueListenable: _game.canPassTurnNotifier,
-                      builder: (context, canPassTurn, _) {
-                        return Semantics(
-                          label: 'Jugar cartas',
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF28402C).withValues(alpha: canPassTurn ? 0.5 : 0.1),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: FloatingActionButton(
-                              mini: true,
-                              heroTag: 'btn_pass_turn',
-                              backgroundColor: canPassTurn ? const Color(0xFFD87D2F) : Colors.grey[700], // Naranja Terracota / Ocre
-                              foregroundColor: canPassTurn ? const Color(0xFFFFE0B2) : Colors.grey[400], // Ocre más claro
-                              elevation: 0,
-                              highlightElevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              onPressed: canPassTurn ? () {
-                                _game.passTurn();
-                              } : () {
-                                // Mostrar hint de que debe jugar una carta si presiona el botón deshabilitado
-                                if (!_game.isFinished && _game.coinTossNotifier.value == null) {
-                                  // Modificamos directamente el notifier en lugar de llamar a un método privado
-                                  _game.hintTextNotifier.value = 'Debes jugar una carta de acción para finalizar tu turno.';
-                                  Future.delayed(const Duration(seconds: 2), () {
-                                    if (_game.hintTextNotifier.value == 'Debes jugar una carta de acción para finalizar tu turno.') {
-                                      _game.hintTextNotifier.value = '';
-                                    }
-                                  });
-                                }
-                              },
-                              child: const Icon(
-                                Icons.double_arrow_rounded,
-                                size: 28,
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -766,70 +316,435 @@ class _TcgFlameScreenState extends State<TcgFlameScreen> {
       ),
     );
   }
-}
 
-class _CoinFlipAnimation extends StatefulWidget {
-  const _CoinFlipAnimation();
-  @override
-  State<_CoinFlipAnimation> createState() => _CoinFlipAnimationState();
-}
-
-class _CoinFlipAnimationState extends State<_CoinFlipAnimation> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 350))..repeat();
+  Widget _buildStartScreen() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(
+            'assets/imagenes/quetzal_4.png',
+            height: 160,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'TCG Salud Mental',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Colors.green[900],
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Coloca cartas y combate pensamientos negativos',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.green[800],
+            ),
+          ),
+          const SizedBox(height: 40),
+          _buildGreenButton('Comenzar partida', _startMatch),
+        ],
+      ),
+    );
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final isFront = _controller.value < 0.5;
-        final angle = _controller.value * 3.14159 * 2;
-        
-        return Transform(
-          transform: vmath.Matrix4.identity()
-            ..setEntry(3, 2, 0.002)
-            ..rotateY(angle),
-          alignment: Alignment.center,
-          child: Transform(
-            alignment: Alignment.center,
-            transform: vmath.Matrix4.identity()..rotateY(isFront ? 0 : 3.14159),
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFF3E5AB), width: 4),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black45,
-                    blurRadius: 10,
-                    offset: Offset(0, 5),
-                  )
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(100),
-                child: Image.asset(
-                  isFront ? 'assets/imagenes/tcg/Player.png' : 'assets/imagenes/tcg/Boss.png',
-                  width: 150,
-                  height: 150,
-                  fit: BoxFit.cover,
+  Widget _buildTopBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF4E7852),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+        border: Border.all(color: const Color(0xFF3B5E40), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF28402C).withValues(alpha: 0.45),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: _openGameMenu,
+                behavior: HitTestBehavior.opaque,
+                child: Semantics(
+                  label: 'Menú',
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(
+                          Icons.menu_rounded,
+                          size: 26,
+                          color: Colors.black.withValues(alpha: 0.3),
+                        ),
+                        const Icon(
+                          Icons.menu_rounded,
+                          size: 24,
+                          color: Color(0xFFF3E5AB),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildStatusBars(),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  _game.startGame();
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Semantics(
+                  label: 'Reiniciar',
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(
+                          Icons.refresh_rounded,
+                          size: 26,
+                          color: Colors.black.withValues(alpha: 0.3),
+                        ),
+                        const Icon(
+                          Icons.refresh_rounded,
+                          size: 24,
+                          color: Color(0xFFF3E5AB),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBars() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ValueListenableBuilder<int>(
+          valueListenable: _game.playerHpNotifier,
+          builder: (context, playerHp, _) {
+            return ValueListenableBuilder<int>(
+              valueListenable: _game.enemyHpNotifier,
+              builder: (context, enemyHp, _) {
+                return ValueListenableBuilder<int>(
+                  valueListenable: _game.turnNotifier,
+                  builder: (context, turn, _) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.favorite_rounded,
+                              color: Color(0xFFA8D5BA),
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                            _buildSegmentedHp(
+                                playerHp, const Color(0xFFA8D5BA)),
+                          ],
+                        ),
+                        Text(
+                          'Turno $turn',
+                          style: const TextStyle(
+                            color: Color(0xFFCFD8DC),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            _buildSegmentedHp(
+                                enemyHp, const Color(0xFFD87D2F)),
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.local_fire_department_rounded,
+                              color: Color(0xFFD87D2F),
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            );
+          },
+        ),
+        const SizedBox(height: 6),
+        ValueListenableBuilder<int>(
+          valueListenable: _game.energyNotifier,
+          builder: (context, energy, _) {
+            return ValueListenableBuilder<int>(
+              valueListenable: _game.energyCapNotifier,
+              builder: (context, energyCap, _) {
+                return _buildEnergyBar(energy, energyCap);
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSegmentedHp(int hp, Color activeColor) {
+    final blocks = 10;
+    final blocksActive = (hp / GameState.maxHp * blocks).ceil();
+    return Row(
+      children: List.generate(blocks, (index) {
+        final isActive = index < blocksActive;
+        return Container(
+          width: 4,
+          height: 10,
+          margin: const EdgeInsets.only(right: 2),
+          decoration: BoxDecoration(
+            color: isActive
+                ? activeColor
+                : const Color(0xFF28402C).withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(5),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: activeColor.withValues(alpha: 0.4),
+                      blurRadius: 2,
+                    ),
+                  ]
+                : null,
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildEnergyBar(int energy, int energyCap) {
+    const totalSegments = 10;
+    return Container(
+      height: 14,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        children: List.generate(totalSegments, (index) {
+          final isUnlocked = index < energyCap;
+          final isAvailable = index < energy;
+          const activeColor = Color(0xFF66BB6A);
+          return Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+              decoration: BoxDecoration(
+                color: isAvailable
+                    ? activeColor
+                    : (isUnlocked ? Colors.black26 : Colors.black12),
+                border: Border.all(
+                  color: isAvailable
+                      ? activeColor.withValues(alpha: 0.5)
+                      : Colors.black12,
+                  width: 1.0,
+                ),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildHudOverlay() {
+    return Stack(
+      children: [
+        Positioned(
+          top: 8,
+          left: 0,
+          right: 0,
+          child: ValueListenableBuilder<bool>(
+            valueListenable: _game.isProcessing,
+            builder: (context, processing, _) {
+              final phase = _game.state.phase;
+              String label;
+              if (_game.state.isGameOver) {
+                label = '';
+              } else if (_tutorService.active) {
+                label = '';
+              } else if (processing) {
+                label = 'Resolviendo...';
+              } else if (phase == GamePhase.playerTurn) {
+                label = 'Tu turno — Arrastra una carta';
+              } else {
+                label = 'Turno enemigo...';
+              }
+              if (label.isEmpty) return const SizedBox.shrink();
+              return Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        _buildCombatLog(),
+        if (_game.state.isGameOver) _buildGameOverOverlay(),
+      ],
+    );
+  }
+
+  Widget _buildCombatLog() {
+    return ValueListenableBuilder<String>(
+      valueListenable: _game.combatLog,
+      builder: (context, log, _) {
+        if (log.isEmpty) return const SizedBox.shrink();
+        return Positioned(
+          bottom: 160,
+          left: 20,
+          right: 20,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white24, width: 1.5),
+            ),
+            child: Text(
+              log,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
               ),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildGameOverOverlay() {
+    final won = _game.state.playerWon;
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.75),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                won
+                    ? 'assets/imagenes/quetzal_3.png'
+                    : 'assets/imagenes/quetzal_4.png',
+                height: 140,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                won ? '¡Victoria!' : 'Derrota',
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: won ? Colors.green[300] : Colors.red[300],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                won
+                    ? 'Has vencido los pensamientos negativos'
+                    : 'Los pensamientos negativos han ganado...',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[400],
+                ),
+              ),
+              const SizedBox(height: 32),
+              _buildGreenButton('Jugar de nuevo', () {
+                _game.startGame();
+              }),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () {
+                  _player?.stop();
+                  Navigator.of(context).pop();
+                },
+                child: Text(
+                  'Salir',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGreenButton(String text, VoidCallback onTap) {
+    return ElevatedButton(
+      onPressed: onTap,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF2E7D32),
+        foregroundColor: Colors.white,
+        minimumSize: const Size(220, 50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25),
+        ),
+        elevation: 6,
+        shadowColor: const Color(0xFF2E7D32).withValues(alpha: 0.5),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
+        ),
+      ),
     );
   }
 }
