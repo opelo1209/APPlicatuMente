@@ -6,6 +6,7 @@ import '../servicios/user.dart';
 import '../theme_provider.dart';
 import 'modulo_autolesiones.dart';
 import 'modulo_ansiedad.dart';
+import 'modulo_sustancias.dart';
 import 'modulo_suicidio.dart';
 
 class SelectorModuloCrisis extends StatefulWidget {
@@ -17,14 +18,17 @@ class SelectorModuloCrisis extends StatefulWidget {
 
 class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
   Map<String, dynamic> _permissions = const {};
+  String _perfilTipo = '';
   bool _loadingProgress = true;
   bool _autolesionCompletado = false;
   bool _suicidioCompletado = false;
+  bool _ansiedadCompletado = false;
 
   bool get _isAdmin => _permissions['can_edit_questionnaires'] == true;
   bool get _canAnswer => _permissions['can_answer_questionnaires'] == true;
   bool get _ansiedadDisponible =>
       _canAnswer && _autolesionCompletado && _suicidioCompletado;
+  bool get _sustanciasDisponible => _canAnswer && _ansiedadCompletado;
 
   @override
   void initState() {
@@ -37,12 +41,15 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
     final sessionResult = await userService.getSessionContext();
 
     Map<String, dynamic> permissions = const {};
+    String perfilTipo = '';
     bool autolesionCompletado = false;
     bool suicidioCompletado = false;
+    bool ansiedadCompletado = false;
 
     if (sessionResult['success'] == true) {
       final data = sessionResult['data'];
       if (data is Map) {
+        perfilTipo = data['perfil_tipo']?.toString() ?? '';
         final rawPermissions = data['permissions'];
         permissions = rawPermissions is Map
             ? Map<String, dynamic>.from(rawPermissions)
@@ -52,6 +59,7 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
           autolesionCompletado =
               progress['modulo_autolesion_completado'] == true;
           suicidioCompletado = progress['modulo_suicidio_completado'] == true;
+          ansiedadCompletado = progress['modulo_ansiedad_completado'] == true;
         }
       }
     }
@@ -59,8 +67,10 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
     if (!mounted) return;
     setState(() {
       _permissions = permissions;
+      _perfilTipo = perfilTipo;
       _autolesionCompletado = autolesionCompletado;
       _suicidioCompletado = suicidioCompletado;
+      _ansiedadCompletado = ansiedadCompletado;
       _loadingProgress = false;
     });
   }
@@ -177,20 +187,44 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
                           const SizedBox(height: 20),
                           _ModuleCard(
                             title: 'Ansiedad',
-                            subtitle: _ansiedadDisponible
-                                ? 'Módulo desbloqueado. La información y cuestionarios se agregarán después.'
+                            subtitle: _ansiedadCompletado
+                                ? 'Este cuestionario ya fue respondido. Continúa con el siguiente módulo.'
+                                : _ansiedadDisponible
+                                ? 'Módulo desbloqueado. Revisa la información y responde el cuestionario.'
                                 : 'Se desbloquea al completar Autolesiones y Riesgo de suicidio.',
                             icon: Icons.self_improvement_rounded,
                             color: const Color(0xFF5C6BC0),
                             isDarkMode: isDarkMode,
-                            enabled: _ansiedadDisponible,
-                            statusLabel: _ansiedadDisponible
+                            enabled: _ansiedadDisponible && !_ansiedadCompletado,
+                            statusLabel: _ansiedadCompletado
+                                ? 'Completado'
+                                : _ansiedadDisponible
                                 ? 'Desbloqueado'
                                 : 'Bloqueado',
-                            statusIcon: _ansiedadDisponible
+                            statusIcon: _ansiedadCompletado
+                                ? Icons.lock_outline_rounded
+                                : _ansiedadDisponible
                                 ? Icons.arrow_forward_ios
                                 : Icons.lock_outline_rounded,
                             onTap: () => _openModule(const ModuloAnsiedad()),
+                          ),
+                          const SizedBox(height: 20),
+                          _ModuleCard(
+                            title: 'Uso de sustancias',
+                            subtitle: _sustanciasDisponible
+                                ? 'Módulo desbloqueado. El contenido informativo se integrará próximamente.'
+                                : 'Se desbloquea al completar Ansiedad.',
+                            icon: Icons.spa_outlined,
+                            color: const Color(0xFF00897B),
+                            isDarkMode: isDarkMode,
+                            enabled: _sustanciasDisponible,
+                            statusLabel: _sustanciasDisponible
+                                ? 'Desbloqueado'
+                                : 'Bloqueado',
+                            statusIcon: _sustanciasDisponible
+                                ? Icons.arrow_forward_ios
+                                : Icons.lock_outline_rounded,
+                            onTap: () => _openModule(const ModuloSustancias()),
                           ),
                         ] else ...[
                           _ModuleCard(

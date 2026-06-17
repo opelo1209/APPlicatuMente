@@ -34,6 +34,8 @@ class Peticiones {
 
   // Alertas para padres
   static const String padresAlertas = '$baseUrl/users/padres/alertas';
+  static String padreAlertaVista(int idAlerta) =>
+      '$baseUrl/users/padres/alertas/$idAlerta/vista';
 
   // Análisis médico — endpoint externo
   static const String postCuestionario = '$baseUrl/users/cuestionario';

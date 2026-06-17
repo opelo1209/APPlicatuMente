@@ -8,7 +8,7 @@ No necesitas tener Flutter instalado en la computadora o servidor. Docker usa la
 imagen `ghcr.io/cirruslabs/flutter:stable` para descargar dependencias y compilar
 el build web dentro del contenedor.
 
-Desde la carpeta `aplicate_por_tu_mente`:
+Desde la carpeta `APPlicatuMente`:
 
 ```bash
 docker compose up --build frontend

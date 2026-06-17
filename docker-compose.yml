@@ -2,8 +2,7 @@ services:
   postgres-temporal:
     image: postgres:16
     container_name: aptm_front_postgres_temporal
-    ports:
-      - "55432:55432"
+    network_mode: host
     command: ["postgres", "-c", "port=55432"]
     environment:
       POSTGRES_DB: aptm_tmp
@@ -23,11 +22,11 @@ services:
     build:
       context: ./mock_backend
       dockerfile: Dockerfile
+      network: host
     container_name: aptm_front_mini_backend
-    ports:
-      - "8001:8001"
+    network_mode: host
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres-temporal:55432/aptm_tmp
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55432/aptm_tmp
     depends_on:
       postgres-temporal:
         condition: service_healthy
@@ -37,11 +36,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
       args:
         API_BASE_URL: ${API_BASE_URL:-http://localhost:8001}
     container_name: aptm_frontend
-    ports:
-      - "8080:8080"
+    network_mode: host
     depends_on:
       - mini-backend
     restart: unless-stopped

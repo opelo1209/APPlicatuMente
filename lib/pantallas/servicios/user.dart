@@ -308,7 +308,7 @@ class User {
 
   // POST /users/padres/estudiantes - Vincular estudiante al padre
   Future<Map<String, dynamic>> vincularEstudiante({
-    required int idEstudiante,
+    required String curpEstudiante,
     String parentesco = 'padre/madre/tutor',
   }) async {
     try {
@@ -322,7 +322,7 @@ class User {
         Uri.parse(Peticiones.padresEstudiantes),
         headers: Peticiones.getAuthHeaders(token),
         body: jsonEncode({
-          'id_estudiante': idEstudiante,
+          'curp_estudiante': curpEstudiante.trim().toUpperCase(),
           'parentesco': parentesco,
         }),
       );
@@ -484,6 +484,39 @@ class User {
       };
     } catch (e) {
       debugPrint('Error en getAlertas: $e');
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
+  // PUT /users/padres/alertas/{id}/vista - Marcar alerta como vista
+  Future<Map<String, dynamic>> marcarAlertaVista(int idAlerta) async {
+    try {
+      final token = await _getToken();
+
+      if (token == null) {
+        return {'success': false, 'message': 'No hay token de autenticación'};
+      }
+
+      final response = await http.put(
+        Uri.parse(Peticiones.padreAlertaVista(idAlerta)),
+        headers: Peticiones.getAuthHeaders(token),
+      );
+
+      debugPrint('Marcar Alerta Vista Status Code: ${response.statusCode}');
+      debugPrint('Marcar Alerta Vista Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {'success': true, 'data': data};
+      }
+
+      return {
+        'success': false,
+        'message': 'Error al marcar alerta como vista',
+        'body': response.body,
+      };
+    } catch (e) {
+      debugPrint('Error en marcarAlertaVista: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }

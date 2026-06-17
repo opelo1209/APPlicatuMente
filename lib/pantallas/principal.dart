@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
@@ -17,7 +19,8 @@ class Principal extends StatefulWidget {
   State<Principal> createState() => _PrincipalState();
 }
 
-class _PrincipalState extends State<Principal> {
+class _PrincipalState extends State<Principal>
+    with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _selectedIndex = 1;
   String _title = 'Inicio';
@@ -28,11 +31,82 @@ class _PrincipalState extends State<Principal> {
   Map<String, dynamic> _progress = const {};
   bool _loadingSession = true;
   String? _sessionError;
+  int _unreadAlerts = 0;
+  String? _lastShownHighRiskAlertSignature;
+  late final AnimationController _welcomeAnimationController;
+
+  static const List<String> _studentDailyPhrases = [
+    'Hoy no tienes que resolver toda tu vida; solo dar el siguiente paso.',
+    'Aunque ahora no lo parezca, las cosas pueden mejorar más de lo que imaginas.',
+    'Tu valor no depende de una calificación, una opinión o un error.',
+    'Sobrevivir a los días difíciles también es una forma de ser fuerte.',
+    'No tienes que ser perfecto para merecer cariño y respeto.',
+    'Lo que hoy te duele no definirá quién serás mañana.',
+    'Está bien avanzar despacio; seguir avanzando es lo importante.',
+    'Hay personas que se alegran de que existas, incluso si hoy no lo notas.',
+    'Un mal día no significa una mala vida.',
+    'Cada vez que te levantas después de caer, te vuelves más fuerte.',
+    'Tu historia aún tiene capítulos que valdrá la pena leer.',
+    'No te compares con quien parece estar bien; todos libran batallas invisibles.',
+    'A veces el progreso es simplemente no rendirse.',
+    'No tienes que cargar con todo tú solo.',
+    'La persona que serás en unos años te agradecerá que sigas aquí.',
+    'Las tormentas más fuertes también terminan.',
+    'Tu voz importa y tus sentimientos también.',
+    'Equivocarte no te hace un fracaso; te hace humano.',
+    'No eres el problema; eres una persona enfrentando problemas.',
+    'Mereces darte la misma comprensión que das a los demás.',
+    'A veces el acto más valiente es pedir ayuda.',
+    'No todos entenderán tu camino, y está bien.',
+    'Lo que hoy parece imposible puede convertirse en algo cotidiano.',
+    'No necesitas demostrar tu valor; ya lo tienes.',
+    'Tu futuro no está escrito por tus peores momentos.',
+    'Respira. Ya has superado días que pensabas que no podrías soportar.',
+    'Ser diferente no es un defecto; es una fortaleza.',
+    'Nunca subestimes lo lejos que puedes llegar con pequeños esfuerzos diarios.',
+    'Está bien descansar; no está mal necesitar una pausa.',
+    'Las cicatrices cuentan historias de supervivencia.',
+    'No todo tiene que salir bien para que algo bueno ocurra.',
+    'Todavía hay personas, lugares y experiencias maravillosas esperando conocerte.',
+    'No eres una carga por tener emociones.',
+    'La esperanza también se construye poco a poco.',
+    'A veces el primer paso es simplemente levantarse de la cama.',
+    'Tú mereces oportunidades nuevas, sin importar tus errores pasados.',
+    'No te castigues por estar aprendiendo.',
+    'El mundo es mejor porque tú formas parte de él.',
+    'No todas las batallas se ganan rápido.',
+    'Lo que sientes hoy no será para siempre.',
+    'Tu valor permanece incluso en los días en que no lo ves.',
+    'Las personas más fuertes también lloran.',
+    'No necesitas tener todas las respuestas ahora mismo.',
+    'La vida cambia más rápido de lo que imaginamos.',
+    'Cada nuevo día es una oportunidad para empezar otra vez.',
+    'No eres menos importante porque alguien no supo valorarte.',
+    'Los errores son lecciones, no condenas.',
+    'Hay luz incluso cuando el cielo parece completamente gris.',
+    'Tu esfuerzo cuenta, aunque nadie más lo vea.',
+    'Nadie puede reemplazar la persona única que eres.',
+    'No dejes que un momento difícil defina toda tu historia.',
+    'A veces sanar significa darte tiempo.',
+    'Tu presencia tiene más impacto del que imaginas.',
+    'Los sueños grandes empiezan con pasos pequeños.',
+    'No tienes que cargar el peso del mundo.',
+  ];
 
   @override
   void initState() {
     super.initState();
+    _welcomeAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3600),
+    )..repeat(reverse: true);
     _loadCurrentUser();
+  }
+
+  @override
+  void dispose() {
+    _welcomeAnimationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCurrentUser() async {
@@ -53,6 +127,7 @@ class _PrincipalState extends State<Principal> {
         _perfilLabel = 'Sin conexión';
         _permissions = const {};
         _progress = const {};
+        _unreadAlerts = 0;
         _loadingSession = false;
         _sessionError =
             result['message']?.toString() ??
@@ -99,6 +174,161 @@ class _PrincipalState extends State<Principal> {
       _loadingSession = false;
       _sessionError = null;
     });
+
+    if (_can('can_manage_linked_students')) {
+      _loadUnreadAlerts();
+    }
+  }
+
+  Future<void> _loadUnreadAlerts() async {
+    final result = await User().getAlertas();
+    if (!mounted || result['success'] != true) return;
+
+    final data = result['data'];
+    if (data is! Map) return;
+
+    final noLeidas = int.tryParse(data['no_leidas']?.toString() ?? '') ?? 0;
+    setState(() {
+      _unreadAlerts = noLeidas;
+    });
+
+    final alertas = data['alertas'];
+    if (_perfilTipo == 'padre' && alertas is List) {
+      _showHighRiskAlertNoticeIfNeeded(alertas);
+    }
+  }
+
+  void _showHighRiskAlertNoticeIfNeeded(List<dynamic> alertas) {
+    final highRiskAlerts = alertas
+        .whereType<Map>()
+        .where(
+          (alerta) =>
+              alerta['leida'] != true && alerta['tipo']?.toString() == 'riesgo_alto',
+        )
+        .toList();
+    if (highRiskAlerts.isEmpty) return;
+
+    final ids = highRiskAlerts
+        .map((alerta) => alerta['id_alerta']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList()
+      ..sort();
+    final signature = ids.join('|');
+    if (signature.isEmpty || signature == _lastShownHighRiskAlertSignature) {
+      return;
+    }
+
+    _lastShownHighRiskAlertSignature = signature;
+    final nombres = highRiskAlerts
+        .map(_studentNameFromAlert)
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    final nombresTexto = _joinNames(nombres);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _perfilTipo != 'padre') return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          final isDarkMode =
+              Provider.of<ThemeProvider>(dialogContext).isDarkMode;
+          final alertColor = const Color(0xFFE53935);
+          return AlertDialog(
+            backgroundColor: isDarkMode
+                ? const Color(0xFF2A1717)
+                : const Color(0xFFFFF4F4),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+              side: BorderSide(color: alertColor.withValues(alpha: 0.55)),
+            ),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            contentPadding: const EdgeInsets.fromLTRB(24, 14, 24, 8),
+            title: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: alertColor.withValues(alpha: 0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Color(0xFFE53935),
+                    size: 52,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  nombresTexto.isEmpty
+                      ? 'Alerta importante'
+                      : 'Alerta de $nombresTexto',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : alertColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              nombresTexto.isEmpty
+                  ? 'Tienes alertas importantes sin revisar en tu bandeja.'
+                  : 'Tienes alertas importantes sin revisar de $nombresTexto. '
+                        'Revísalas en la bandeja de alertas para saber qué puedes hacer.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : const Color(0xFF4A1E1E),
+                fontWeight: FontWeight.w700,
+                height: 1.35,
+              ),
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+            actions: [
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: alertColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text(
+                  'Aceptar',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    });
+  }
+
+  String _studentNameFromAlert(Map<dynamic, dynamic> alerta) {
+    final estudiante = alerta['estudiante'];
+    if (estudiante is! Map) return 'tu hijo/a';
+    final nombreCompleto = estudiante['nombre_completo']?.toString().trim();
+    if (nombreCompleto?.isNotEmpty == true) return nombreCompleto!;
+    final nombreUsuario = estudiante['nombre_usuario']?.toString().trim();
+    if (nombreUsuario?.isNotEmpty == true) return nombreUsuario!;
+    return 'tu hijo/a';
+  }
+
+  String _joinNames(List<String> nombres) {
+    if (nombres.isEmpty) return '';
+    if (nombres.length == 1) return nombres.first;
+    if (nombres.length == 2) return '${nombres.first} y ${nombres.last}';
+    return '${nombres.sublist(0, nombres.length - 1).join(', ')} y ${nombres.last}';
   }
 
   bool _can(String permission) => _permissions[permission] == true;
@@ -214,21 +444,7 @@ class _PrincipalState extends State<Principal> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header con el Quetzal grande
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text("Hola, estoy\naquí contigo.", style: headerStyle),
-              ),
-              Image.asset(
-                'assets/imagenes/quetzal_3.png', // Usamos uno alegre para el saludo
-                height: 140,
-                width: 140,
-                fit: BoxFit.contain,
-              ),
-            ],
-          ),
+          _buildWelcomeHeader(headerStyle),
 
           const SizedBox(height: 30),
 
@@ -245,7 +461,16 @@ class _PrincipalState extends State<Principal> {
               onTap: _loadCurrentUser,
             )
           else
-            ..._homeCardsForRole(context),
+            ...[
+              ..._homeCardsForRole(context),
+              if (_showHomeDailyBanners) ...[
+                const SizedBox(height: 8),
+                _HomeDailyBannersSection(
+                  perfilTipo: _perfilTipo,
+                  isDarkMode: isDarkMode,
+                ),
+              ],
+            ],
 
           // _buildOptionCard(
           //   context,
@@ -285,6 +510,80 @@ class _PrincipalState extends State<Principal> {
           const SizedBox(height: 80), // Espacio para el BottomNav
         ],
       ),
+    );
+  }
+
+  String get _dailyStudentPhrase {
+    final today = DateTime.now();
+    final seed = today.year * 10000 + today.month * 100 + today.day;
+    final mixedSeed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return _studentDailyPhrases[mixedSeed % _studentDailyPhrases.length];
+  }
+
+  bool get _showHomeDailyBanners =>
+      _perfilTipo == 'estudiante' || _perfilTipo == 'padre';
+
+  Widget _buildWelcomeHeader(TextStyle headerStyle) {
+    final isStudent = _perfilTipo == 'estudiante' || _perfilTipo.isEmpty;
+    final message = isStudent
+        ? _dailyStudentPhrase
+        : 'Hola, estoy\naquí contigo.';
+
+    return AnimatedBuilder(
+      animation: _welcomeAnimationController,
+      builder: (context, child) {
+        final wave = math.sin(_welcomeAnimationController.value * math.pi * 2);
+        final birdOffset = Offset(0, wave * 7);
+        final textOffset = Offset(wave * 2, 0);
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Transform.translate(
+                offset: textOffset,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 450),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.08),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Text(
+                    message,
+                    key: ValueKey(message),
+                    style: headerStyle.copyWith(
+                      fontSize: isStudent ? 24 : headerStyle.fontSize,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Transform.translate(
+              offset: birdOffset,
+              child: Transform.rotate(
+                angle: wave * 0.035,
+                child: Image.asset(
+                  'assets/imagenes/quetzal_3.png',
+                  height: 140,
+                  width: 140,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -369,6 +668,7 @@ class _PrincipalState extends State<Principal> {
           title: "Bandeja de alertas",
           subtitle: "Notificaciones de tus hijos vinculados",
           color: const Color(0xFF42A5F5),
+          badgeCount: _unreadAlerts,
           onTap: _showMailbox,
         ),
       );
@@ -473,6 +773,20 @@ class _PrincipalState extends State<Principal> {
         ? data['alertas']
         : const [];
     final items = alertas is List ? alertas : const [];
+    final localItems = items
+        .map((item) => item is Map
+            ? Map<String, dynamic>.from(item)
+            : <String, dynamic>{})
+        .toList();
+    final noLeidas = int.tryParse(data is Map
+            ? data['no_leidas']?.toString() ?? ''
+            : '') ??
+        localItems.where((item) => item['leida'] != true).length;
+    if (_unreadAlerts != noLeidas) {
+      setState(() {
+        _unreadAlerts = noLeidas;
+      });
+    }
 
     showModalBottomSheet(
       context: context,
@@ -481,14 +795,17 @@ class _PrincipalState extends State<Principal> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetContext) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.85,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (context, scrollController) {
-            final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
-            return Padding(
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return DraggableScrollableSheet(
+              initialChildSize: 0.85,
+              minChildSize: 0.5,
+              maxChildSize: 0.95,
+              expand: false,
+              builder: (context, scrollController) {
+                final isDarkMode =
+                    Provider.of<ThemeProvider>(context).isDarkMode;
+                return Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,7 +851,7 @@ class _PrincipalState extends State<Principal> {
                   Divider(
                     color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
                   ),
-                  if (items.isEmpty)
+                  if (localItems.isEmpty)
                     Expanded(
                       child: Center(
                         child: Column(
@@ -577,15 +894,13 @@ class _PrincipalState extends State<Principal> {
                     Expanded(
                       child: ListView.separated(
                         controller: scrollController,
-                        itemCount: items.length,
+                        itemCount: localItems.length,
                         separatorBuilder: (context, index) => Divider(
                           height: 1,
                           color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
                         ),
                         itemBuilder: (context, index) {
-                          final alerta = items[index] is Map
-                              ? items[index] as Map
-                              : <String, dynamic>{};
+                          final alerta = localItems[index];
                           final estudiante = alerta['estudiante'] is Map
                               ? alerta['estudiante'] as Map
                               : null;
@@ -623,6 +938,28 @@ class _PrincipalState extends State<Principal> {
                           }
 
                           return ListTile(
+                            onTap: () async {
+                              final idAlerta =
+                                  int.tryParse(
+                                    alerta['id_alerta']?.toString() ?? '',
+                                  ) ??
+                                  0;
+                              if (idAlerta > 0 && alerta['leida'] != true) {
+                                await User().marcarAlertaVista(idAlerta);
+                                if (mounted) {
+                                  setSheetState(() {
+                                    alerta['leida'] = true;
+                                  });
+                                  setState(() {
+                                    _unreadAlerts = localItems
+                                        .where((item) => item['leida'] != true)
+                                        .length;
+                                  });
+                                }
+                              }
+                              if (!mounted) return;
+                              _showAlertDetail(alerta);
+                            },
                             leading: Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
@@ -697,10 +1034,78 @@ class _PrincipalState extends State<Principal> {
                     ),
                 ],
               ),
+                );
+              },
             );
           },
         );
       },
+    );
+  }
+
+  void _showAlertDetail(Map<String, dynamic> alerta) {
+    final estudiante = alerta['estudiante'] is Map
+        ? alerta['estudiante'] as Map
+        : null;
+    final nombreEstudiante =
+        estudiante?['nombre_completo']?.toString() ??
+        estudiante?['nombre_usuario']?.toString() ??
+        'Estudiante';
+    final titulo = alerta['titulo']?.toString() ?? 'Alerta';
+    final mensaje = alerta['mensaje']?.toString() ?? '';
+    final recomendacion = alerta['recomendacion']?.toString() ?? '';
+    final tipo = alerta['tipo']?.toString() ?? '';
+    final isRisk = tipo == 'riesgo_alto';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(titulo),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                nombreEstudiante,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(mensaje),
+              if (recomendacion.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Icon(
+                      isRisk
+                          ? Icons.warning_amber_rounded
+                          : Icons.volunteer_activism_rounded,
+                      color: isRisk
+                          ? const Color(0xFFE53935)
+                          : const Color(0xFF43A047),
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Qué puedes hacer como padre/madre',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(recomendacion),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -712,6 +1117,7 @@ class _PrincipalState extends State<Principal> {
     required Color color,
     required VoidCallback onTap,
     Color textColor = Colors.white,
+    int badgeCount = 0,
   }) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
@@ -732,70 +1138,106 @@ class _PrincipalState extends State<Principal> {
               ? Colors.white.withValues(alpha: 0.7)
               : Colors.black38);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: isDarkMode
-            ? []
-            : [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.25),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Image.asset(
-                  imagePath,
-                  height: 70,
-                  width: 70,
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: resolvedTitleColor,
-                        ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: isDarkMode
+                ? []
+                : [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.25),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    Image.asset(
+                      imagePath,
+                      height: 70,
+                      width: 70,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: resolvedTitleColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: resolvedSubtitleColor,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: resolvedSubtitleColor,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      color: resolvedArrowColor,
+                      size: 16,
+                    ),
+                  ],
                 ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: resolvedArrowColor,
-                  size: 16,
-                ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+        if (badgeCount > 0)
+          Positioned(
+            top: -8,
+            right: -8,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE53935),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  badgeCount > 99 ? '99+' : '$badgeCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -1119,3 +1561,299 @@ class _PrincipalState extends State<Principal> {
     );
   }
 }
+
+class _HomeDailyBannersSection extends StatelessWidget {
+  const _HomeDailyBannersSection({
+    required this.perfilTipo,
+    required this.isDarkMode,
+  });
+
+  final String perfilTipo;
+  final bool isDarkMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final banners = _homeDailyBannersFor(perfilTipo);
+    final title = perfilTipo == 'padre'
+        ? 'Consejos para acompañar · hoy'
+        : 'Mis consejos diarios · hoy';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(
+              Icons.calendar_month_rounded,
+              color: isDarkMode ? Colors.white70 : const Color(0xFF2E7D32),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : const Color(0xFF102F1B),
+                  fontSize: 21,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 238,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: banners.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 14),
+            itemBuilder: (context, index) => _HomeDailyBannerCard(
+              banner: banners[index],
+              isDarkMode: isDarkMode,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HomeDailyBannerCard extends StatelessWidget {
+  const _HomeDailyBannerCard({
+    required this.banner,
+    required this.isDarkMode,
+  });
+
+  final _HomeDailyBanner banner;
+  final bool isDarkMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = isDarkMode
+        ? banner.color.withValues(alpha: 0.20)
+        : banner.featured
+        ? banner.color.withValues(alpha: 0.18)
+        : Colors.white;
+    final textColor = isDarkMode ? Colors.white : const Color(0xFF102F1B);
+    final mutedColor = isDarkMode ? Colors.white70 : const Color(0xFF4B6354);
+
+    return SizedBox(
+      width: banner.featured ? 224 : 206,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${banner.title}: contenido próximamente.'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: banner.color.withValues(alpha: isDarkMode ? 0.30 : 0.22),
+              ),
+              boxShadow: isDarkMode
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: banner.color.withValues(alpha: 0.12),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: banner.featured
+                        ? banner.color.withValues(alpha: 0.78)
+                        : banner.color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    banner.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: banner.featured ? Colors.white : banner.color,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Center(
+                  child: Container(
+                    height: 72,
+                    width: 72,
+                    decoration: BoxDecoration(
+                      color: banner.color.withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(banner.icon, color: banner.color, size: 42),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  banner.title,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: banner.featured ? 20 : 18,
+                    height: 1.18,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(Icons.schedule_rounded, color: mutedColor, size: 16),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        banner.footer,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: mutedColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeDailyBanner {
+  const _HomeDailyBanner({
+    required this.label,
+    required this.title,
+    required this.footer,
+    required this.icon,
+    required this.color,
+    this.featured = false,
+  });
+
+  final String label;
+  final String title;
+  final String footer;
+  final IconData icon;
+  final Color color;
+  final bool featured;
+}
+
+List<_HomeDailyBanner> _homeDailyBannersFor(String perfilTipo) {
+  final source = perfilTipo == 'padre'
+      ? _homeParentDailyBanners
+      : _homeStudentDailyBanners;
+  final today = DateTime.now();
+  final seed = today.year * 10000 + today.month * 100 + today.day;
+  final start = source.isEmpty ? 0 : seed % source.length;
+  final ordered = <_HomeDailyBanner>[];
+  for (var index = 0; index < source.length; index++) {
+    ordered.add(source[(start + index) % source.length]);
+  }
+  return ordered;
+}
+
+const List<_HomeDailyBanner> _homeStudentDailyBanners = [
+  _HomeDailyBanner(
+    label: 'CONSEJO DEL DÍA',
+    title: 'Da un paso pequeño y suficiente.',
+    footer: 'Tema diario',
+    icon: Icons.local_florist_rounded,
+    color: Color(0xFF43A047),
+    featured: true,
+  ),
+  _HomeDailyBanner(
+    label: 'RESPIRA 1 MINUTO',
+    title: 'Inhala, sostén y exhala con calma.',
+    footer: 'Ejercicio breve',
+    icon: Icons.air_rounded,
+    color: Color(0xFF2E7D32),
+  ),
+  _HomeDailyBanner(
+    label: 'DATO DE BIENESTAR',
+    title: 'Nombrar lo que sientes ayuda a entenderlo.',
+    footer: 'Bienestar emocional',
+    icon: Icons.psychology_alt_rounded,
+    color: Color(0xFF00897B),
+  ),
+  _HomeDailyBanner(
+    label: 'MOTIVACIÓN',
+    title: 'Tu esfuerzo cuenta aunque nadie lo vea.',
+    footer: 'Para hoy',
+    icon: Icons.star_rounded,
+    color: Color(0xFF5C6BC0),
+  ),
+  _HomeDailyBanner(
+    label: 'HÁBITO SUAVE',
+    title: 'Toma agua y descansa unos minutos.',
+    footer: 'Autocuidado',
+    icon: Icons.favorite_rounded,
+    color: Color(0xFFFF7043),
+  ),
+];
+
+const List<_HomeDailyBanner> _homeParentDailyBanners = [
+  _HomeDailyBanner(
+    label: 'PARA PADRES',
+    title: 'Escuchar sin juzgar también acompaña.',
+    footer: 'Consejo del día',
+    icon: Icons.diversity_1_rounded,
+    color: Color(0xFF43A047),
+    featured: true,
+  ),
+  _HomeDailyBanner(
+    label: 'PREGUNTA SUAVE',
+    title: 'Pregunta cómo se siente, no solo qué hizo.',
+    footer: 'Comunicación',
+    icon: Icons.chat_bubble_outline_rounded,
+    color: Color(0xFF1E88E5),
+  ),
+  _HomeDailyBanner(
+    label: 'ACOMPAÑAMIENTO',
+    title: 'Valida su emoción antes de dar consejos.',
+    footer: 'Vínculo familiar',
+    icon: Icons.volunteer_activism_rounded,
+    color: Color(0xFF00897B),
+  ),
+  _HomeDailyBanner(
+    label: 'SEÑALES',
+    title: 'Observa cambios de sueño, ánimo o aislamiento.',
+    footer: 'Cuidado atento',
+    icon: Icons.visibility_outlined,
+    color: Color(0xFFFF7043),
+  ),
+  _HomeDailyBanner(
+    label: 'CALMA EN CASA',
+    title: 'Una pausa tranquila puede abrir conversación.',
+    footer: 'Bienestar familiar',
+    icon: Icons.home_rounded,
+    color: Color(0xFF7B1FA2),
+  ),
+];

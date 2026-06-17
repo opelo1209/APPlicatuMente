@@ -128,7 +128,7 @@ class Auth {
     required String nombres,
     required String apellidoPaterno,
     required String perfilTipo,
-    List<int> estudiantesIds = const [],
+    List<String> estudiantesCurps = const [],
     String parentesco = 'padre/madre/tutor',
     String apellidoMaterno = '',
     String curp = '',
@@ -145,7 +145,7 @@ class Auth {
           'nombres': nombres,
           'apellido_paterno': apellidoPaterno,
           'apellido_materno': apellidoMaterno,
-          'estudiantes_ids': estudiantesIds,
+          'estudiantes_curps': estudiantesCurps,
           'parentesco': parentesco,
           if (curp.isNotEmpty) 'curp': curp,
         }),
@@ -164,12 +164,18 @@ class Auth {
       } else if (response.statusCode == 409) {
         return {
           'success': false,
-          'message': 'El usuario o correo ya está registrado',
+          'message': _extractErrorMessage(
+            response.body,
+            fallback: 'El usuario, correo o CURP ya está registrado',
+          ),
         };
       } else {
         return {
           'success': false,
-          'message': 'Error al registrar usuario',
+          'message': _extractErrorMessage(
+            response.body,
+            fallback: 'Error al registrar usuario',
+          ),
           'error': response.body,
         };
       }
@@ -177,6 +183,27 @@ class Auth {
       debugPrint('Error en register: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
+  }
+
+  String _extractErrorMessage(String body, {required String fallback}) {
+    try {
+      final data = jsonDecode(body);
+      if (data is Map<String, dynamic>) {
+        final detail = data['detail'];
+        if (detail is String && detail.trim().isNotEmpty) {
+          return detail;
+        }
+        if (detail is List && detail.isNotEmpty) {
+          final first = detail.first;
+          if (first is Map && first['msg'] != null) {
+            return first['msg'].toString();
+          }
+        }
+      }
+    } catch (_) {
+      // Usar fallback si el backend no responde JSON.
+    }
+    return fallback;
   }
 
   // Verificar si el usuario está autenticado

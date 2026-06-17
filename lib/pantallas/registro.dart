@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
 import 'login.dart';
@@ -27,7 +28,7 @@ class _RegistroState extends State<Registro> {
       TextEditingController();
   final TextEditingController _apellidoMaternoController =
       TextEditingController();
-  final TextEditingController _estudiantesIdsController =
+  final TextEditingController _estudiantesCurpsController =
       TextEditingController();
   final TextEditingController _parentescoController = TextEditingController(
     text: 'padre/madre/tutor',
@@ -47,7 +48,7 @@ class _RegistroState extends State<Registro> {
     _nombresController.dispose();
     _apellidoPaternoController.dispose();
     _apellidoMaternoController.dispose();
-    _estudiantesIdsController.dispose();
+    _estudiantesCurpsController.dispose();
     _parentescoController.dispose();
     _curpController.dispose();
     _passwordController.dispose();
@@ -74,13 +75,15 @@ class _RegistroState extends State<Registro> {
 
   bool _isValidCurp(String curp) {
     final curpRegex = RegExp(
-      r'^[A-Z][AEIOU][A-Z]{2}\d{6}[HM][A-Z]{5}\d{2}$',
+      r'^[A-Z][AEIOU][A-Z]{2}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$',
     );
     return curpRegex.hasMatch(curp.toUpperCase());
   }
 
   // Función de registro
   Future<void> _handleRegistro() async {
+    final curpNormalizado = _curpController.text.trim().toUpperCase();
+
     // Validaciones
     if (_nombreUsuarioController.text.trim().isEmpty ||
         _correoController.text.trim().isEmpty ||
@@ -96,11 +99,11 @@ class _RegistroState extends State<Registro> {
     }
 
     if (_perfilTipo == 'estudiante') {
-      if (_curpController.text.trim().isEmpty) {
+      if (curpNormalizado.isEmpty) {
         _showMessage('El CURP es obligatorio para estudiantes', isError: true);
         return;
       }
-      if (!_isValidCurp(_curpController.text.trim())) {
+      if (!_isValidCurp(curpNormalizado)) {
         _showMessage('El CURP no tiene un formato válido', isError: true);
         return;
       }
@@ -130,8 +133,8 @@ class _RegistroState extends State<Registro> {
     });
 
     try {
-      final estudiantesIds = _parseEstudiantesIds();
-      if (estudiantesIds == null) {
+      final estudiantesCurps = _parseEstudiantesCurps();
+      if (estudiantesCurps == null) {
         setState(() {
           _isLoading = false;
         });
@@ -147,11 +150,11 @@ class _RegistroState extends State<Registro> {
         apellidoPaterno: _apellidoPaternoController.text.trim(),
         apellidoMaterno: _apellidoMaternoController.text.trim(),
         perfilTipo: _perfilTipo,
-        estudiantesIds: estudiantesIds,
+        estudiantesCurps: estudiantesCurps,
         parentesco: _parentescoController.text.trim().isEmpty
             ? 'padre/madre/tutor'
             : _parentescoController.text.trim(),
-        curp: _curpController.text.trim(),
+        curp: curpNormalizado,
       );
 
       if (!mounted) return;
@@ -186,25 +189,31 @@ class _RegistroState extends State<Registro> {
     }
   }
 
-  List<int>? _parseEstudiantesIds() {
+  List<String>? _parseEstudiantesCurps() {
     if (_perfilTipo != 'padre') return const [];
 
-    final rawValue = _estudiantesIdsController.text.trim();
-    if (rawValue.isEmpty) return const [];
+    final rawValue = _estudiantesCurpsController.text.trim().toUpperCase();
+    if (rawValue.isEmpty) {
+      _showMessage(
+        'El CURP del estudiante es obligatorio para padres',
+        isError: true,
+      );
+      return null;
+    }
 
-    final ids = <int>[];
+    final curps = <String>[];
     for (final part in rawValue.split(',')) {
-      final parsed = int.tryParse(part.trim());
-      if (parsed == null || parsed <= 0) {
+      final curp = part.trim().toUpperCase();
+      if (!_isValidCurp(curp)) {
         _showMessage(
-          'Los IDs de estudiantes deben ser números separados por coma',
+          'El CURP del estudiante no tiene un formato válido',
           isError: true,
         );
         return null;
       }
-      ids.add(parsed);
+      curps.add(curp);
     }
-    return ids;
+    return curps;
   }
 
   @override
@@ -337,6 +346,14 @@ class _RegistroState extends State<Registro> {
                               accentColor: primaryGreen,
                               controller: _curpController,
                               keyboardType: TextInputType.text,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[a-zA-Z0-9]'),
+                                ),
+                                _UpperCaseTextFormatter(),
+                                LengthLimitingTextInputFormatter(18),
+                              ],
                             ),
                             const SizedBox(height: 15),
                           ],
@@ -345,11 +362,18 @@ class _RegistroState extends State<Registro> {
                             _buildInput(
                               theme,
                               isDarkMode,
-                              label: "IDs de estudiantes vinculados",
+                              label: "CURP del estudiante vinculado *",
                               icon: Icons.group_add_outlined,
                               accentColor: primaryGreen,
-                              controller: _estudiantesIdsController,
+                              controller: _estudiantesCurpsController,
                               keyboardType: TextInputType.text,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[a-zA-Z0-9,]'),
+                                ),
+                                _UpperCaseTextFormatter(),
+                              ],
                             ),
                             const SizedBox(height: 15),
                             _buildInput(
@@ -537,6 +561,8 @@ class _RegistroState extends State<Registro> {
     bool isObscure = false,
     VoidCallback? onToggleVisibility,
     TextInputType? keyboardType,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     final fillColor = isDarkMode
         ? const Color(0xFF1C222B)
@@ -546,6 +572,8 @@ class _RegistroState extends State<Registro> {
       controller: controller,
       obscureText: isPassword ? isObscure : false,
       keyboardType: keyboardType,
+      textCapitalization: textCapitalization,
+      inputFormatters: inputFormatters,
       style: TextStyle(color: theme.colorScheme.onSurface),
       decoration: InputDecoration(
         filled: true,
@@ -667,5 +695,15 @@ class _RegistroState extends State<Registro> {
       ),
       onSelected: (_) => setState(() => _perfilTipo = value),
     );
+  }
+}
+
+class _UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
   }
 }
