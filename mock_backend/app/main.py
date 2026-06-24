@@ -93,6 +93,7 @@ class UserRegister(BaseModel):
     estudiantes_curps: list[str] = Field(default_factory=list)
     curp: str = ""
     parentesco: str = "padre/madre/tutor"
+    fecha_nacimiento: str = ""
 
 
 class UserLogin(BaseModel):
@@ -240,6 +241,12 @@ def init_db() -> None:
                 """
                 ALTER TABLE usuarios_estudiantes
                 ADD COLUMN IF NOT EXISTS curp VARCHAR(18)
+                """
+            )
+            cur.execute(
+                """
+                ALTER TABLE usuarios_estudiantes
+                ADD COLUMN IF NOT EXISTS fecha_nacimiento DATE
                 """
             )
             cur.execute(
@@ -1080,9 +1087,10 @@ def register(user: UserRegister) -> dict[str, Any]:
                     f"""
                     INSERT INTO {table} (
                         keycloack_id, nombre_usuario, correo, password_hash,
-                        nombres, apellido_paterno, apellido_materno, curp
+                        nombres, apellido_paterno, apellido_materno, curp,
+                        fecha_nacimiento
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING *
                     """,
                     (
@@ -1094,6 +1102,7 @@ def register(user: UserRegister) -> dict[str, Any]:
                         user.apellido_paterno,
                         user.apellido_materno or None,
                         normalized_curp,
+                        user.fecha_nacimiento or None,
                     ),
                 )
             else:

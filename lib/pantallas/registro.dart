@@ -18,6 +18,7 @@ class _RegistroState extends State<Registro> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
   String _perfilTipo = 'estudiante';
+  DateTime? _fechaNacimiento;
 
   // Controladores para los campos
   final TextEditingController _nombreUsuarioController =
@@ -80,6 +81,85 @@ class _RegistroState extends State<Registro> {
     return curpRegex.hasMatch(curp.toUpperCase());
   }
 
+  String _removeDiacritics(String str) {
+    const withAccents = 'ÁÉÍÓÚÜÑ';
+    const without = 'AEIOUUN';
+    var result = str;
+    for (var i = 0; i < withAccents.length; i++) {
+      result = result.replaceAll(withAccents[i], without[i]);
+    }
+    return result;
+  }
+
+  String _normalizeName(String name) {
+    return _removeDiacritics(name.trim().toUpperCase());
+  }
+
+  String? _firstInternalVowel(String word) {
+    if (word.length < 2) return null;
+    const vowels = 'AEIOU';
+    for (var i = 1; i < word.length; i++) {
+      if (vowels.contains(word[i])) return word[i];
+    }
+    return null;
+  }
+
+  String? _firstInternalConsonant(String word) {
+    if (word.length < 2) return null;
+    const vowels = 'AEIOU';
+    for (var i = 1; i < word.length; i++) {
+      if (!vowels.contains(word[i])) return word[i];
+    }
+    return null;
+  }
+
+  String _firstNameFirstLetter(String nombres) {
+    final parts = nombres.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty) return '';
+    return parts.first[0].toUpperCase();
+  }
+
+  bool _isCurpMatchingNames(String curp, String paterno, String materno, String nombres) {
+    final np = _normalizeName(paterno);
+    final nm = _normalizeName(materno);
+    final nn = _normalizeName(nombres);
+
+    if (np.isEmpty) return false;
+    if (nn.isEmpty) return false;
+
+    if (curp[0] != np[0]) return false;
+    final vowel = _firstInternalVowel(np);
+    if (vowel == null || curp[1] != vowel) return false;
+
+    final maternoFirst = nm.isNotEmpty ? nm[0] : 'X';
+    if (curp[2] != maternoFirst) return false;
+
+    final firstNameLetter = _firstNameFirstLetter(nn);
+    if (firstNameLetter.isEmpty || curp[3] != firstNameLetter) return false;
+
+    final paternoCons = _firstInternalConsonant(np);
+    if (paternoCons == null || curp[13] != paternoCons) return false;
+
+    final maternoCons = nm.isNotEmpty
+        ? (_firstInternalConsonant(nm) ?? 'X')
+        : 'X';
+    if (curp[14] != maternoCons) return false;
+
+    final firstNameWord = nn.split(RegExp(r'\s+')).first;
+    final nombreCons = _firstInternalConsonant(firstNameWord);
+    if (nombreCons == null || curp[15] != nombreCons) return false;
+
+    return true;
+  }
+
+  bool _isCurpMatchingDate(String curp, DateTime birthDate) {
+    final yy = birthDate.year.toString().padLeft(4, '0').substring(2);
+    final mm = birthDate.month.toString().padLeft(2, '0');
+    final dd = birthDate.day.toString().padLeft(2, '0');
+    final expected = '$yy$mm$dd';
+    return curp.substring(4, 10) == expected;
+  }
+
   // Función de registro
   Future<void> _handleRegistro() async {
     final curpNormalizado = _curpController.text.trim().toUpperCase();
@@ -105,6 +185,23 @@ class _RegistroState extends State<Registro> {
       }
       if (!_isValidCurp(curpNormalizado)) {
         _showMessage('El CURP no tiene un formato válido', isError: true);
+        return;
+      }
+      if (!_isCurpMatchingNames(
+        curpNormalizado,
+        _apellidoPaternoController.text.trim(),
+        _apellidoMaternoController.text.trim(),
+        _nombresController.text.trim(),
+      )) {
+        _showMessage('El CURP no coincide con los nombres ingresados', isError: true);
+        return;
+      }
+      if (_fechaNacimiento == null) {
+        _showMessage('La fecha de nacimiento es obligatoria', isError: true);
+        return;
+      }
+      if (!_isCurpMatchingDate(curpNormalizado, _fechaNacimiento!)) {
+        _showMessage('El CURP no coincide con la fecha de nacimiento', isError: true);
         return;
       }
     }
@@ -155,6 +252,7 @@ class _RegistroState extends State<Registro> {
             ? 'padre/madre/tutor'
             : _parentescoController.text.trim(),
         curp: curpNormalizado,
+        fechaNacimiento: _fechaNacimiento,
       );
 
       if (!mounted) return;
@@ -356,6 +454,8 @@ class _RegistroState extends State<Registro> {
                               ],
                             ),
                             const SizedBox(height: 15),
+                            _buildDatePicker(theme, isDarkMode, primaryGreen),
+                            const SizedBox(height: 15),
                           ],
 
                           if (_perfilTipo == 'padre') ...[
@@ -546,6 +646,66 @@ class _RegistroState extends State<Registro> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDatePicker(
+    ThemeData theme,
+    bool isDarkMode,
+    Color accentColor,
+  ) {
+    final fillColor = isDarkMode
+        ? const Color(0xFF1C222B)
+        : const Color(0xFFF1F8E9);
+    final textColor = _fechaNacimiento != null
+        ? theme.colorScheme.onSurface
+        : (isDarkMode ? Colors.white70 : accentColor.withValues(alpha: 0.8));
+
+    return InkWell(
+      onTap: () async {
+        final now = DateTime.now();
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: _fechaNacimiento ?? DateTime(now.year - 15),
+          firstDate: DateTime(1920),
+          lastDate: now,
+          locale: const Locale('es', 'MX'),
+        );
+        if (picked != null) setState(() => _fechaNacimiento = picked);
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: fillColor,
+          labelText: "Fecha de nacimiento *",
+          labelStyle: TextStyle(
+            color: isDarkMode ? Colors.white70 : accentColor.withValues(alpha: 0.8),
+            fontSize: 14,
+          ),
+          prefixIcon: Icon(Icons.calendar_today, color: accentColor, size: 20),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide(
+              color: accentColor.withValues(alpha: 0.55),
+              width: 2,
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 15,
+          ),
+        ),
+        child: Text(
+          _fechaNacimiento != null
+              ? '${_fechaNacimiento!.day.toString().padLeft(2, '0')}/${_fechaNacimiento!.month.toString().padLeft(2, '0')}/${_fechaNacimiento!.year}'
+              : 'Selecciona tu fecha de nacimiento',
+          style: TextStyle(color: textColor, fontSize: 16),
+        ),
       ),
     );
   }

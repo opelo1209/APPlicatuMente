@@ -132,6 +132,7 @@ class Auth {
     String parentesco = 'padre/madre/tutor',
     String apellidoMaterno = '',
     String curp = '',
+    DateTime? fechaNacimiento,
   }) async {
     try {
       final response = await http.post(
@@ -148,6 +149,9 @@ class Auth {
           'estudiantes_curps': estudiantesCurps,
           'parentesco': parentesco,
           if (curp.isNotEmpty) 'curp': curp,
+          if (fechaNacimiento != null)
+            'fecha_nacimiento':
+                '${fechaNacimiento.year.toString().padLeft(4, '0')}-${fechaNacimiento.month.toString().padLeft(2, '0')}-${fechaNacimiento.day.toString().padLeft(2, '0')}',
         }),
       );
 
