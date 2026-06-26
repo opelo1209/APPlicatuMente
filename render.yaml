@@ -2,7 +2,7 @@ databases:
   - name: aptm-db
     plan: free
     databaseName: aptm_tmp
-    user: postgres
+    user: aptm_user
 
 services:
   # ── Backend (FastAPI) ─────────────────────────────────────────────────────
