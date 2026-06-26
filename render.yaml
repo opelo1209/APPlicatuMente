@@ -19,15 +19,12 @@ services:
           property: connectionString
 
   # ── Frontend (Flutter Web + Nginx) ────────────────────────────────────────
-  # IMPORTANT: before deploying this service, go to Render dashboard and set
-  # the API_BASE_URL build arg to the deployed backend URL, e.g.:
-  #   https://aptm-backend.onrender.com
+  # NOTE: After this deploys, go to aptm-frontend -> Settings -> Docker Build Args
+  # and set API_BASE_URL to the real backend URL (e.g. https://aptm-backend.onrender.com)
+  # then trigger a manual redeploy.
   - type: web
     name: aptm-frontend
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: free
-    dockerBuildArgs:
-      - key: API_BASE_URL
-        value: https://aptm-backend.onrender.com
