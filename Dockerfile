@@ -8,7 +8,7 @@ RUN flutter pub get
 COPY . .
 
 ARG API_BASE_URL=http://localhost:8001
-RUN flutter build web --release --pwa-strategy=none --dart-define=API_BASE_URL=${API_BASE_URL}
+RUN flutter build web --release --pwa-strategy=offline-first --dart-define=API_BASE_URL=${API_BASE_URL}
 
 FROM nginx:1.27-alpine
 
