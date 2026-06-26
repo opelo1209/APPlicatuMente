@@ -1,0 +1,33 @@
+databases:
+  - name: aptm-db
+    plan: free
+    databaseName: aptm_tmp
+    user: postgres
+
+services:
+  # ── Backend (FastAPI) ─────────────────────────────────────────────────────
+  - type: web
+    name: aptm-backend
+    runtime: docker
+    dockerfilePath: ./mock_backend/Dockerfile
+    dockerContext: ./mock_backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aptm-db
+          property: connectionString
+
+  # ── Frontend (Flutter Web + Nginx) ────────────────────────────────────────
+  # IMPORTANT: before deploying this service, go to Render dashboard and set
+  # the API_BASE_URL build arg to the deployed backend URL, e.g.:
+  #   https://aptm-backend.onrender.com
+  - type: web
+    name: aptm-frontend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    dockerBuildArgs:
+      - key: API_BASE_URL
+        value: https://aptm-backend.onrender.com
