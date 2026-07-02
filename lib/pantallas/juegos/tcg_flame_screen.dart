@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
 import 'tcg_flame_game.dart';
+import 'models/card_data.dart';
 import 'models/game_state.dart';
 import 'tutorial/tutor_service.dart';
 import 'tutorial/tutor_overlay.dart';
@@ -306,6 +307,7 @@ class _TcgFlameScreenState extends State<TcgFlameScreen>
                           onSkip: _onTutorSkip,
                           onNext: _onTutorNext,
                         ),
+                      if (_started) _buildCardPreview(),
                     ],
                   );
                 },
@@ -625,6 +627,24 @@ class _TcgFlameScreenState extends State<TcgFlameScreen>
           ),
         ),
         _buildCombatLog(),
+        ValueListenableBuilder<bool>(
+          valueListenable: _game.waitingForContinue,
+          builder: (context, showContinue, _) {
+            if (!showContinue || _tutorService.active) {
+              return const SizedBox.shrink();
+            }
+            return Positioned(
+              bottom: 90,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: _buildGreenButton('Continuar', () {
+                  _game.continueAfterCombat();
+                }),
+              ),
+            );
+          },
+        ),
         if (_game.state.isGameOver) _buildGameOverOverlay(),
       ],
     );
@@ -721,6 +741,80 @@ class _TcgFlameScreenState extends State<TcgFlameScreen>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCardPreview() {
+    return ValueListenableBuilder<CardData?>(
+      valueListenable: _game.cardPreviewNotifier,
+      builder: (context, card, _) {
+        if (card == null) return const SizedBox.shrink();
+        return GestureDetector(
+          onTap: () => _game.dismissCardPreview(),
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.85),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.asset(
+                      'assets/imagenes/tcg/${card.imagePath}',
+                      height: MediaQuery.of(context).size.height * 0.5,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: card.type.color.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: card.type.color.withValues(alpha: 0.6),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          card.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${card.type.label} · ATK ${card.attack}',
+                          style: TextStyle(
+                            color: card.type.color,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Toca para cerrar',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

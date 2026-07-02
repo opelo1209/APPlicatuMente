@@ -30,12 +30,14 @@ class TcgGame extends FlameGame {
 
   final ValueNotifier<String> combatLog = ValueNotifier<String>('');
   final ValueNotifier<bool> isProcessing = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> waitingForContinue = ValueNotifier<bool>(false);
 
-  final ValueNotifier<int> playerHpNotifier = ValueNotifier<int>(25);
-  final ValueNotifier<int> enemyHpNotifier = ValueNotifier<int>(25);
+  final ValueNotifier<int> playerHpNotifier = ValueNotifier<int>(20);
+  final ValueNotifier<int> enemyHpNotifier = ValueNotifier<int>(20);
   final ValueNotifier<int> energyNotifier = ValueNotifier<int>(0);
   final ValueNotifier<int> energyCapNotifier = ValueNotifier<int>(3);
   final ValueNotifier<int> turnNotifier = ValueNotifier<int>(1);
+  final ValueNotifier<CardData?> cardPreviewNotifier = ValueNotifier<CardData?>(null);
 
   SpriteComponent? _boardBg;
 
@@ -121,8 +123,9 @@ class TcgGame extends FlameGame {
   }
 
   void startGame() {
-    final allCards = createCardPool();
-    state.startGame(allCards);
+    final playerCards = createPlayerCardPool();
+    final enemyCards = createEnemyCardPool();
+    state.startGame(playerCards, enemyCards);
     _loadBoardBg();
     _rebuildHand();
     _layoutBoard();
@@ -164,12 +167,11 @@ class TcgGame extends FlameGame {
   }
 
   void _showCardPreview(CardData card) {
-    combatLog.value = '${card.name} — ATK ${card.attack}';
-    Future.delayed(const Duration(seconds: 3), () {
-      if (combatLog.value.contains(card.name)) {
-        combatLog.value = '';
-      }
-    });
+    cardPreviewNotifier.value = card;
+  }
+
+  void dismissCardPreview() {
+    cardPreviewNotifier.value = null;
   }
 
   void _onCardDropped(DraggableCard card) {
@@ -178,9 +180,9 @@ class TcgGame extends FlameGame {
       return;
     }
 
-    const cardCost = 2;
+    final cardCost = card.cardData.cost;
     if (state.energy < cardCost) {
-      combatLog.value = 'Energía insuficiente (2 requerida)';
+      combatLog.value = 'Energía insuficiente ($cardCost requerida)';
       card.returnToHome();
       return;
     }
@@ -194,7 +196,7 @@ class TcgGame extends FlameGame {
     }
 
     isProcessing.value = true;
-    state.spendEnergy(2);
+    state.spendEnergy(cardCost);
 
     final playerCard = card.cardData;
     final slotCenter = _playerSlot.position + _playerSlot.size / 2;
@@ -206,12 +208,19 @@ class TcgGame extends FlameGame {
 
     final hasEnemyCard = state.enemySlotCard != null;
 
+    battleManager.triggerOnPlay(playerCard);
+    if (state.needsHandRebuild) {
+      state.needsHandRebuild = false;
+      _rebuildHand();
+    }
+
     _delayed(400, () {
       card.removeFromParent();
       _playerCardView?.removeFromParent();
       _playerCardView = CardComponent(
         cardData: playerCard,
         size: Vector2(160, 215),
+        onLongPress: (c) => _showCardPreview(c.cardData),
       );
       add(_playerCardView!);
       _playerCardView!.position = slotCenter;
@@ -254,6 +263,11 @@ class TcgGame extends FlameGame {
     _playCombatFlash();
 
     _delayed(200, () {
+      final pMul = battleManager.typeMultiplier(playerCard.type, enemyCard.type);
+      final eMul = battleManager.typeMultiplier(enemyCard.type, playerCard.type);
+      final actualPlayerDmg = ((playerCard.attack + state.bonusDamage) * pMul).round();
+      final actualEnemyDmg = (enemyCard.attack * eMul).round();
+
       battleManager.resolveCombat(playerCard, enemyCard);
 
       _playerCardView?.add(_shakeEffect());
@@ -262,13 +276,23 @@ class TcgGame extends FlameGame {
       _spawnSlashEffect(_playerCardView?.position ?? Vector2.zero());
       _spawnSlashEffect(_enemyCardView?.position ?? Vector2.zero());
       _spawnDamageNumber(
-          _enemyCardView?.position ?? Vector2.zero(), playerCard.attack, Colors.orangeAccent);
+          _enemyCardView?.position ?? Vector2.zero(), actualPlayerDmg, Colors.orangeAccent);
       _spawnDamageNumber(
-          _playerCardView?.position ?? Vector2.zero(), enemyCard.attack, Colors.redAccent);
+          _playerCardView?.position ?? Vector2.zero(), actualEnemyDmg, Colors.redAccent);
+
+      final pType = playerCard.type.label;
+      final eType = enemyCard.type.label;
+      String pAdv = '';
+      String eAdv = '';
+      if (pMul == 2.0) pAdv = ' ¡VENTAJA!';
+      if (pMul == 0.5) pAdv = ' (desventaja)';
+      if (eMul == 2.0) eAdv = ' ¡VENTAJA!';
+      if (eMul == 0.5) eAdv = ' (desventaja)';
 
       _logCombat(
-        '${playerCard.name} ATK ${playerCard.attack} → Enemigo -${playerCard.attack} HP\n'
-        '${enemyCard.name} ATK ${enemyCard.attack} → Tú -${enemyCard.attack} HP',
+        '$pType vs $eType\n'
+        '${playerCard.name} ATK $actualPlayerDmg → Enemigo$pAdv\n'
+        '${enemyCard.name} ATK $actualEnemyDmg → Tú$eAdv',
       );
 
       _delayed(600, () {
@@ -288,9 +312,7 @@ class TcgGame extends FlameGame {
             return;
           }
 
-          state.refillHands();
-          _rebuildHand();
-          _endPlayerTurn();
+          waitingForContinue.value = true;
         });
       });
     });
@@ -329,6 +351,7 @@ class TcgGame extends FlameGame {
     _enemyCardView = CardComponent(
       cardData: enemyCard,
       size: Vector2(160, 215),
+      onLongPress: (c) => _showCardPreview(c.cardData),
     );
     add(_enemyCardView!);
     _enemyCardView!.position = slotCenter;
@@ -341,6 +364,8 @@ class TcgGame extends FlameGame {
     );
     state.notify();
 
+    battleManager.triggerOnPlay(enemyCard);
+
     if (state.playerSlotCard != null) {
       await _delay(500);
       if (state.isGameOver) return;
@@ -348,7 +373,7 @@ class TcgGame extends FlameGame {
       state.playerSlotCard = null;
       _runCombat(playerCard);
     } else {
-      _logCombat('Enemigo colocó ${enemyCard.name}. Tu turno.');
+      _logCombat('Boss colocó ${enemyCard.name}. Tu turno.');
       state.phase = GamePhase.playerTurn;
       state.notify();
     }
@@ -473,6 +498,18 @@ class TcgGame extends FlameGame {
 
   void _logCombat(String msg) {
     combatLog.value = msg;
+  }
+
+  void continueAfterCombat() {
+    waitingForContinue.value = false;
+    if (state.isGameOver) {
+      _logCombat(state.playerWon ? '¡Victoria!' : 'Has perdido...');
+      isProcessing.value = false;
+      return;
+    }
+    state.refillHands();
+    _rebuildHand();
+    _endPlayerTurn();
   }
 
   void _delayed(int ms, VoidCallback fn) {

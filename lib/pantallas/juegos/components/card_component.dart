@@ -1,4 +1,3 @@
-import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
@@ -69,47 +68,6 @@ class CardComponent extends PositionComponent
       ..color = cardData.type.color;
     canvas.drawRRect(cardRRect, paint);
 
-    final atkPaint = Paint()..color = const Color(0xCC000000);
-    final atkRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(w * 0.55, h * 0.74, w * 0.40, h * 0.20),
-      const Radius.circular(6),
-    );
-    canvas.drawRRect(atkRect, atkPaint);
-
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: 'ATK ${cardData.attack}',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: h * 0.12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: ui.TextDirection.ltr,
-    )..layout(maxWidth: w * 0.38);
-    textPainter.paint(
-      canvas,
-      Offset(w * 0.57, h * 0.76),
-    );
-
-    final namePainter = TextPainter(
-      text: TextSpan(
-        text: cardData.name,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: h * 0.09,
-          fontWeight: FontWeight.w600,
-          shadows: const [
-            Shadow(color: Color(0xCC000000), blurRadius: 3),
-          ],
-        ),
-      ),
-      textDirection: ui.TextDirection.ltr,
-    )..layout(maxWidth: w * 0.85);
-    namePainter.paint(
-      canvas,
-      Offset(w * 0.075, h * 0.03),
-    );
     canvas.restore();
   }
 
@@ -143,18 +101,5 @@ class CardComponent extends PositionComponent
     super.onTapCancel(event);
     _pressTimer = 0;
     _previewVisible = false;
-  }
-}
-
-extension CardTypeColor on CardType {
-  Color get color {
-    switch (this) {
-      case CardType.cognitivo:
-        return const Color(0xFF42A5F5);
-      case CardType.emocional:
-        return const Color(0xFFEF5350);
-      case CardType.conductual:
-        return const Color(0xFF66BB6A);
-    }
   }
 }

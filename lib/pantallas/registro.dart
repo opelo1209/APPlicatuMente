@@ -95,6 +95,42 @@ class _RegistroState extends State<Registro> {
     return _removeDiacritics(name.trim().toUpperCase());
   }
 
+  String _normalizeForCurp(String name) {
+    var result = name.trim().toUpperCase();
+    const withAccents = 'ÁÉÍÓÚÜ';
+    const without = 'AEIOUU';
+    for (var i = 0; i < withAccents.length; i++) {
+      result = result.replaceAll(withAccents[i], without[i]);
+    }
+    result = result.replaceAll('Ñ', 'X');
+    return result;
+  }
+
+  String _getContentWord(String normalized) {
+    const particles = {'DE', 'DEL', 'LA', 'LOS', 'LAS', 'SAN', 'VON'};
+    final parts = normalized.split(RegExp(r'\s+'));
+    for (final part in parts) {
+      if (!particles.contains(part)) return part;
+    }
+    return parts.first;
+  }
+
+  String _getEffectiveFirstName(String normalizedNombres) {
+    const excludedPrefixes = {
+      'MARIA', 'MA.', 'MA', 'JOSE', 'J.', 'J',
+      'JUAN', 'JESUS', 'GUADALUPE',
+    };
+    final parts = normalizedNombres.split(RegExp(r'\s+'));
+    if (parts.isEmpty) return '';
+
+    final first = parts.first;
+    if (parts.length > 1 && excludedPrefixes.contains(first)) {
+      final rest = parts.sublist(1).join(' ');
+      return _getContentWord(rest);
+    }
+    return _getContentWord(normalizedNombres);
+  }
+
   String? _firstInternalVowel(String word) {
     if (word.length < 2) return null;
     const vowels = 'AEIOU';
@@ -107,16 +143,17 @@ class _RegistroState extends State<Registro> {
   String? _firstInternalConsonant(String word) {
     if (word.length < 2) return null;
     const vowels = 'AEIOU';
-    for (var i = 1; i < word.length; i++) {
+    int start = 1;
+    if (word.length >= 2) {
+      if ((word[0] == 'L' && word[1] == 'L') ||
+          (word[0] == 'C' && word[1] == 'H')) {
+        start = 2;
+      }
+    }
+    for (var i = start; i < word.length; i++) {
       if (!vowels.contains(word[i])) return word[i];
     }
     return null;
-  }
-
-  String _firstNameFirstLetter(String nombres) {
-    final parts = nombres.trim().split(RegExp(r'\s+'));
-    if (parts.isEmpty) return '';
-    return parts.first[0].toUpperCase();
   }
 
   bool _isCurpMatchingNames(String curp, String paterno, String materno, String nombres) {
@@ -127,27 +164,36 @@ class _RegistroState extends State<Registro> {
     if (np.isEmpty) return false;
     if (nn.isEmpty) return false;
 
-    if (curp[0] != np[0]) return false;
-    final vowel = _firstInternalVowel(np);
+    final effectivePaterno = _getContentWord(np);
+    final effectiveMaterno = _getContentWord(nm);
+    final effectiveNombres = _getEffectiveFirstName(nn);
+
+    if (effectivePaterno.isEmpty) return false;
+    if (effectiveNombres.isEmpty) return false;
+
+    final cp = _normalizeForCurp(effectivePaterno);
+    final cm = effectiveMaterno.isNotEmpty ? _normalizeForCurp(effectiveMaterno) : '';
+    final cn = _normalizeForCurp(effectiveNombres);
+
+    if (curp[0] != cp[0]) return false;
+    final vowel = _firstInternalVowel(cp);
     if (vowel == null || curp[1] != vowel) return false;
 
-    final maternoFirst = nm.isNotEmpty ? nm[0] : 'X';
+    final maternoFirst = cm.isNotEmpty ? cm[0] : 'X';
     if (curp[2] != maternoFirst) return false;
 
-    final firstNameLetter = _firstNameFirstLetter(nn);
-    if (firstNameLetter.isEmpty || curp[3] != firstNameLetter) return false;
+    if (curp[3] != cn[0]) return false;
 
-    final paternoCons = _firstInternalConsonant(np);
-    if (paternoCons == null || curp[13] != paternoCons) return false;
+    final paternoCons = _firstInternalConsonant(cp) ?? 'X';
+    if (curp[13] != paternoCons) return false;
 
-    final maternoCons = nm.isNotEmpty
-        ? (_firstInternalConsonant(nm) ?? 'X')
+    final maternoCons = cm.isNotEmpty
+        ? (_firstInternalConsonant(cm) ?? 'X')
         : 'X';
     if (curp[14] != maternoCons) return false;
 
-    final firstNameWord = nn.split(RegExp(r'\s+')).first;
-    final nombreCons = _firstInternalConsonant(firstNameWord);
-    if (nombreCons == null || curp[15] != nombreCons) return false;
+    final nombreCons = _firstInternalConsonant(cn) ?? 'X';
+    if (curp[15] != nombreCons) return false;
 
     return true;
   }

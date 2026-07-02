@@ -10,7 +10,7 @@ enum GamePhase {
 }
 
 class GameState extends ChangeNotifier {
-  static const int maxHp = 25;
+  static const int maxHp = 20;
   static const int handSize = 4;
   static const int energyPerTurn = 2;
   static const int maxEnergy = 10;
@@ -30,13 +30,28 @@ class GameState extends ChangeNotifier {
   final List<CardData> playerHand = [];
   final List<CardData> enemyHand = [];
   final List<CardData> drawPile = [];
+  final List<CardData> playerDeck = [];
+  final List<CardData> enemyDeck = [];
+
+  int bonusDamage = 0;
+  bool attackCancelled = false;
+  bool healBlocked = false;
+  bool needsHandRebuild = false;
 
   final Random _random = Random();
 
-  void startGame(List<CardData> allCards) {
-    drawPile
+  void startGame(
+    List<CardData> playerCards,
+    List<CardData> enemyCards,
+  ) {
+    drawPile.clear();
+    playerDeck
       ..clear()
-      ..addAll(allCards)
+      ..addAll(playerCards)
+      ..shuffle(_random);
+    enemyDeck
+      ..clear()
+      ..addAll(enemyCards)
       ..shuffle(_random);
     playerHand.clear();
     enemyHand.clear();
@@ -49,14 +64,18 @@ class GameState extends ChangeNotifier {
     playerWon = false;
     energy = 3;
     energyCap = 3;
-    _drawToHandSize(playerHand);
-    _drawToHandSize(enemyHand);
+    bonusDamage = 0;
+    attackCancelled = false;
+    healBlocked = false;
+    needsHandRebuild = false;
+    _drawToHandSize(playerHand, playerDeck);
+    _drawToHandSize(enemyHand, enemyDeck);
     notifyListeners();
   }
 
-  void _drawToHandSize(List<CardData> hand) {
-    while (hand.length < handSize && drawPile.isNotEmpty) {
-      hand.add(drawPile.removeLast());
+  void _drawToHandSize(List<CardData> hand, List<CardData> deck) {
+    while (hand.length < handSize && deck.isNotEmpty) {
+      hand.add(deck.removeLast());
     }
   }
 
@@ -66,28 +85,35 @@ class GameState extends ChangeNotifier {
   }
 
   void refillHands() {
-    _drawToHandSize(playerHand);
-    _drawToHandSize(enemyHand);
+    _drawToHandSize(playerHand, playerDeck);
+    _drawToHandSize(enemyHand, enemyDeck);
     notify();
   }
 
   void notify() => notifyListeners();
 
   void dealPlayerCard() {
-    if (drawPile.isNotEmpty) {
-      playerHand.add(drawPile.removeLast());
+    if (playerDeck.isNotEmpty) {
+      playerHand.add(playerDeck.removeLast());
       notifyListeners();
     }
   }
 
   void dealEnemyCard() {
-    if (drawPile.isNotEmpty) {
-      enemyHand.add(drawPile.removeLast());
+    if (enemyDeck.isNotEmpty) {
+      enemyHand.add(enemyDeck.removeLast());
       notifyListeners();
     }
   }
 
   bool get isGameOver => phase == GamePhase.gameOver;
+
+  void resetTurnFlags() {
+    bonusDamage = 0;
+    attackCancelled = false;
+    healBlocked = false;
+    needsHandRebuild = false;
+  }
 
   void gainEnergy() {
     energy = min(maxEnergy, energy + energyPerTurn);
@@ -95,7 +121,7 @@ class GameState extends ChangeNotifier {
     notify();
   }
 
-  bool canPlayCard(CardData card) => energy >= card.attack;
+  bool canPlayCard(CardData card) => energy >= card.cost;
 
   void spendEnergy(int amount) {
     energy = max(0, energy - amount);

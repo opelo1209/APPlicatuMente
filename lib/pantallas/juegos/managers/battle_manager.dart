@@ -7,6 +7,33 @@ class BattleManager {
 
   BattleManager(this.state);
 
+  double typeMultiplier(CardType attacker, CardType defender) {
+    if (attacker == CardType.especial || defender == CardType.especial) {
+      return 1.0;
+    }
+    // Triángulo de Poder: Cog > Emo > Con > Cog
+    if (attacker == CardType.cognitivo && defender == CardType.emocional) {
+      return 2.0;
+    }
+    if (attacker == CardType.emocional && defender == CardType.conductual) {
+      return 2.0;
+    }
+    if (attacker == CardType.conductual && defender == CardType.cognitivo) {
+      return 2.0;
+    }
+    // Desventaja: inverso
+    if (attacker == CardType.emocional && defender == CardType.cognitivo) {
+      return 0.5;
+    }
+    if (attacker == CardType.conductual && defender == CardType.emocional) {
+      return 0.5;
+    }
+    if (attacker == CardType.cognitivo && defender == CardType.conductual) {
+      return 0.5;
+    }
+    return 1.0;
+  }
+
   int resolveCombat(CardData playerCard, CardData enemyCard) {
     state.phase = GamePhase.combat;
 
@@ -17,16 +44,29 @@ class BattleManager {
       effect.onAttack(this, enemyCard, playerCard);
     }
 
+    if (state.attackCancelled) {
+      state.attackCancelled = false;
+      state.phase = GamePhase.playerTurn;
+      state.notify();
+      return 0;
+    }
+
     int playerDamage = 0;
     int enemyDamage = 0;
 
     if (state.playerHp > 0 && state.enemyHp > 0) {
-      enemyDamage = playerCard.attack;
+      final baseDmg = playerCard.attack + state.bonusDamage;
+      enemyDamage = (typeMultiplier(playerCard.type, enemyCard.type) * baseDmg)
+          .round();
       state.enemyHp = max(0, state.enemyHp - enemyDamage);
     }
 
+    state.bonusDamage = 0;
+
     if (state.playerHp > 0 && state.enemyHp > 0) {
-      playerDamage = enemyCard.attack;
+      playerDamage =
+          (typeMultiplier(enemyCard.type, playerCard.type) * enemyCard.attack)
+              .round();
       state.playerHp = max(0, state.playerHp - playerDamage);
     }
 

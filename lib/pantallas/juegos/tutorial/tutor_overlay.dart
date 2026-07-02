@@ -150,23 +150,28 @@ class _StepOverlayState extends State<_StepOverlay>
 
   @override
   Widget build(BuildContext context) {
-    final holeRect = _computeHighlightRect(
-      widget.step.highlight,
-      widget.gameAreaSize,
-    );
+      final holeRect = _computeHighlightRect(
+        widget.step.highlight,
+        widget.gameAreaSize,
+      );
 
-    final bool panelBlocksPointer =
-        widget.step.requiredAction == TutorAction.tap;
+      final bool panelBlocksPointer =
+          widget.step.requiredAction == TutorAction.tap;
+      final bool isDragStep =
+          widget.step.requiredAction == TutorAction.dropCard;
 
-    final double handHeight = 150.0;
-    final double safeBottomInset =
-        MediaQuery.of(context).padding.bottom + handHeight + 12;
+      final double handHeight = 150.0;
+      final double safeBottomInset =
+          MediaQuery.of(context).padding.bottom + handHeight + 12;
 
-    return Stack(
-      key: widget.key,
-      children: [
-        RepaintBoundary(child: _OverlayPainterWidget(holeRect: holeRect)),
-        if (holeRect != null)
+      return Stack(
+        key: widget.key,
+        children: [
+          RepaintBoundary(child: _OverlayPainterWidget(
+            holeRect: holeRect,
+            reducedOpacity: isDragStep,
+          )),
+        if (holeRect != null && !isDragStep)
           Positioned.fill(
             child: IgnorePointer(
               child: Container(
@@ -407,8 +412,9 @@ class _StepOverlayState extends State<_StepOverlay>
 
 class _OverlayPainterWidget extends StatelessWidget {
   final Rect? holeRect;
+  final bool reducedOpacity;
 
-  const _OverlayPainterWidget({this.holeRect});
+  const _OverlayPainterWidget({this.holeRect, this.reducedOpacity = false});
 
   @override
   Widget build(BuildContext context) {
@@ -420,8 +426,12 @@ class _OverlayPainterWidget extends StatelessWidget {
           child: CustomPaint(
             painter: _OverlayPainter(
               holeRect: holeRect,
-              overlayColor: Colors.black.withValues(alpha: 0.55),
-              glowColor: const Color(0xFF66BB6A),
+              overlayColor: Colors.black.withValues(
+                alpha: reducedOpacity ? 0.08 : 0.55,
+              ),
+              glowColor: const Color(0xFF66BB6A).withValues(
+                alpha: reducedOpacity ? 0.0 : 1.0,
+              ),
             ),
             size: Size.infinite,
           ),
@@ -462,18 +472,20 @@ class _OverlayPainter extends CustomPainter {
 
     canvas.drawPath(visualPath, Paint()..color = overlayColor);
 
-    canvas.save();
-    canvas.clipPath(holePath);
-    final glowPaint = Paint()
-      ..color = glowColor.withValues(alpha: 0.18)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 35);
+    if (glowColor.a > 0) {
+      canvas.save();
+      canvas.clipPath(holePath);
+      final glowPaint = Paint()
+        ..color = glowColor.withValues(alpha: 0.18)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 35);
 
-    final inflatedRect = holeRect!.inflate(40);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(inflatedRect, const Radius.circular(20)),
-      glowPaint,
-    );
-    canvas.restore();
+      final inflatedRect = holeRect!.inflate(40);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(inflatedRect, const Radius.circular(20)),
+        glowPaint,
+      );
+      canvas.restore();
+    }
   }
 
   @override
