@@ -88,7 +88,7 @@ class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
       : const Text(
         'La evidencia indica que las intervenciones más efectivas suelen incluir psicoterapia, estrategias de autocuidado y manejo emocional, y medicación cuando está clínicamente indicada. En algunos casos, combinar terapia y medicación ofrece mejores resultados.'
       );
-    /* 
+
     final Widget therapyContent = _isForTeens
       ? Image.asset(
         'assets/imagenes/ansiedad/5-terapia.png',
@@ -97,17 +97,11 @@ class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
       : const Text(
         'La Terapia Cognitivo-Conductual (TCC) tiene amplio respaldo científico. Ayuda a los jóvenes a identificar patrones de pensamiento y conducta que mantienen la ansiedad, y a desarrollar herramientas para afrontarla de manera saludable.'
       );
-    */
-
-    final String therapyContent = _isForTeens
-      ? 'La terapia es un espacio seguro para hablar sobre lo que te ocurre y aprender herramientas para manejarlo.\n\nLa Terapia Cognitivo-Conductual (TCC) ayuda a identificar pensamientos y comportamientos que aumentan la ansiedad y a reemplazarlos por otros más saludables.'
-      : 'La Terapia Cognitivo-Conductual (TCC) tiene amplio respaldo científico. Ayuda a los jóvenes a identificar patrones de pensamiento y conducta que mantienen la ansiedad, y a desarrollar herramientas para afrontarla de manera saludable.';
 
     final String actionTitle = _isForTeens
       ? '¿Qué puedes hacer por tu cuenta?'
       : '¿Cómo apoyar desde casa?';
 
-    /* 
     final Widget actionContent = _isForTeens
       ? Image.asset(
         'assets/imagenes/ansiedad/6-actividades.png',
@@ -116,12 +110,7 @@ class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
       : const Text(
         '• Fomentar rutinas saludables.\n• Promover respiración y relajación.\n• Practicar mindfulness o atención plena.\n• Escuchar sin minimizar sus emociones.\n• Buscar apoyo profesional si los síntomas persisten o aumentan.'
       );
-    */    
-    final String actionContent = _isForTeens
-      ? 'Estas actividades pueden ayudar:\n• Respiraciones conscientes.\n• Relajación muscular.\n• Mindfulness de 3 a 5 minutos al día, aumentando poco a poco.\n• Hablar con alguien de confianza cuando te sientas sobrepasado.'
-      : '• Fomentar rutinas saludables.\n• Promover respiración y relajación.\n• Practicar mindfulness o atención plena.\n• Escuchar sin minimizar sus emociones.\n• Buscar apoyo profesional si los síntomas persisten o aumentan.';
-
-    /* 
+    
     final Widget medicationMsg = _isForTeens
       ? Image.asset(
         'assets/imagenes/ansiedad/7-medicamentos.png',
@@ -130,15 +119,11 @@ class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
       : const Text(
         'Algunos medicamentos pueden ayudar, pero suelen tardar entre 4 y 6 semanas en alcanzar su máximo beneficio. No deben suspenderse sin supervisión médica. En menores de 24 años se debe vigilar cualquier señal de alarma al iniciar ciertos tratamientos.'
       );
-    */
-    final String medicationMsg = _isForTeens
-      ? 'Si un profesional recomienda tratamiento, pregunta tus dudas y no suspendas medicamentos sin supervisión médica.'
-      : 'Algunos medicamentos pueden ayudar, pero suelen tardar entre 4 y 6 semanas en alcanzar su máximo beneficio. No deben suspenderse sin supervisión médica. En menores de 24 años se debe vigilar cualquier señal de alarma al iniciar ciertos tratamientos.';
-
+      
     final String footerTitle = _isForTeens
       ? 'Pedir ayuda cuenta'
       : 'Acompañar hace diferencia';
-    /* 
+    
     final Widget footerMsg = _isForTeens
       ? Image.asset(
         'assets/imagenes/ansiedad/8-ayuda.png',
@@ -147,11 +132,6 @@ class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
       : const Text(
         'La detección temprana, el acompañamiento familiar y el acceso a apoyo profesional pueden mejorar significativamente la calidad de vida de adolescentes y jóvenes.'
       );
-    */
-    final String footerMsg = _isForTeens
-      ? 'Tener ansiedad no significa que seas débil ni que haya algo malo contigo. Si el miedo o la preocupación afectan tu vida, pedir ayuda es una señal de valentía.'
-      : 'La detección temprana, el acompañamiento familiar y el acceso a apoyo profesional pueden mejorar significativamente la calidad de vida de adolescentes y jóvenes.';
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
@@ -318,21 +298,21 @@ class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
 
               _buildSection(
                 title: 'El papel de la terapia',
-                content: buildContentText(therapyContent),
+                content: therapyContent,
                 icon: Icons.psychology_alt_rounded,
                 color: Colors.purple,
               ),
 
               _buildSection(
                 title: actionTitle,
-                content: buildContentText(actionContent),
+                content: actionContent,
                 icon: Icons.self_improvement_rounded,
                 color: Colors.orange,
               ),
 
               _buildSection(
                 title: 'Sobre los medicamentos',
-                content: buildContentText(medicationMsg),
+                content: medicationMsg,
                 icon: Icons.medication_rounded,
                 color: Colors.deepOrange,
               ),
@@ -376,14 +356,7 @@ class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
                             ),
                           ),
                           const SizedBox(height: 6),
-                          Text(
-                            footerMsg,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              height: 1.4,
-                              color: Color(0xFF4B5563),
-                            ),
-                          ),
+                          footerMsg,
                         ],
                       ),
                     ),
