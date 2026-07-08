@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'theme_provider.dart';
 import 'login.dart';
 import 'monitoreo_admin.dart';
@@ -10,6 +11,7 @@ import 'juegos/tcg_flame_screen.dart';
 import 'modulos/selector_modulo_crisis.dart';
 import 'modulos/chatbot_serena.dart';
 import 'servicios/auth.dart';
+import 'servicios/personalizacion.dart';
 import 'servicios/user.dart';
 
 class Principal extends StatefulWidget {
@@ -29,6 +31,7 @@ class _PrincipalState extends State<Principal>
   String _perfilLabel = 'Usuario';
   Map<String, dynamic> _permissions = const {};
   Map<String, dynamic> _progress = const {};
+  Map<String, dynamic> _studentPreferences = const {};
   bool _loadingSession = true;
   String? _sessionError;
   int _unreadAlerts = 0;
@@ -127,6 +130,7 @@ class _PrincipalState extends State<Principal>
         _perfilLabel = 'Sin conexión';
         _permissions = const {};
         _progress = const {};
+        _studentPreferences = const {};
         _unreadAlerts = 0;
         _loadingSession = false;
         _sessionError =
@@ -141,6 +145,7 @@ class _PrincipalState extends State<Principal>
       setState(() {
         _loadingSession = false;
         _sessionError = 'Respuesta inesperada de /users/session';
+        _studentPreferences = const {};
       });
       return;
     }
@@ -156,6 +161,26 @@ class _PrincipalState extends State<Principal>
     final perfilLabel = data['perfil_label']?.toString();
     final permissions = data['permissions'];
     final progress = data['progress'];
+    final preferences = data['preferences'];
+    final loadedPreferences = preferences is Map
+        ? Map<String, dynamic>.from(preferences)
+        : <String, dynamic>{};
+    final idUsuario = userData is Map
+        ? int.tryParse(userData['id_usuario']?.toString() ?? '')
+        : null;
+    if (perfilTipo == 'estudiante' && idUsuario != null) {
+      final prefs = await SharedPreferences.getInstance();
+      final localColor = prefs.getString('student_favorite_color_$idUsuario');
+      final localAnimal = prefs.getString('student_favorite_animal_$idUsuario');
+      if (!loadedPreferences.containsKey('colores_favoritos') &&
+          localColor?.isNotEmpty == true) {
+        loadedPreferences['colores_favoritos'] = [localColor!];
+      }
+      if (!loadedPreferences.containsKey('mascota') &&
+          localAnimal?.isNotEmpty == true) {
+        loadedPreferences['mascota'] = localAnimal!;
+      }
+    }
 
     setState(() {
       _nombreUsuario = nombreUsuario?.isNotEmpty == true
@@ -170,6 +195,9 @@ class _PrincipalState extends State<Principal>
           : const {};
       _progress = progress is Map
           ? Map<String, dynamic>.from(progress)
+          : const {};
+      _studentPreferences = perfilTipo == 'estudiante'
+          ? loadedPreferences
           : const {};
       _loadingSession = false;
       _sessionError = null;
@@ -333,6 +361,69 @@ class _PrincipalState extends State<Principal>
 
   bool _can(String permission) => _permissions[permission] == true;
 
+  bool get _isStudentProfile => _perfilTipo == 'estudiante';
+
+  Color get _studentAccentColor {
+    if (!_isStudentProfile) return AppPersonalizacion.defaultAccent;
+    return AppPersonalizacion.accentFromPreferences(_studentPreferences);
+  }
+
+  String get _studentFavoriteAnimal {
+    if (!_isStudentProfile) return 'Pájaro';
+    final animal = _studentPreferences['mascota']?.toString().trim() ?? '';
+    return animal.isNotEmpty ? animal : 'Pájaro';
+  }
+
+  String _animalEmoji(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'perro':
+        return '🐶';
+      case 'gato':
+        return '🐱';
+      case 'pájaro':
+      case 'pajaro':
+        return '🦜';
+      case 'pez':
+        return '🐠';
+      case 'conejo':
+        return '🐰';
+      case 'hámster':
+      case 'hamster':
+        return '🐹';
+      case 'no tengo/no me gustan':
+        return '🌿';
+      default:
+        return '🐾';
+    }
+  }
+
+  Widget _buildStudentAnimalAvatar({
+    required double radius,
+    required Color accentColor,
+    String fallbackAsset = 'assets/imagenes/quetzal_1.png',
+  }) {
+    final animal = _studentFavoriteAnimal;
+    final normalized = animal.trim().toLowerCase();
+    if (normalized == 'pájaro' || normalized == 'pajaro') {
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: EdgeInsets.all(radius * 0.14),
+          child: Image.asset(fallbackAsset, fit: BoxFit.contain),
+        ),
+      );
+    }
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: Color.lerp(Colors.white, accentColor, 0.08),
+      child: Text(
+        _animalEmoji(animal),
+        style: TextStyle(fontSize: radius * 1.05),
+      ),
+    );
+  }
+
   String get _crisisSubtitle {
     if (_progress['ansiedad_desbloqueado'] == true) {
       return 'Ansiedad ya está desbloqueado según la base';
@@ -416,7 +507,9 @@ class _PrincipalState extends State<Principal>
   Widget _buildBody() {
     switch (_selectedIndex) {
       case 0:
-        return const ChatbotSerena();
+        return ChatbotSerena(
+          accentColor: _isStudentProfile ? _studentAccentColor : null,
+        );
       case 1:
         return SingleChildScrollView(child: _buildInicio(context));
       default:
@@ -434,7 +527,7 @@ class _PrincipalState extends State<Principal>
       fontWeight: FontWeight.bold,
       color: isDarkMode
           ? Colors.white
-          : const Color(0xFF2E7D32), // Verde oscuro
+          : (_isStudentProfile ? _studentAccentColor : const Color(0xFF2E7D32)),
       height: 1.2,
     );
 
@@ -468,6 +561,9 @@ class _PrincipalState extends State<Principal>
                 _HomeDailyBannersSection(
                   perfilTipo: _perfilTipo,
                   isDarkMode: isDarkMode,
+                  accentColor: _isStudentProfile
+                      ? _studentAccentColor
+                      : const Color(0xFF2E7D32),
                 ),
               ],
             ],
@@ -573,12 +669,35 @@ class _PrincipalState extends State<Principal>
               offset: birdOffset,
               child: Transform.rotate(
                 angle: wave * 0.035,
-                child: Image.asset(
-                  'assets/imagenes/quetzal_3.png',
-                  height: 140,
-                  width: 140,
-                  fit: BoxFit.contain,
-                ),
+                child: _isStudentProfile
+                    ? Container(
+                        width: 128,
+                        height: 128,
+                        decoration: BoxDecoration(
+                          color: _studentAccentColor.withValues(alpha: 0.14),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: _studentAccentColor.withValues(alpha: 0.18),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: _buildStudentAnimalAvatar(
+                            radius: 49,
+                            accentColor: _studentAccentColor,
+                            fallbackAsset: 'assets/imagenes/quetzal_3.png',
+                          ),
+                        ),
+                      )
+                    : Image.asset(
+                        'assets/imagenes/quetzal_3.png',
+                        height: 140,
+                        width: 140,
+                        fit: BoxFit.contain,
+                      ),
               ),
             ),
           ],
@@ -589,6 +708,7 @@ class _PrincipalState extends State<Principal>
 
   List<Widget> _homeCardsForRole(BuildContext context) {
     final cards = <Widget>[];
+    final studentPalette = AppPersonalizacion.palette(_studentAccentColor);
 
     if (_can('can_monitor_responses')) {
       cards.add(
@@ -637,7 +757,7 @@ class _PrincipalState extends State<Principal>
               ? "Acompañamiento familiar"
               : "¿Pensamientos suicidas?",
           subtitle: _crisisSubtitle,
-          color: const Color(0xFF66BB6A),
+          color: _isStudentProfile ? _studentAccentColor : const Color(0xFF66BB6A),
           onTap: () {
             Navigator.push(
               context,
@@ -681,7 +801,9 @@ class _PrincipalState extends State<Principal>
           imagePath: 'assets/imagenes/quetzal_8.png',
           title: "TCG Salud Mental",
           subtitle: "Usa tu conocimiento y enfrentate al Boss",
-          color: const Color(0xFFA5D6A7),
+          color: _isStudentProfile
+              ? AppPersonalizacion.lighten(studentPalette[0], 0.52)
+              : const Color(0xFFA5D6A7),
           textColor: Colors.black87,
           onTap: () {
             Navigator.push(
@@ -1244,7 +1366,10 @@ class _PrincipalState extends State<Principal>
   Widget _buildDrawer(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    final primaryGreen = const Color(0xFF43A047);
+    final primaryGreen = _isStudentProfile
+        ? _studentAccentColor
+        : const Color(0xFF43A047);
+    final drawerPalette = AppPersonalizacion.palette(primaryGreen);
     final isAdmin = _can('can_monitor_responses');
     final roleLabel = _perfilLabel.isEmpty
         ? _roleLabel(_perfilTipo)
@@ -1265,9 +1390,18 @@ class _PrincipalState extends State<Principal>
             padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: isDarkMode
-                    ? [const Color(0xFF1B5E20), const Color(0xFF2E7D32)]
-                    : [const Color(0xFF43A047), const Color(0xFF66BB6A)],
+                colors: _isStudentProfile
+                    ? AppPersonalizacion.gradient(
+                        primaryGreen,
+                        dark: isDarkMode,
+                      )
+                    : (isDarkMode
+                        ? [const Color(0xFF1B5E20), const Color(0xFF2E7D32)]
+                        : [
+                            primaryGreen,
+                            Color.lerp(primaryGreen, Colors.white, 0.28) ??
+                                primaryGreen,
+                          ]),
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -1284,17 +1418,22 @@ class _PrincipalState extends State<Principal>
                     color: Colors.white.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                   ),
-                  child: const CircleAvatar(
-                    radius: 35,
-                    backgroundColor: Colors.white,
-                    child: Padding(
-                      padding: EdgeInsets.all(5.0),
-                      child: Image(
-                        image: AssetImage('assets/imagenes/quetzal_1.png'),
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
+                  child: _isStudentProfile
+                      ? _buildStudentAnimalAvatar(
+                          radius: 35,
+                          accentColor: primaryGreen,
+                        )
+                      : const CircleAvatar(
+                          radius: 35,
+                          backgroundColor: Colors.white,
+                          child: Padding(
+                            padding: EdgeInsets.all(5.0),
+                            child: Image(
+                              image: AssetImage('assets/imagenes/quetzal_1.png'),
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 15),
                 Text(
@@ -1337,7 +1476,7 @@ class _PrincipalState extends State<Principal>
                   icon: Icons.settings_outlined,
                   title: "Configuración",
                   onTap: () => Navigator.pop(context),
-                  color: Colors.orange,
+                  color: _isStudentProfile ? drawerPalette[1] : Colors.orange,
                 ),
                 _buildDrawerItem(
                   icon: Icons.notifications_none_rounded,
@@ -1346,7 +1485,7 @@ class _PrincipalState extends State<Principal>
                     Navigator.pop(context);
                     _showMailbox();
                   },
-                  color: Colors.blue,
+                  color: _isStudentProfile ? drawerPalette[2] : Colors.blue,
                 ),
                 if (isAdmin) ...[
                   Divider(
@@ -1388,7 +1527,7 @@ class _PrincipalState extends State<Principal>
                   icon: Icons.info_outline_rounded,
                   title: "Acerca de",
                   onTap: () => Navigator.pop(context),
-                  color: Colors.purple,
+                  color: _isStudentProfile ? drawerPalette[4] : Colors.purple,
                 ),
               ],
             ),
@@ -1522,7 +1661,9 @@ class _PrincipalState extends State<Principal>
 
   Widget _buildNavBarItem(int index, IconData icon, String label) {
     final isSelected = _selectedIndex == index;
-    final primaryGreen = const Color(0xFF43A047);
+    final primaryGreen = _isStudentProfile
+        ? _studentAccentColor
+        : const Color(0xFF43A047);
     final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
 
     return InkWell(
@@ -1566,10 +1707,12 @@ class _HomeDailyBannersSection extends StatelessWidget {
   const _HomeDailyBannersSection({
     required this.perfilTipo,
     required this.isDarkMode,
+    required this.accentColor,
   });
 
   final String perfilTipo;
   final bool isDarkMode;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1586,7 +1729,7 @@ class _HomeDailyBannersSection extends StatelessWidget {
           children: [
             Icon(
               Icons.calendar_month_rounded,
-              color: isDarkMode ? Colors.white70 : const Color(0xFF2E7D32),
+              color: isDarkMode ? Colors.white70 : accentColor,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -1612,6 +1755,7 @@ class _HomeDailyBannersSection extends StatelessWidget {
             itemBuilder: (context, index) => _HomeDailyBannerCard(
               banner: banners[index],
               isDarkMode: isDarkMode,
+              accentColor: perfilTipo == 'estudiante' ? accentColor : null,
             ),
           ),
         ),
@@ -1624,17 +1768,22 @@ class _HomeDailyBannerCard extends StatelessWidget {
   const _HomeDailyBannerCard({
     required this.banner,
     required this.isDarkMode,
+    this.accentColor,
   });
 
   final _HomeDailyBanner banner;
   final bool isDarkMode;
+  final Color? accentColor;
 
   @override
   Widget build(BuildContext context) {
+    final color = accentColor == null
+        ? banner.color
+        : Color.lerp(banner.color, accentColor, banner.featured ? 0.45 : 0.28)!;
     final background = isDarkMode
-        ? banner.color.withValues(alpha: 0.20)
+        ? color.withValues(alpha: 0.20)
         : banner.featured
-        ? banner.color.withValues(alpha: 0.18)
+        ? color.withValues(alpha: 0.18)
         : Colors.white;
     final textColor = isDarkMode ? Colors.white : const Color(0xFF102F1B);
     final mutedColor = isDarkMode ? Colors.white70 : const Color(0xFF4B6354);
@@ -1659,13 +1808,13 @@ class _HomeDailyBannerCard extends StatelessWidget {
               color: background,
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: banner.color.withValues(alpha: isDarkMode ? 0.30 : 0.22),
+                color: color.withValues(alpha: isDarkMode ? 0.30 : 0.22),
               ),
               boxShadow: isDarkMode
                   ? []
                   : [
                       BoxShadow(
-                        color: banner.color.withValues(alpha: 0.12),
+                        color: color.withValues(alpha: 0.12),
                         blurRadius: 14,
                         offset: const Offset(0, 6),
                       ),
@@ -1690,7 +1839,7 @@ class _HomeDailyBannerCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: banner.featured ? Colors.white : banner.color,
+                      color: banner.featured ? Colors.white : color,
                       fontWeight: FontWeight.w900,
                       fontSize: 11,
                     ),
@@ -1702,10 +1851,10 @@ class _HomeDailyBannerCard extends StatelessWidget {
                     height: 72,
                     width: 72,
                     decoration: BoxDecoration(
-                      color: banner.color.withValues(alpha: 0.14),
+                      color: color.withValues(alpha: 0.14),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(banner.icon, color: banner.color, size: 42),
+                    child: Icon(banner.icon, color: color, size: 42),
                   ),
                 ),
                 const Spacer(),

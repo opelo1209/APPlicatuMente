@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../admin/editor_cuestionarios_admin.dart';
 import '../servicios/user.dart';
+import '../servicios/personalizacion.dart';
 import '../theme_provider.dart';
 import 'modulo_autolesiones.dart';
 import 'modulo_ansiedad.dart';
@@ -19,6 +20,7 @@ class SelectorModuloCrisis extends StatefulWidget {
 class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
   Map<String, dynamic> _permissions = const {};
   String _perfilTipo = '';
+  Color _accentColor = AppPersonalizacion.defaultAccent;
   bool _loadingProgress = true;
   bool _autolesionCompletado = false;
   bool _suicidioCompletado = false;
@@ -50,6 +52,12 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
       final data = sessionResult['data'];
       if (data is Map) {
         perfilTipo = data['perfil_tipo']?.toString() ?? '';
+        final preferences = data['preferences'];
+        if (perfilTipo == 'estudiante' && preferences is Map) {
+          _accentColor = AppPersonalizacion.accentFromPreferences(
+            Map<String, dynamic>.from(preferences),
+          );
+        }
         final rawPermissions = data['permissions'];
         permissions = rawPermissions is Map
             ? Map<String, dynamic>.from(rawPermissions)
@@ -132,7 +140,13 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
                       padding: const EdgeInsets.all(24),
                       physics: const BouncingScrollPhysics(),
                       children: [
-                        _InfoBox(isDarkMode: isDarkMode, isAdmin: _isAdmin),
+                        _InfoBox(
+                          isDarkMode: isDarkMode,
+                          isAdmin: _isAdmin,
+                          color: _perfilTipo == 'estudiante'
+                              ? _accentColor
+                              : AppPersonalizacion.defaultAccent,
+                        ),
                         const SizedBox(height: 30),
 
                         if (_isAdmin) ...[
@@ -154,7 +168,9 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
                                 ? 'Este cuestionario ya fue respondido. Continúa con el siguiente módulo.'
                                 : 'Información clara sobre la autolesión no suicida, funciones y un breve cuestionario.',
                             icon: Icons.health_and_safety_outlined,
-                            color: const Color(0xFF00897B),
+                            color: _perfilTipo == 'estudiante'
+                                ? _accentColor
+                                : const Color(0xFF00897B),
                             isDarkMode: isDarkMode,
                             enabled: !_autolesionCompletado,
                             statusLabel: _autolesionCompletado
@@ -173,7 +189,9 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
                                 ? 'Este cuestionario ya fue respondido. Continúa con el siguiente módulo.'
                                 : 'Conoce las señales, comprende factores de riesgo y evalúa la situación de forma segura.',
                             icon: Icons.favorite_border_rounded,
-                            color: const Color(0xFF43A047),
+                            color: _perfilTipo == 'estudiante'
+                                ? AppPersonalizacion.darken(_accentColor, 0.12)
+                                : const Color(0xFF43A047),
                             isDarkMode: isDarkMode,
                             enabled: !_suicidioCompletado,
                             statusLabel: _suicidioCompletado
@@ -193,7 +211,9 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
                                 ? 'Módulo desbloqueado. Revisa la información y responde el cuestionario.'
                                 : 'Se desbloquea al completar Autolesiones y Riesgo de suicidio.',
                             icon: Icons.self_improvement_rounded,
-                            color: const Color(0xFF5C6BC0),
+                            color: _perfilTipo == 'estudiante'
+                                ? AppPersonalizacion.lighten(_accentColor, 0.18)
+                                : const Color(0xFF5C6BC0),
                             isDarkMode: isDarkMode,
                             enabled: _ansiedadDisponible && !_ansiedadCompletado,
                             statusLabel: _ansiedadCompletado
@@ -215,7 +235,9 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
                                 ? 'Módulo desbloqueado. El contenido informativo se integrará próximamente.'
                                 : 'Se desbloquea al completar Ansiedad.',
                             icon: Icons.spa_outlined,
-                            color: const Color(0xFF00897B),
+                            color: _perfilTipo == 'estudiante'
+                                ? AppPersonalizacion.darken(_accentColor, 0.22)
+                                : const Color(0xFF00897B),
                             isDarkMode: isDarkMode,
                             enabled: _sustanciasDisponible,
                             statusLabel: _sustanciasDisponible
@@ -254,7 +276,12 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
 class _InfoBox extends StatelessWidget {
   final bool isDarkMode;
   final bool isAdmin;
-  const _InfoBox({required this.isDarkMode, required this.isAdmin});
+  final Color color;
+  const _InfoBox({
+    required this.isDarkMode,
+    required this.isAdmin,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -281,12 +308,12 @@ class _InfoBox extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF43A047).withValues(alpha: 0.12),
+                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.info_outline_rounded,
-                  color: Color(0xFF43A047),
+                  color: color,
                   size: 22,
                 ),
               ),

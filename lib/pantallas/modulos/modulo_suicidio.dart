@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:aptm/text_utils.dart';
 import '../cuestionarios/cuestionarios_modulo1.dart';
+import '../servicios/personalizacion.dart';
 import '../servicios/user.dart';
+import 'parent_triptych.dart';
+import 'teen_info_carousel.dart';
 
 class ModuloSuicidio extends StatefulWidget {
   const ModuloSuicidio({super.key});
@@ -12,6 +15,7 @@ class ModuloSuicidio extends StatefulWidget {
 
 class _ModuloSuicidioState extends State<ModuloSuicidio> {
   bool _isForTeens = true;
+  Color _accentColor = AppPersonalizacion.defaultAccent;
 
   @override
   void initState() {
@@ -26,6 +30,12 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
       final data = result['data'];
       if (data is Map) {
         perfilTipo = data['perfil_tipo']?.toString() ?? perfilTipo;
+        final preferences = data['preferences'];
+        if (perfilTipo == 'estudiante' && preferences is Map) {
+          _accentColor = AppPersonalizacion.accentFromPreferences(
+            Map<String, dynamic>.from(preferences),
+          );
+        }
       }
     }
     if (!mounted) return;
@@ -36,18 +46,20 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
 
   @override
   Widget build(BuildContext context) {
+    final teenPalette = AppPersonalizacion.palette(_accentColor);
+    final heroAccent = _isForTeens ? _accentColor : Colors.redAccent;
     // Textos dinámicos basados en la selección
     final String bloque1Title = 'Bloque 1: Depresión (PHQ-9)';
     final String bloque1Content = _isForTeens
-        ? 'Este bloque sirve para ver si has tenido señales de depresión en las últimas semanas, como:\n\n• Sentirte muy triste o sin ganas de hacer cosas\n• Perder el interés en lo que antes te gustaba\n• Dormir mal o tener cambios en el apetito\n• Sentirte sin energía\n• Tener pensamientos de culpa o sentirte mal contigo mismo'
-        : 'Identifica la presencia y severidad de síntomas depresivos como tristeza profunda, pérdida de interés, problemas de sueño o apetito, falta de energía y sentimientos de culpa durante las últimas semanas.';
+        ? 'Revisa señales recientes como:\n\n• Tristeza fuerte.\n• Pocas ganas de hacer cosas.\n• Cambios de sueño o apetito.\n• Cansancio.\n• Culpa o sentirte mal contigo.'
+        : 'Explora señales recientes de depresión: tristeza, pérdida de interés, sueño o apetito alterado, cansancio y culpa.';
 
     final String bloque2Title = _isForTeens
         ? 'Bloque 2: Pensamientos sobre morir (C-SSRS)'
         : 'Bloque 2: Ideación (C-SSRS)';
     final String bloque2Content = _isForTeens
-        ? 'Ayuda a entender qué tan fuertes son los pensamientos sobre la muerte. Puede ir desde pensar que quisieras desaparecer o no existir, hasta tener ideas más claras de hacerte daño o incluso pensar en cómo hacerlo.'
-        : 'Analiza, de forma escalonada, la severidad de pensamientos suicidas: desde el simple deseo de estar muerto, hasta la ideación activa con intención y planes estructurados.';
+        ? 'Ayuda a ubicar pensamientos como:\n\n• Querer desaparecer.\n• Sentir que no quieres existir.\n• Pensar en hacerte daño.\n\nResponder con honestidad ayuda a pedir apoyo adecuado.'
+        : 'Identifica el nivel de ideación: desde deseo de no existir hasta pensamientos con intención o plan.';
 
     final String factoresTitle = _isForTeens
         ? 'Comprendiendo lo que pasa en tu cuerpo y mente'
@@ -57,26 +69,90 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
         ? 'Desarrollo del cerebro'
         : 'Desarrollo Cerebral';
     final String devCerebralDesc = _isForTeens
-        ? 'Durante la adolescencia, tu cerebro todavía se está formando. La parte que ayuda a tomar decisiones y controlar impulsos aún no está completamente desarrollada, por eso a veces las emociones pueden sentirse muy intensas o difíciles de controlar.'
-        : 'En la adolescencia y juventud temprana, el córtex prefrontal aún está en desarrollo, lo que puede limitar el control de impulsos frente al desbordamiento emocional.';
+        ? 'Tu cerebro aún está aprendiendo a decidir y frenar impulsos. Por eso algunas emociones pueden sentirse enormes.'
+        : 'El córtex prefrontal aún está en desarrollo, lo que puede dificultar controlar impulsos durante crisis emocionales.';
 
     final String quimicaTitle = _isForTeens
         ? 'Química del cerebro'
         : 'Química del Cerebro';
     final String quimicaDesc = _isForTeens
-        ? 'En el cerebro hay sustancias (como serotonina y dopamina) que influyen en cómo te sientes. Cuando hay un desbalance, las emociones pueden sentirse mucho más fuertes, especialmente el dolor emocional.'
-        : 'Desequilibrios en neurotransmisores (como serotonina y dopamina) alteran la percepción y hacen que el dolor emocional se experimente de forma mucho más intensa.';
+        ? 'Sustancias como serotonina y dopamina influyen en tu ánimo. Si se desbalancean, el dolor emocional puede sentirse más fuerte.'
+        : 'Cambios en neurotransmisores pueden intensificar el dolor emocional y alterar la percepción del problema.';
 
     final String estresTitle = _isForTeens
         ? 'Estrés y sobrecarga'
         : 'Estrés y Sobrecarga';
     final String estresDesc = _isForTeens
-        ? 'Cuando pasas por mucho estrés o situaciones difíciles por mucho tiempo, tu cuerpo se cansa y le cuesta más trabajo manejar lo que sientes.'
-        : 'Situaciones prolongadas de estrés o traumas agotan la capacidad natural del cuerpo (Eje HPA) para regularse y manejar la adversidad.';
+        ? 'Mucho estrés por mucho tiempo cansa al cuerpo y vuelve más difícil manejar lo que sientes.'
+        : 'Estrés prolongado o trauma puede agotar la capacidad del cuerpo para regularse.';
 
     final String esperanzaMsg = _isForTeens
-        ? 'No tienes que pasar por esto solo.\nHablar con alguien de confianza, como un familiar, amigo o profesional, puede ayudarte a sentirte mejor. Ser honesto sobre lo que sientes es un paso importante para encontrar apoyo.'
-        : 'La evaluación temprana salva vidas. Responder con honestidad ayuda a encontrar el mejor camino hacia el bienestar de sus seres queridos.';
+        ? 'No tienes que cargar esto solo.\n\nHabla con alguien de confianza o con un profesional. Pedir ayuda cuenta.'
+        : 'La evaluación temprana orienta el apoyo. Escuchar, creer y actuar a tiempo puede marcar la diferencia.';
+
+    final List<TeenInfoCardData> teenCards = [
+      TeenInfoCardData(
+        title: bloque1Title,
+        body: bloque1Content,
+        icon: Icons.quiz_rounded,
+        color: teenPalette[0],
+      ),
+      TeenInfoCardData(
+        title: bloque2Title,
+        body: bloque2Content,
+        icon: Icons.fact_check_rounded,
+        color: Colors.deepOrange,
+      ),
+      TeenInfoCardData(
+        title: devCerebralTitle,
+        body: devCerebralDesc,
+        icon: Icons.psychology_rounded,
+        color: teenPalette[1],
+      ),
+      TeenInfoCardData(
+        title: quimicaTitle,
+        body: quimicaDesc,
+        icon: Icons.science_rounded,
+        color: teenPalette[2],
+      ),
+      TeenInfoCardData(
+        title: estresTitle,
+        body: estresDesc,
+        icon: Icons.monitor_heart_rounded,
+        color: teenPalette[3],
+      ),
+      TeenInfoCardData(
+        title: 'Hay ayuda disponible',
+        body: esperanzaMsg,
+        icon: Icons.volunteer_activism_rounded,
+        color: teenPalette[0],
+      ),
+    ];
+
+    final List<ParentTriptychPanel> parentPanels = [
+      ParentTriptychPanel(
+        title: 'Evaluar',
+        subtitle: 'Qué revisa el cuestionario',
+        body: '$bloque1Content\n\n$bloque2Content',
+        icon: Icons.fact_check_rounded,
+        color: Colors.indigo,
+      ),
+      ParentTriptychPanel(
+        title: 'Factores',
+        subtitle: 'Qué puede estar pasando en cuerpo y mente',
+        body:
+            '$devCerebralDesc\n\n$quimicaDesc\n\n$estresDesc',
+        icon: Icons.psychology_rounded,
+        color: Colors.purple,
+      ),
+      ParentTriptychPanel(
+        title: 'Acompañar',
+        subtitle: 'La evaluación temprana abre caminos de apoyo',
+        body: esperanzaMsg,
+        icon: Icons.volunteer_activism_rounded,
+        color: Colors.teal,
+      ),
+    ];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), // Fondo suave y minimalista
@@ -135,12 +211,12 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Colors.redAccent.withValues(alpha: 0.1),
+                                  color: heroAccent.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.medical_information_rounded,
-                                  color: Colors.redAccent,
+                                  color: heroAccent,
                                   size: 28,
                                 ),
                               ),
@@ -177,117 +253,29 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
               ),
               const SizedBox(height: 28),
 
-              const Text(
-                'Estructura del Cuestionario',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D3748),
+              if (_isForTeens) ...[
+                const Text(
+                  'Información Clave',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2D3748),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildSection(
-                title: bloque1Title,
-                content: bloque1Content,
-                icon: Icons.quiz_rounded,
-                color: Colors.indigo,
-              ),
-              _buildSection(
-                title: bloque2Title,
-                content: bloque2Content,
-                icon: Icons.fact_check_rounded,
-                color: Colors.deepOrange,
-              ),
-
-              const SizedBox(height: 32),
-
-              Text(
-                factoresTitle,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D3748),
+                const SizedBox(height: 16),
+                TeenInfoCarousel(cards: teenCards),
+              ] else ...[
+                const Text(
+                  'Guía para familias',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2D3748),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-
-              _buildModernCard(
-                title: devCerebralTitle,
-                description: devCerebralDesc,
-                icon: Icons.psychology_rounded,
-                color: Colors.purple,
-              ),
-              _buildModernCard(
-                title: quimicaTitle,
-                description: quimicaDesc,
-                icon: Icons.science_rounded,
-                color: Colors.blueAccent,
-              ),
-              _buildModernCard(
-                title: estresTitle,
-                description: estresDesc,
-                icon: Icons.monitor_heart_rounded,
-                color: Colors.teal,
-              ),
-
-              const SizedBox(height: 32),
-
-              // Mensaje de Esperanza
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.indigo.shade50,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.indigo.shade100, width: 1.5),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.volunteer_activism_rounded,
-                        color: Colors.indigo,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Hay ayuda disponible',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.indigo,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            esperanzaMsg,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              height: 1.4,
-                              color: Color(0xFF4A5568),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                const SizedBox(height: 16),
+                ParentTriptych(panels: parentPanels),
+              ],
 
               const SizedBox(height: 40),
 
@@ -297,7 +285,10 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFE53935).withValues(alpha: 0.3),
+                      color: (_isForTeens
+                              ? _accentColor
+                              : const Color(0xFFE53935))
+                          .withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -330,12 +321,9 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(
-                        255,
-                        62,
-                        53,
-                        229,
-                      ), // Rojo intenso para la acción
+                      backgroundColor: _isForTeens
+                          ? _accentColor
+                          : const Color.fromARGB(255, 62, 53, 229),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),

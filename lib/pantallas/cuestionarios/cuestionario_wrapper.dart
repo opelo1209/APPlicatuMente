@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme_provider.dart';
 import '../principal.dart';
 import 'paso_preferencias.dart';
-import 'paso_escritura.dart';
 import '../servicios/user.dart';
 
 class CuestionarioWrapper extends StatefulWidget {
@@ -17,14 +16,11 @@ class CuestionarioWrapper extends StatefulWidget {
 class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 2; // Preferencias + Escritura
+  final int _totalPages = 1; // Solo preferencias/gustos.
 
   // Estado compartido
   final Map<String, dynamic> _respuestas = {
     'preferencias': <String, dynamic>{},
-    'sentimientos': '',
-    'gustos': '',
-    'datos': '',
   };
 
   void _nextPage() {
@@ -43,11 +39,25 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
     await prefs.setBool('cuestionario_completado', true);
     final perfilTipo = prefs.getString('perfil_tipo') ?? 'estudiante';
     final idUsuario = prefs.getInt('id_usuario');
+    final preferencias = _respuestas['preferencias'];
     if (idUsuario != null) {
       await prefs.setBool(
         'cuestionario_completado_${perfilTipo}_$idUsuario',
         true,
       );
+      if (perfilTipo == 'estudiante' && preferencias is Map) {
+        final colores = preferencias['colores_favoritos'];
+        final mascota = preferencias['mascota']?.toString() ?? '';
+        if (colores is List && colores.isNotEmpty) {
+          await prefs.setString(
+            'student_favorite_color_$idUsuario',
+            colores.first.toString(),
+          );
+        }
+        if (mascota.isNotEmpty) {
+          await prefs.setString('student_favorite_animal_$idUsuario', mascota);
+        }
+      }
     }
 
     debugPrint("Respuestas Finales: $_respuestas");
@@ -186,14 +196,6 @@ class _CuestionarioWrapperState extends State<CuestionarioWrapper> {
                     onCompleted: (resultados) {
                       _respuestas['preferencias'] = resultados;
                       _nextPage();
-                    },
-                  ),
-                  PasoEscritura(
-                    onCompleted: (sentimientos, gustos, datos) {
-                      _respuestas['sentimientos'] = sentimientos;
-                      _respuestas['gustos'] = gustos;
-                      _respuestas['datos'] = datos;
-                      _finishQuestionnaire();
                     },
                   ),
                 ],

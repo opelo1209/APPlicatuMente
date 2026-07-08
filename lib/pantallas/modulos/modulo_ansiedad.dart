@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:aptm/text_utils.dart';
 import '../cuestionarios/cuestionario_ansiedad.dart';
+import '../servicios/personalizacion.dart';
 import '../servicios/user.dart';
+import 'parent_triptych.dart';
+import 'teen_info_carousel.dart';
 
 class ModuloAnsiedad extends StatefulWidget {
   const ModuloAnsiedad({super.key});
@@ -12,6 +15,7 @@ class ModuloAnsiedad extends StatefulWidget {
 
 class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
   bool _isForTeens = true;
+  Color _accentColor = AppPersonalizacion.defaultAccent;
 
   @override
   void initState() {
@@ -26,6 +30,12 @@ class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
       final data = result['data'];
       if (data is Map) {
         perfilTipo = data['perfil_tipo']?.toString() ?? perfilTipo;
+        final preferences = data['preferences'];
+        if (perfilTipo == 'estudiante' && preferences is Map) {
+          _accentColor = AppPersonalizacion.accentFromPreferences(
+            Map<String, dynamic>.from(preferences),
+          );
+        }
       }
     }
     if (!mounted) return;
@@ -36,6 +46,7 @@ class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
 
   @override
   Widget build(BuildContext context) {
+    final teenPalette = AppPersonalizacion.palette(_accentColor);
     final String heroTitle = _isForTeens
       ? '¿Me preocupa la\nAnsiedad?'
       : 'Ansiedad en jóvenes';
@@ -46,92 +57,134 @@ class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
     final String introTitle = _isForTeens
       ? '¿Qué es la ansiedad?'
       : '¿Qué deben saber las familias?';
-    final Widget introContent = _isForTeens
-      ? Image.asset(
-          'assets/imagenes/ansiedad/1-que_es.png',
-          fit: BoxFit.contain,
-        )
-      : const Text(
-          'La ansiedad es una reacción normal ante estrés, incertidumbre o sensación de amenaza. Puede manifestarse con preocupaciones frecuentes, nerviosismo, cambios físicos como sudoración o tensión muscular, y conductas de evitación.'
-        );
+    const String parentIntroContent =
+      'La ansiedad puede ser normal, pero preocupa cuando domina la vida diaria.\n\nSe puede notar en:\n• Preocupación frecuente.\n• Nerviosismo o tensión.\n• Evitación.\n• Cambios físicos como sudoración o tensión muscular.';
 
     final String warningMsg = _isForTeens
-      ? 'Puede convertirse en un problema cuando el miedo o la preocupación son muy intensos, duran varios meses o afectan tu escuela, amistades, familia o actividades diarias.'
-      : 'Debe preocuparnos cuando la intensidad es desproporcionada, los síntomas persisten durante varios meses o impactan la escuela, la convivencia familiar, las relaciones sociales o el bienestar emocional.';
+      ? 'Pide apoyo si el miedo es muy intenso, dura mucho o afecta escuela, amistades, familia o actividades.'
+      : 'Atención si los síntomas persisten, son muy intensos o afectan escuela, familia, amistades o bienestar.';
 
-    final Widget typesContent = _isForTeens
-      ? Image.asset(
-        'assets/imagenes/ansiedad/2-tipos_de_trastornos.png',
-        fit: BoxFit.contain,
-      )
-      : const Text(
-        '• Ansiedad generalizada: preocupación excesiva sobre múltiples aspectos de la vida diaria.\n• Ansiedad social: miedo intenso a ser observado, evaluado o rechazado.\n• Trastorno de pánico: episodios repentinos de miedo intenso con síntomas físicos.\n• Agorafobia: temor a situaciones donde escapar o recibir ayuda podría ser difícil.\n• Fobias específicas: miedo intenso a objetos o situaciones concretas.'
-      );
+    const String parentTypesContent =
+      'Tipos frecuentes:\n\n• Generalizada: preocupación excesiva.\n• Social: miedo a juicio o rechazo.\n• Pánico: miedo intenso repentino.\n• Fobias: miedo fuerte a algo específico.';
 
     final String diagnosisTitle = _isForTeens
       ? '¿Cómo se diagnostica?'
       : 'Evaluación profesional';
-    final Widget diagnosisContent = _isForTeens
-      ? Image.asset(
-        'assets/imagenes/ansiedad/3-diagnostico.png',
-        fit: BoxFit.contain,
-      )
-      : const Text(
-        'La evaluación debe realizarla un profesional de la salud. Puede explorar síntomas, antecedentes y funcionamiento diario del joven, además de usar cuestionarios o evaluaciones médicas complementarias.'
-      );
+    const String parentDiagnosisContent =
+      'La evaluación debe hacerla un profesional. Revisa síntomas, antecedentes, funcionamiento diario y puede usar cuestionarios.';
         
-    final Widget treatmentContent = _isForTeens
-      ? Image.asset(
-        'assets/imagenes/ansiedad/4-tratamiento.png',
-        fit: BoxFit.contain,
-      )
-      : const Text(
-        'La evidencia indica que las intervenciones más efectivas suelen incluir psicoterapia, estrategias de autocuidado y manejo emocional, y medicación cuando está clínicamente indicada. En algunos casos, combinar terapia y medicación ofrece mejores resultados.'
-      );
+    const String parentTreatmentContent =
+      'El tratamiento suele combinar psicoterapia, autocuidado, manejo emocional y medicación cuando está indicada.';
 
-    final Widget therapyContent = _isForTeens
-      ? Image.asset(
-        'assets/imagenes/ansiedad/5-terapia.png',
-        fit: BoxFit.contain,
-      )
-      : const Text(
-        'La Terapia Cognitivo-Conductual (TCC) tiene amplio respaldo científico. Ayuda a los jóvenes a identificar patrones de pensamiento y conducta que mantienen la ansiedad, y a desarrollar herramientas para afrontarla de manera saludable.'
-      );
+    const String parentTherapyContent =
+      'La TCC ayuda a identificar pensamientos y conductas que mantienen la ansiedad, y enseña herramientas para afrontarla.';
 
     final String actionTitle = _isForTeens
       ? '¿Qué puedes hacer por tu cuenta?'
       : '¿Cómo apoyar desde casa?';
 
-    final Widget actionContent = _isForTeens
-      ? Image.asset(
-        'assets/imagenes/ansiedad/6-actividades.png',
-        fit: BoxFit.contain,
-      )
-      : const Text(
-        '• Fomentar rutinas saludables.\n• Promover respiración y relajación.\n• Practicar mindfulness o atención plena.\n• Escuchar sin minimizar sus emociones.\n• Buscar apoyo profesional si los síntomas persisten o aumentan.'
-      );
+    const String parentActionContent =
+      '• Fomentar rutinas saludables.\n• Promover respiración y relajación.\n• Practicar mindfulness o atención plena.\n• Escuchar sin minimizar sus emociones.\n• Buscar apoyo profesional si los síntomas persisten o aumentan.';
     
-    final Widget medicationMsg = _isForTeens
-      ? Image.asset(
-        'assets/imagenes/ansiedad/7-medicamentos.png',
-        fit: BoxFit.contain,
-      )
-      : const Text(
-        'Algunos medicamentos pueden ayudar, pero suelen tardar entre 4 y 6 semanas en alcanzar su máximo beneficio. No deben suspenderse sin supervisión médica. En menores de 24 años se debe vigilar cualquier señal de alarma al iniciar ciertos tratamientos.'
-      );
+    const String parentMedicationMsg =
+      'Los medicamentos pueden ayudar, pero requieren seguimiento médico. No deben iniciarse ni suspenderse sin supervisión.';
       
     final String footerTitle = _isForTeens
       ? 'Pedir ayuda cuenta'
       : 'Acompañar hace diferencia';
     
-    final Widget footerMsg = _isForTeens
-      ? Image.asset(
-        'assets/imagenes/ansiedad/8-ayuda.png',
-        fit: BoxFit.contain,
-      )
-      : const Text(
-        'La detección temprana, el acompañamiento familiar y el acceso a apoyo profesional pueden mejorar significativamente la calidad de vida de adolescentes y jóvenes.'
-      );
+    const String parentFooterMsg =
+      'Detectar temprano, acompañar y buscar apoyo profesional mejora el pronóstico.';
+
+    final List<TeenInfoCardData> teenCards = [
+      TeenInfoCardData(
+        title: introTitle,
+        body: '',
+        icon: Icons.info_outline_rounded,
+        color: teenPalette[0],
+        imagePath: 'assets/imagenes/ansiedad/1-que_es.png',
+      ),
+      TeenInfoCardData(
+        title: 'Señal para pedir apoyo',
+        body: warningMsg,
+        icon: Icons.warning_amber_rounded,
+        color: Colors.orange,
+      ),
+      TeenInfoCardData(
+        title: 'Tipos de ansiedad',
+        body: '',
+        icon: Icons.category_rounded,
+        color: teenPalette[1],
+        imagePath: 'assets/imagenes/ansiedad/2-tipos_de_trastornos.png',
+      ),
+      TeenInfoCardData(
+        title: diagnosisTitle,
+        body: '',
+        icon: Icons.medical_information_rounded,
+        color: teenPalette[2],
+        imagePath: 'assets/imagenes/ansiedad/3-diagnostico.png',
+      ),
+      TeenInfoCardData(
+        title: '¿Cómo se trata?',
+        body: '',
+        icon: Icons.health_and_safety_rounded,
+        color: teenPalette[3],
+        imagePath: 'assets/imagenes/ansiedad/4-tratamiento.png',
+      ),
+      TeenInfoCardData(
+        title: 'El papel de la terapia',
+        body: '',
+        icon: Icons.psychology_alt_rounded,
+        color: teenPalette[4],
+        imagePath: 'assets/imagenes/ansiedad/5-terapia.png',
+      ),
+      TeenInfoCardData(
+        title: actionTitle,
+        body: '',
+        icon: Icons.self_improvement_rounded,
+        color: teenPalette[1],
+        imagePath: 'assets/imagenes/ansiedad/6-actividades.png',
+      ),
+      TeenInfoCardData(
+        title: 'Sobre los medicamentos',
+        body: '',
+        icon: Icons.medication_rounded,
+        color: Colors.deepOrange,
+        imagePath: 'assets/imagenes/ansiedad/7-medicamentos.png',
+      ),
+      TeenInfoCardData(
+        title: footerTitle,
+        body: '',
+        icon: Icons.volunteer_activism_rounded,
+        color: teenPalette[0],
+        imagePath: 'assets/imagenes/ansiedad/8-ayuda.png',
+      ),
+    ];
+
+    final List<ParentTriptychPanel> parentPanels = [
+      ParentTriptychPanel(
+        title: 'Entender',
+        subtitle: 'Reconocer cuándo la ansiedad pesa demasiado',
+        body: '$parentIntroContent\n\n$warningMsg\n\n$parentTypesContent',
+        icon: Icons.info_outline_rounded,
+        color: Colors.teal,
+      ),
+      ParentTriptychPanel(
+        title: 'Tratamiento',
+        subtitle: 'Evaluación, terapia y medicamentos',
+        body:
+            '$parentDiagnosisContent\n\n$parentTreatmentContent\n\n$parentTherapyContent\n\n$parentMedicationMsg',
+        icon: Icons.health_and_safety_rounded,
+        color: Colors.indigo,
+      ),
+      ParentTriptychPanel(
+        title: 'Acompañar',
+        subtitle: 'Apoyo cotidiano desde casa',
+        body: '$parentActionContent\n\n$parentFooterMsg',
+        icon: Icons.family_restroom_rounded,
+        color: Colors.orange,
+      ),
+    ];
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
@@ -157,15 +210,20 @@ class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF00897B), Color(0xFF26A69A)],
+                  gradient: LinearGradient(
+                    colors: _isForTeens
+                        ? AppPersonalizacion.gradient(_accentColor)
+                        : const [Color(0xFF00897B), Color(0xFF26A69A)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF00897B).withValues(alpha: 0.3),
+                      color: (_isForTeens
+                              ? _accentColor
+                              : const Color(0xFF00897B))
+                          .withValues(alpha: 0.3),
                       blurRadius: 15,
                       offset: const Offset(0, 8),
                     ),
@@ -233,136 +291,11 @@ class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
               ),
               const SizedBox(height: 16),
 
-              _buildSection(
-                title: introTitle,
-                content: introContent,
-                icon: Icons.info_outline_rounded,
-                color: Colors.teal,
-              ),
-
-              Container(
-                margin: const EdgeInsets.only(bottom: 20),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF7ED), // Fondo naranja muy suave
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFFFDBA74),
-                    width: 1.5,
-                  ), // Borde naranja pastel
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.warning_amber_rounded,
-                      color: Color(0xFFF97316),
-                      size: 28,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        warningMsg,
-                        style: const TextStyle(
-                          fontSize: 14.5,
-                          color: Color(0xFF9A3412),
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              _buildSection(
-                title: 'Tipos de trastornos de ansiedad',
-                content: typesContent,
-                icon: Icons.category_rounded,
-                color: Colors.blue,
-              ),
-
-              _buildSection(
-                title: diagnosisTitle,
-                content: diagnosisContent,
-                icon: Icons.medical_information_rounded,
-                color: Colors.indigo,
-              ),
-
-              _buildSection(
-                title: '¿Cómo se trata?',
-                content: treatmentContent,
-                icon: Icons.health_and_safety_rounded,
-                color: Colors.green,
-              ),
-
-              _buildSection(
-                title: 'El papel de la terapia',
-                content: therapyContent,
-                icon: Icons.psychology_alt_rounded,
-                color: Colors.purple,
-              ),
-
-              _buildSection(
-                title: actionTitle,
-                content: actionContent,
-                icon: Icons.self_improvement_rounded,
-                color: Colors.orange,
-              ),
-
-              _buildSection(
-                title: 'Sobre los medicamentos',
-                content: medicationMsg,
-                icon: Icons.medication_rounded,
-                color: Colors.deepOrange,
-              ),
-
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF9FAFB),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFFE5E7EB),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.volunteer_activism_rounded,
-                      color: Color(0xFF00897B),
-                      size: 32,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            footerTitle,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF00897B),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          footerMsg,
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              if (_isForTeens) ...[
+                TeenInfoCarousel(cards: teenCards, height: 430),
+              ] else ...[
+                ParentTriptych(panels: parentPanels),
+              ],
 
               const SizedBox(height: 32),
               SizedBox(
@@ -387,7 +320,8 @@ class _ModuloAnsiedadState extends State<ModuloAnsiedad> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00897B),
+                    backgroundColor:
+                        _isForTeens ? _accentColor : const Color(0xFF00897B),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),

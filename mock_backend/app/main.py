@@ -394,6 +394,29 @@ def user_to_dict(row: dict[str, Any], profile: str) -> dict[str, Any]:
     return user
 
 
+def latest_general_preferences(cur: Any, profile: str, user_id: int) -> dict[str, Any]:
+    cur.execute(
+        """
+        SELECT respuestas
+        FROM cuestionarios_locales
+        WHERE perfil_tipo = %s
+          AND id_usuario = %s
+          AND tipo_cuestionario = 'informacion_general'
+        ORDER BY fecha_registro DESC
+        LIMIT 1
+        """,
+        (profile, user_id),
+    )
+    row = cur.fetchone()
+    if not row:
+        return {}
+    respuestas = row.get("respuestas")
+    if not isinstance(respuestas, dict):
+        return {}
+    preferencias = respuestas.get("preferencias")
+    return preferencias if isinstance(preferencias, dict) else {}
+
+
 def find_user(cur: Any, username_or_email: str) -> tuple[str, str, dict[str, Any]] | None:
     for profile, table in PROFILE_TABLES.items():
         cur.execute(
@@ -1229,6 +1252,11 @@ def get_session_context(user: dict[str, Any] = Depends(current_user)) -> dict[st
                 user["perfil_tipo"],
                 user["id_usuario"],
             )
+            preferencias = latest_general_preferences(
+                cur,
+                user["perfil_tipo"],
+                user["id_usuario"],
+            )
 
     user_data = get_me(user)
     profile = user["perfil_tipo"]
@@ -1240,6 +1268,7 @@ def get_session_context(user: dict[str, Any] = Depends(current_user)) -> dict[st
         "perfil_label": PROFILE_LABELS[profile],
         "permissions": capabilities,
         "progress": progress,
+        "preferences": preferencias,
         "modules": module_access_for_role(profile, progress),
     }
 

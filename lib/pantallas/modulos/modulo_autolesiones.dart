@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:aptm/text_utils.dart';
 import '../cuestionarios/cuestionario_autolesion.dart';
+import '../servicios/personalizacion.dart';
 import '../servicios/user.dart';
+import 'parent_triptych.dart';
+import 'teen_info_carousel.dart';
 
 class ModuloAutolesiones extends StatefulWidget {
   const ModuloAutolesiones({super.key});
@@ -12,6 +15,7 @@ class ModuloAutolesiones extends StatefulWidget {
 
 class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
   bool _isForTeens = true;
+  Color _accentColor = AppPersonalizacion.defaultAccent;
 
   @override
   void initState() {
@@ -26,6 +30,12 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
       final data = result['data'];
       if (data is Map) {
         perfilTipo = data['perfil_tipo']?.toString() ?? perfilTipo;
+        final preferences = data['preferences'];
+        if (perfilTipo == 'estudiante' && preferences is Map) {
+          _accentColor = AppPersonalizacion.accentFromPreferences(
+            Map<String, dynamic>.from(preferences),
+          );
+        }
       }
     }
     if (!mounted) return;
@@ -36,13 +46,14 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
 
   @override
   Widget build(BuildContext context) {
+    final teenPalette = AppPersonalizacion.palette(_accentColor);
     final String heroDescription = _isForTeens
         ? 'A veces, el dolor emocional es tan fuerte que buscamos apagarlo. Aquí aprenderemos qué pasa y cómo pedir ayuda.'
         : 'Comprender la autolesión no suicida (NSSI) es clave para brindar apoyo. Aquí aprenderá sus causas, factores de riesgo y cómo actuar.';
 
     final String qyaContent = _isForTeens
-        ? '• Es lastimarse a propósito (cortarse, quemarse, rascarse), pero SIN querer morir.\n• NO es saludable ni normal, ocurre por emociones muy fuertes que no sabemos cómo manejar.'
-        : '• Consiste en el daño deliberado del propio cuerpo (cortes, quemaduras, golpes) sin intención suicida.\n• Suele ser un mecanismo de afrontamiento disfuncional ante un desbordamiento emocional severo.';
+        ? '• Es hacerse daño a propósito, sin querer morir.\n• Suele aparecer cuando las emociones se sienten demasiado intensas.\n• No es una forma segura de manejar el dolor.'
+        : '• Daño deliberado del cuerpo sin intención suicida.\n• Suele funcionar como intento de regular emociones intensas.\n• Requiere escucha, contención y evaluación profesional.';
 
     final String warningMsg = _isForTeens
         ? 'Aunque no es para morir, hacerlo mucho sí aumenta el riesgo de tener pensamientos o conductas mucho más peligrosas.'
@@ -52,19 +63,19 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
         ? '¿Por qué lo hacen?'
         : '¿Por qué sucede?';
     final String pkContent = _isForTeens
-        ? 'Las personas pueden lastimarse por varias razones:\n\n1. Para calmar emociones fuertes (tristeza, enojo, ansiedad).\n2. Para castigarse por sentir mucha culpa o creer que hicieron algo mal.\n3. Para sentir "algo" o sentir control cuando se sienten muy vacíos.\n4. Para mostrar que están sufriendo cuando es difícil usar palabras.'
-        : 'Principales funciones de la conducta:\n\n1. Regulación emocional: Aliviar tensión, ansiedad o angustia severa.\n2. Autocastigo: Asociado a sentimientos profundos de culpa o vergüenza.\n3. Anti-disociación: Sentir dolor físico para contrarrestar gran desconexión.\n4. Comunicación: Expresar de forma no verbal un sufrimiento profundo.';
+        ? 'Puede pasar por:\n\n• Calmar tristeza, enojo o ansiedad.\n• Castigarse por culpa o vergüenza.\n• Sentir control cuando hay vacío.\n• Mostrar dolor cuando faltan palabras.'
+        : 'Funciones frecuentes:\n\n• Regular angustia o tensión.\n• Expresar culpa o vergüenza.\n• Contrarrestar desconexión emocional.\n• Comunicar sufrimiento sin palabras.';
 
     final String riskContent = _isForTeens
-        ? 'Cosas que pueden hacer que pase:\n• Estar muy triste o con mucha ansiedad.\n• Problemas familiares o bullying.\n• Haber pasado por cosas muy difíciles o traumáticas.\n• Tomar alcohol o drogas.\n\nTener estos problemas no significa que alguien se lastimará.'
-        : 'Factores de vulnerabilidad asociados:\n• Trastornos de estado de ánimo (depresión, ansiedad extrema).\n• Conflictos familiares, situaciones de bullying o acoso escolar.\n• Historial de trauma o abuso.\n• Consumo de sustancias.\n\nLa presencia de estos factores no determina la conducta, pero incrementa el riesgo.';
+        ? 'Puede aumentar con:\n\n• Tristeza o ansiedad intensa.\n• Bullying o conflictos familiares.\n• Experiencias traumáticas.\n• Alcohol o drogas.\n\nNada de esto define a una persona; solo indica que necesita apoyo.'
+        : 'Factores a observar:\n\n• Depresión o ansiedad intensa.\n• Bullying, acoso o conflicto familiar.\n• Trauma o abuso.\n• Consumo de sustancias.\n\nNo determinan la conducta, pero aumentan vulnerabilidad.';
 
     final String actionTitle = _isForTeens
         ? '¿Qué más puedo hacer?'
         : '¿Cómo puedo ayudar?';
     final String actionContent = _isForTeens
-        ? 'Sentirse triste o enojado es parte de la vida, pero hay formas sanas de manejarlo como:\n• Hablar con alguien de confianza o un psicólogo.\n• Escribir o dibujar lo que sientes.\n• Hacer ejercicio o escuchar música.\n\nPedir ayuda no es debilidad. Es de valientes.'
-        : '• Mantenga la calma: Una reacción de pánico o reprensión puede empeorar la situación y generar asilamiento.\n• Escuche sin juzgar: Valide su malestar emocional sin justificar la conducta autolesiva.\n• Busque ayuda profesional: Requiere evaluación y acompañamiento clínico adecuado.';
+        ? 'Prueba algo más seguro:\n\n• Habla con alguien de confianza.\n• Escribe o dibuja lo que sientes.\n• Muévete, respira o escucha música.\n• Pide ayuda profesional si vuelve a pasar.'
+        : 'Cómo responder:\n\n• Mantener la calma.\n• Escuchar sin regaños ni juicio.\n• Validar el dolor sin justificar la lesión.\n• Buscar apoyo profesional.';
 
     final String footerTitle = _isForTeens
         ? '¡No estás solo/a!'
@@ -72,6 +83,69 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
     final String footerMsg = _isForTeens
         ? 'Pedir ayuda es el acto más grande de valentía. Hablar con alguien de confianza puede cambiarlo todo.'
         : 'Abordar el tema con empatía, contención y sin juicios de valor, es el primer paso vital para su recuperación.';
+
+    final List<TeenInfoCardData> teenCards = [
+      TeenInfoCardData(
+        title: '¿Qué es y qué no es?',
+        body: qyaContent,
+        icon: Icons.info_outline_rounded,
+        color: teenPalette[0],
+      ),
+      TeenInfoCardData(
+        title: 'Dato importante',
+        body: warningMsg,
+        icon: Icons.warning_amber_rounded,
+        color: Colors.orange,
+      ),
+      TeenInfoCardData(
+        title: pkTitle,
+        body: pkContent,
+        icon: Icons.psychology_alt_rounded,
+        color: teenPalette[1],
+      ),
+      TeenInfoCardData(
+        title: 'Situaciones de riesgo',
+        body: riskContent,
+        icon: Icons.report_problem_rounded,
+        color: Colors.deepOrange,
+      ),
+      TeenInfoCardData(
+        title: actionTitle,
+        body: actionContent,
+        icon: Icons.favorite_border_rounded,
+        color: teenPalette[4],
+      ),
+      TeenInfoCardData(
+        title: footerTitle,
+        body: footerMsg,
+        icon: Icons.volunteer_activism_rounded,
+        color: teenPalette[0],
+      ),
+    ];
+
+    final List<ParentTriptychPanel> parentPanels = [
+      ParentTriptychPanel(
+        title: 'Entender',
+        subtitle: 'Qué es la autolesión no suicida',
+        body: '$qyaContent\n\n$warningMsg',
+        icon: Icons.info_outline_rounded,
+        color: Colors.teal,
+      ),
+      ParentTriptychPanel(
+        title: 'Riesgos',
+        subtitle: 'Por qué sucede y qué la vuelve más probable',
+        body: '$pkContent\n\n$riskContent',
+        icon: Icons.psychology_alt_rounded,
+        color: Colors.deepOrange,
+      ),
+      ParentTriptychPanel(
+        title: 'Acompañar',
+        subtitle: 'Cómo responder desde casa',
+        body: '$actionContent\n\n$footerMsg',
+        icon: Icons.family_restroom_rounded,
+        color: Colors.indigo,
+      ),
+    ];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -98,15 +172,20 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF00897B), Color(0xFF26A69A)],
+                  gradient: LinearGradient(
+                    colors: _isForTeens
+                        ? AppPersonalizacion.gradient(_accentColor)
+                        : const [Color(0xFF00897B), Color(0xFF26A69A)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF00897B).withValues(alpha: 0.3),
+                      color: (_isForTeens
+                              ? _accentColor
+                              : const Color(0xFF00897B))
+                          .withValues(alpha: 0.3),
                       blurRadius: 15,
                       offset: const Offset(0, 8),
                     ),
@@ -174,122 +253,11 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
               ),
               const SizedBox(height: 16),
 
-              _buildSection(
-                title: '¿Qué es y qué no es?',
-                content: qyaContent,
-                icon: Icons.info_outline_rounded,
-                color: Colors.teal,
-              ),
-
-              Container(
-                margin: const EdgeInsets.only(bottom: 20),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF7ED), // Fondo naranja muy suave
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFFFDBA74),
-                    width: 1.5,
-                  ), // Borde naranja pastel
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.warning_amber_rounded,
-                      color: Color(0xFFF97316),
-                      size: 28,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        warningMsg,
-                        style: const TextStyle(
-                          fontSize: 14.5,
-                          color: Color(0xFF9A3412), // Texto naranja oscuro
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              _buildSection(
-                title: pkTitle,
-                content: pkContent,
-                icon: Icons.psychology_alt_rounded,
-                color: Colors.blue,
-              ),
-
-              _buildSection(
-                title: 'Situaciones de riesgo',
-                content: riskContent,
-                icon: Icons.report_problem_rounded,
-                color: Colors.orange,
-              ),
-
-              _buildSection(
-                title: actionTitle,
-                content: actionContent,
-                icon: Icons.favorite_border_rounded,
-                color: Colors.purple,
-              ),
-
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF9FAFB),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFFE5E7EB),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.volunteer_activism_rounded,
-                      color: Color(0xFF00897B),
-                      size: 32,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            footerTitle,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF00897B),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            footerMsg,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              height: 1.4,
-                              color: Color(0xFF4B5563),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              if (_isForTeens) ...[
+                TeenInfoCarousel(cards: teenCards),
+              ] else ...[
+                ParentTriptych(panels: parentPanels),
+              ],
 
               const SizedBox(height: 32),
               SizedBox(
@@ -314,7 +282,8 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00897B),
+                    backgroundColor:
+                        _isForTeens ? _accentColor : const Color(0xFF00897B),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),

@@ -27,11 +27,6 @@ class _PasoPreferenciasState extends State<PasoPreferencias> with SingleTickerPr
     'comida_favorita': '',
   };
 
-  // Datos del usuario
-  final _nombreController = TextEditingController();
-  final _edadController = TextEditingController();
-  final _ocupacionController = TextEditingController();
-  
   // Mapa para controladores de inputs dinámicos
   final Map<String, TextEditingController> _textControllers = {};
 
@@ -43,9 +38,6 @@ class _PasoPreferenciasState extends State<PasoPreferencias> with SingleTickerPr
 
   @override
   void dispose() {
-    _nombreController.dispose();
-    _edadController.dispose();
-    _ocupacionController.dispose();
     for (var controller in _textControllers.values) {
       controller.dispose();
     }
@@ -80,16 +72,7 @@ class _PasoPreferenciasState extends State<PasoPreferencias> with SingleTickerPr
 
   void _initializeSecciones() {
     _secciones.addAll([
-      // Sección 1: Datos básicos
-      {
-        'tipo': 'formulario',
-        'titulo': '¡Empecemos! 👋',
-        'subtitulo': 'Cuéntanos un poco sobre ti',
-        'emoji': '🎯',
-        'color': const Color(0xFF43A047),
-      },
-      
-      // Sección 2: Música
+      // Sección 1: Música
       {
         'tipo': 'multiple_seleccion',
         'key': 'musica',
@@ -395,21 +378,13 @@ class _PasoPreferenciasState extends State<PasoPreferencias> with SingleTickerPr
   }
 
   void _finalizar() {
-    // Agregar datos básicos
-    _respuestas['nombre'] = _nombreController.text;
-    _respuestas['edad'] = _edadController.text;
-    _respuestas['ocupacion'] = _ocupacionController.text;
-    
     widget.onCompleted(_respuestas);
   }
 
   bool _canContinue() {
     final seccion = _secciones[_currentSection];
     
-    if (seccion['tipo'] == 'formulario') {
-      return _nombreController.text.isNotEmpty && 
-             _edadController.text.isNotEmpty;
-    } else if (seccion['tipo'] == 'multiple_seleccion') {
+    if (seccion['tipo'] == 'multiple_seleccion') {
       final key = seccion['key'] as String;
       return (_respuestas[key] as List).isNotEmpty;
     } else if (seccion['tipo'] == 'seleccion_unica') {
@@ -555,7 +530,6 @@ class _PasoPreferenciasState extends State<PasoPreferencias> with SingleTickerPr
                       const SizedBox(height: 30),
 
                       // Contenido según tipo
-                      if (seccion['tipo'] == 'formulario') _buildFormulario(isDarkMode),
                       if (seccion['tipo'] == 'multiple_seleccion') _buildMultipleSeleccion(seccion, isDarkMode),
                       if (seccion['tipo'] == 'seleccion_unica') _buildSeleccionUnica(seccion, isDarkMode),
                       if (seccion['tipo'] == 'colores') _buildColores(seccion, isDarkMode),
@@ -617,7 +591,7 @@ class _PasoPreferenciasState extends State<PasoPreferencias> with SingleTickerPr
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          _currentSection < _secciones.length - 1 ? "Continuar" : "Siguiente Paso",
+                          _currentSection < _secciones.length - 1 ? "Continuar" : "Finalizar",
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -638,110 +612,6 @@ class _PasoPreferenciasState extends State<PasoPreferencias> with SingleTickerPr
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFormulario(bool isDarkMode) {
-    return Column(
-      children: [
-        _buildTextField(
-          controller: _nombreController,
-          label: "Tu nombre",
-          hint: "¿Cómo te llamas?",
-          icon: Icons.person_outline_rounded,
-          isDarkMode: isDarkMode,
-        ),
-        const SizedBox(height: 24),
-        _buildTextField(
-          controller: _edadController,
-          label: "Tu edad",
-          hint: "¿Cuántos años tienes?",
-          icon: Icons.cake_outlined,
-          isDarkMode: isDarkMode,
-          keyboardType: TextInputType.number,
-        ),
-        const SizedBox(height: 24),
-        _buildTextField(
-          controller: _ocupacionController,
-          label: "Ocupación (opcional)",
-          hint: "Ej: Estudiante, Trabajo en...",
-          icon: Icons.work_outline_rounded,
-          isDarkMode: isDarkMode,
-          isRequired: false,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    required bool isDarkMode,
-    TextInputType? keyboardType,
-    bool isRequired = true,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1E272E) : Colors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-          bottomLeft: Radius.circular(20),
-          bottomRight: Radius.circular(4),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(
-          color: isDarkMode ? Colors.white10 : Colors.grey.shade200,
-          width: 1.5,
-        ),
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        onChanged: (value) {
-          setState(() {});
-        },
-        style: TextStyle(
-          color: isDarkMode ? Colors.white : Colors.black87,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(
-            color: isDarkMode ? Colors.white60 : Colors.black54,
-            fontWeight: FontWeight.w500,
-          ),
-          hintText: hint,
-          hintStyle: TextStyle(
-            color: isDarkMode ? Colors.white30 : Colors.grey[400],
-            fontWeight: FontWeight.normal,
-          ),
-          prefixIcon: Padding(
-            padding: const EdgeInsets.only(left: 16, right: 12),
-            child: Icon(icon, color: const Color(0xFF43A047), size: 26),
-          ),
-          filled: true,
-          fillColor: Colors.transparent,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: const BorderSide(color: Color(0xFF43A047), width: 2),
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
-        ),
       ),
     );
   }
@@ -949,7 +819,7 @@ class _PasoPreferenciasState extends State<PasoPreferencias> with SingleTickerPr
     final key = seccion['key'] as String;
     final opciones = seccion['opciones'] as List<Map<String, dynamic>>;
     final seleccionadas = _respuestas[key] as List<String>;
-    const maxSeleccion = 4;
+    const maxSeleccion = 3;
 
     return Column(
       children: [

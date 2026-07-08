@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../modelos/mensaje_serena.dart';
+import '../servicios/personalizacion.dart';
 import '../servicios/servicio_serena.dart';
 import '../theme_provider.dart';
 
 class ChatbotSerena extends StatefulWidget {
-  const ChatbotSerena({super.key});
+  const ChatbotSerena({super.key, this.accentColor});
+
+  final Color? accentColor;
 
   @override
   State<ChatbotSerena> createState() => _ChatbotSerenaState();
@@ -21,7 +24,9 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
   bool _conectado = false;
 
   static const Color _verde = Color(0xFF43A047);
-  static const Color _verdeOsc = Color(0xFF2E7D32);
+
+  Color get _accentColor => widget.accentColor ?? _verde;
+  Color get _accentDark => AppPersonalizacion.darken(_accentColor, 0.22);
 
   static const String _mensajeBienvenida =
       '¡Hola! Soy Serena, tu acompañante de bienestar emocional 💚\n¿Cómo te sientes hoy? Cuéntame, estoy aquí para escucharte.';
@@ -148,9 +153,12 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                 _cargando = false;
               });
             },
-            child: const Text(
+            child: Text(
               'Si, limpiar',
-              style: TextStyle(color: _verde, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: _accentColor,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -183,10 +191,14 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _verde.withValues(alpha: 0.1),
+                color: _accentColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.favorite_rounded, color: _verde, size: 28),
+              child: Icon(
+                Icons.favorite_rounded,
+                color: _accentColor,
+                size: 28,
+              ),
             ),
             const SizedBox(height: 14),
             Text(
@@ -208,7 +220,7 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _verde,
+                  backgroundColor: _accentColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   elevation: 0,
@@ -272,10 +284,10 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
         children: [
           Stack(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 20,
-                backgroundColor: _verde,
-                child: Text(
+                backgroundColor: _accentColor,
+                child: const Text(
                   'S',
                   style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
@@ -315,7 +327,7 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                   _conectado ? '• En línea' : '• Sin conexión',
                   style: TextStyle(
                     fontSize: 11,
-                    color: _conectado ? _verde : Colors.grey,
+                    color: _conectado ? _accentColor : Colors.grey,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -359,8 +371,8 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
         alignment: Alignment.centerRight,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: const BoxDecoration(
-            color: _verde,
+          decoration: BoxDecoration(
+            color: _accentColor,
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(18),
               topRight: Radius.circular(18),
@@ -383,10 +395,10 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 14,
-            backgroundColor: _verde,
-            child: Text(
+            backgroundColor: _accentColor,
+            child: const Text(
               'S',
               style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
             ),
@@ -471,12 +483,12 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Del material del programa:',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: _verdeOsc,
+                              color: _accentDark,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -515,10 +527,10 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 14,
-            backgroundColor: _verde,
-            child: Text(
+            backgroundColor: _accentColor,
+            child: const Text(
               'S',
               style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
             ),
@@ -544,12 +556,12 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                       ),
                     ],
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _PuntoEscribiendo(delayMs: 0),
-                _PuntoEscribiendo(delayMs: 150),
-                _PuntoEscribiendo(delayMs: 300),
+                _PuntoEscribiendo(delayMs: 0, color: _accentColor),
+                _PuntoEscribiendo(delayMs: 150, color: _accentColor),
+                _PuntoEscribiendo(delayMs: 300, color: _accentColor),
               ],
             ),
           ),
@@ -616,7 +628,7 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
-                    borderSide: const BorderSide(color: _verde, width: 1.5),
+                    borderSide: BorderSide(color: _accentColor, width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
@@ -629,13 +641,13 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: _cargando ? Colors.grey[300] : _verde,
+                  color: _cargando ? Colors.grey[300] : _accentColor,
                   shape: BoxShape.circle,
                   boxShadow: _cargando
                       ? const []
                       : [
                           BoxShadow(
-                            color: _verde.withValues(alpha: 0.4),
+                            color: _accentColor.withValues(alpha: 0.4),
                             blurRadius: 8,
                             offset: const Offset(0, 3),
                           ),
@@ -657,8 +669,9 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
 
 class _PuntoEscribiendo extends StatelessWidget {
   final int delayMs;
+  final Color color;
 
-  const _PuntoEscribiendo({required this.delayMs});
+  const _PuntoEscribiendo({required this.delayMs, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -671,7 +684,7 @@ class _PuntoEscribiendo extends StatelessWidget {
         width: 7,
         height: 7,
         decoration: BoxDecoration(
-          color: const Color(0xFF43A047).withValues(alpha: value),
+          color: color.withValues(alpha: value),
           shape: BoxShape.circle,
         ),
       ),
