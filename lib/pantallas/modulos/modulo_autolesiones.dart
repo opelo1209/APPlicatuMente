@@ -87,39 +87,45 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
     final List<TeenInfoCardData> teenCards = [
       TeenInfoCardData(
         title: '¿Qué es y qué no es?',
-        body: qyaContent,
+        body: '',
         icon: Icons.info_outline_rounded,
         color: teenPalette[0],
+        imagePath: 'assets/imagenes/autolesiones/1-que_es.png',
       ),
       TeenInfoCardData(
         title: 'Dato importante',
-        body: warningMsg,
+        body: '',
         icon: Icons.warning_amber_rounded,
         color: Colors.orange,
+        imagePath: 'assets/imagenes/autolesiones/2-advertencia.png',
       ),
       TeenInfoCardData(
         title: pkTitle,
-        body: pkContent,
+        body: '',
         icon: Icons.psychology_alt_rounded,
         color: teenPalette[1],
+        imagePath: 'assets/imagenes/autolesiones/3-por_que.png',
       ),
       TeenInfoCardData(
         title: 'Situaciones de riesgo',
-        body: riskContent,
+        body: '',
         icon: Icons.report_problem_rounded,
         color: Colors.deepOrange,
+        imagePath: 'assets/imagenes/autolesiones/4-situaciones_de_riesgo.png',
       ),
       TeenInfoCardData(
         title: actionTitle,
-        body: actionContent,
+        body: '',
         icon: Icons.favorite_border_rounded,
         color: teenPalette[4],
+        imagePath: 'assets/imagenes/autolesiones/5-que_hacer.png',
       ),
       TeenInfoCardData(
         title: footerTitle,
-        body: footerMsg,
+        body: '',
         icon: Icons.volunteer_activism_rounded,
         color: teenPalette[0],
+        imagePath: 'assets/imagenes/autolesiones/6-ayuda.png',
       ),
     ];
 
