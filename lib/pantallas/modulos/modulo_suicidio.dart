@@ -93,39 +93,45 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
     final List<TeenInfoCardData> teenCards = [
       TeenInfoCardData(
         title: bloque1Title,
-        body: bloque1Content,
+        body: '',
         icon: Icons.quiz_rounded,
         color: teenPalette[0],
+        imagePath: 'assets/imagenes/suicidio/1-bloque_1.png',
       ),
       TeenInfoCardData(
         title: bloque2Title,
-        body: bloque2Content,
+        body: '',
         icon: Icons.fact_check_rounded,
         color: Colors.deepOrange,
+        imagePath: 'assets/imagenes/suicidio/2-bloque_2.png',
       ),
       TeenInfoCardData(
         title: devCerebralTitle,
-        body: devCerebralDesc,
+        body: '',
         icon: Icons.psychology_rounded,
         color: teenPalette[1],
+        imagePath: 'assets/imagenes/suicidio/3-desarrollo_cerebro.png',
       ),
       TeenInfoCardData(
         title: quimicaTitle,
-        body: quimicaDesc,
+        body: '',
         icon: Icons.science_rounded,
         color: teenPalette[2],
+        imagePath: 'assets/imagenes/suicidio/4-quimica_cerebro.png',
       ),
       TeenInfoCardData(
         title: estresTitle,
-        body: estresDesc,
+        body: '',
         icon: Icons.monitor_heart_rounded,
         color: teenPalette[3],
+        imagePath: 'assets/imagenes/suicidio/5-estrés.png',
       ),
       TeenInfoCardData(
         title: 'Hay ayuda disponible',
-        body: esperanzaMsg,
+        body: '',
         icon: Icons.volunteer_activism_rounded,
         color: teenPalette[0],
+        imagePath: 'assets/imagenes/suicidio/6-carga.png',
       ),
     ];
 

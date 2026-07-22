@@ -209,7 +209,7 @@ class _TeenInfoCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               if (card.imagePath != null) ...[
                 Expanded(
                   child: Center(
