@@ -89,45 +89,52 @@ class _ModuloSustanciasState extends State<ModuloSustancias> {
     final List<TeenInfoCardData> teenCards = [
       TeenInfoCardData(
         title: 'Tu cerebro en desarrollo',
-        body: brainContent,
+        body: '',
         icon: Icons.auto_awesome_rounded,
         color: _accentColor,
+        imagePath: 'assets/imagenes/sustancias/1-cerebro.png',
       ),
       TeenInfoCardData(
         title: 'Zonas que se afectan',
         body: brainAreasContent,
         icon: Icons.warning_amber_rounded,
         color: teenPalette[1],
+        imagePath: 'assets/imagenes/sustancias/2-cerebro_zonas.png',
       ),
       TeenInfoCardData(
         title: 'Marihuana',
-        body: marijuanaContent,
+        body: '',
         icon: Icons.grass_rounded,
         color: teenPalette[2],
+        imagePath: 'assets/imagenes/sustancias/3-marihuana.png',
       ),
       TeenInfoCardData(
         title: 'Nicotina y vapeo',
-        body: nicotineContent,
+        body: '',
         icon: Icons.smoke_free_rounded,
         color: teenPalette[3],
+        imagePath: 'assets/imagenes/sustancias/4-nicotina.png',
       ),
       TeenInfoCardData(
         title: 'Inhalantes',
-        body: inhalantsContent,
+        body: '',
         icon: Icons.science_rounded,
         color: Colors.deepOrange,
+        imagePath: 'assets/imagenes/sustancias/5-inhalantes.png',
       ),
       TeenInfoCardData(
         title: 'Otras drogas',
-        body: otherDrugsContent,
+        body: '',
         icon: Icons.medication_rounded,
         color: teenPalette[4],
+        imagePath: 'assets/imagenes/sustancias/6-varios.png',
       ),
       TeenInfoCardData(
         title: footerTitle,
-        body: footerMsg,
+        body: '',
         icon: Icons.volunteer_activism_rounded,
         color: _accentColor,
+        imagePath: 'assets/imagenes/sustancias/7-info.png',
       ),
     ];
 

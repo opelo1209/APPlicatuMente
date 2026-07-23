@@ -30,7 +30,7 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
   bool get _canAnswer => _permissions['can_answer_questionnaires'] == true;
   bool get _ansiedadDisponible =>
       _canAnswer && _autolesionCompletado && _suicidioCompletado;
-  bool get _sustanciasDisponible => _canAnswer && _ansiedadCompletado;
+  bool get _sustanciasDisponible => _canAnswer && _autolesionCompletado && _suicidioCompletado;
 
   @override
   void initState() {
