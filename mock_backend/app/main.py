@@ -3,8 +3,9 @@ import json
 import os
 import secrets
 import time
+import uuid
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import psycopg2
@@ -20,6 +21,9 @@ DATABASE_URL = os.getenv(
     "postgresql://postgres:postgres@127.0.0.1:55432/aptm_tmp",
 )
 TOKEN_PREFIX = "local_access_"
+
+# In-memory password reset tokens: {token: {id_usuario, perfil_tipo, expira}}
+RESET_TOKENS: dict[str, dict[str, Any]] = {}
 
 PROFILE_TABLES = {
     "estudiante": "usuarios_estudiantes",
@@ -117,6 +121,20 @@ class VincularEstudiante(BaseModel):
 class ChatRequest(BaseModel):
     mensaje: str = ""
     sesion_id: str | None = None
+
+
+class PasswordResetRequest(BaseModel):
+    email_or_username: str
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
+
+
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str
 
 
 class QuestionConfigUpdate(BaseModel):
@@ -1220,6 +1238,95 @@ def google_not_configured() -> None:
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail="Google/Keycloak no esta configurado en este backend temporal",
     )
+
+
+@app.post("/auth/password-reset-request")
+def password_reset_request(payload: PasswordResetRequest) -> dict[str, Any]:
+    with db_conn() as conn:
+        with conn.cursor() as cur:
+            found = find_user(cur, payload.email_or_username)
+            if not found:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="No encontramos una cuenta con ese correo o usuario.",
+                )
+            profile, table, row = found
+    token = str(uuid.uuid4())
+    expira = datetime.now(timezone.utc) + timedelta(hours=1)
+    RESET_TOKENS[token] = {
+        "id_usuario": row["id_usuario"],
+        "perfil_tipo": profile,
+        "expira": expira,
+    }
+    debug_msg = (
+        f"\n{'='*60}\n"
+        f"  📧 CORREO DE RECUPERACION ENVIADO\n"
+        f"  Para: {row.get('correo', '?')}\n"
+        f"  Usuario: {row.get('nombre_usuario', '?')}\n"
+        f"  Token: {token}\n"
+        f"  Expira: {expira.isoformat()}\n"
+        f"  Enlace: http://localhost:8080/reset-password?token={token}\n"
+        f"{'='*60}"
+    )
+    print(debug_msg)
+    return {
+        "success": True,
+        "message": "Correo de recuperacion enviado. Revisa tu bandeja de entrada.",
+    }
+
+
+@app.post("/auth/password-reset-confirm")
+def password_reset_confirm(payload: PasswordResetConfirm) -> dict[str, Any]:
+    token_data = RESET_TOKENS.get(payload.token)
+    if not token_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token invalido o ya fue usado.",
+        )
+    if datetime.now(timezone.utc) > token_data["expira"]:
+        RESET_TOKENS.pop(payload.token, None)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El token ha expirado. Solicita uno nuevo.",
+        )
+    profile = token_data["perfil_tipo"]
+    table = PROFILE_TABLES[profile]
+    user_id = token_data["id_usuario"]
+    with db_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE {table} SET password_hash = %s WHERE id_usuario = %s",
+                (hash_password(payload.new_password), user_id),
+            )
+        conn.commit()
+    RESET_TOKENS.pop(payload.token, None)
+    return {"success": True, "message": "Contrasena actualizada correctamente."}
+
+
+@app.post("/auth/change-password")
+def change_password(
+    payload: ChangePassword,
+    user: dict[str, Any] = Depends(current_user),
+) -> dict[str, Any]:
+    table = PROFILE_TABLES[user["perfil_tipo"]]
+    with db_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT password_hash FROM {table} WHERE id_usuario = %s",
+                (user["id_usuario"],),
+            )
+            row = cur.fetchone()
+            if not row or not verify_password(payload.current_password, row["password_hash"]):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="La contrasena actual no es correcta.",
+                )
+            cur.execute(
+                f"UPDATE {table} SET password_hash = %s WHERE id_usuario = %s",
+                (hash_password(payload.new_password), user["id_usuario"]),
+            )
+        conn.commit()
+    return {"success": True, "message": "Contrasena cambiada exitosamente."}
 
 
 @app.get("/users/me")

@@ -189,6 +189,84 @@ class Auth {
     }
   }
 
+  // PASSWORD RESET REQUEST
+  static Future<Map<String, dynamic>> requestPasswordReset(
+    String emailOrUsername,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse(Peticiones.passwordResetRequest),
+        headers: Peticiones.headers,
+        body: jsonEncode({'email_or_username': emailOrUsername}),
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': data['message'] ?? 'Correo enviado'};
+      }
+      return {
+        'success': false,
+        'message': data['detail'] ?? 'Error al solicitar recuperacion',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
+  // PASSWORD RESET CONFIRM
+  static Future<Map<String, dynamic>> resetPasswordConfirm(
+    String token,
+    String newPassword,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse(Peticiones.passwordResetConfirm),
+        headers: Peticiones.headers,
+        body: jsonEncode({'token': token, 'new_password': newPassword}),
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': data['message'] ?? 'Contraseña actualizada'};
+      }
+      return {
+        'success': false,
+        'message': data['detail'] ?? 'Error al restablecer contraseña',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
+  // CHANGE PASSWORD (authenticated)
+  Future<Map<String, dynamic>> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null) {
+        return {'success': false, 'message': 'No hay sesión activa'};
+      }
+      final response = await http.post(
+        Uri.parse(Peticiones.changePassword),
+        headers: Peticiones.getAuthHeaders(token),
+        body: jsonEncode({
+          'current_password': currentPassword,
+          'new_password': newPassword,
+        }),
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': data['message'] ?? 'Contraseña cambiada'};
+      }
+      return {
+        'success': false,
+        'message': data['detail'] ?? 'Error al cambiar contraseña',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
   String _extractErrorMessage(String body, {required String fallback}) {
     try {
       final data = jsonDecode(body);

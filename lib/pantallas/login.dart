@@ -5,6 +5,7 @@ import 'theme_provider.dart';
 import 'registro.dart';
 import 'principal.dart';
 import 'cuestionarios/cuestionario_wrapper.dart';
+import 'recuperar_contrasena.dart';
 // Importar con los nombres CORRECTOS
 import 'servicios/auth.dart';
 import 'servicios/user.dart';
@@ -325,7 +326,12 @@ class _LoginState extends State<Login> {
                       child: Align(
                         alignment: Alignment.centerRight,
                         child: GestureDetector(
-                          onTap: () {},
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RecuperarContrasena(),
+                            ),
+                          ),
                           child: Text(
                             "¿Olvidaste tu contraseña?",
                             style: TextStyle(

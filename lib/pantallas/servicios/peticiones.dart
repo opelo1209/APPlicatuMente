@@ -32,6 +32,11 @@ class Peticiones {
   static const String serenaHistorial = '$baseUrl/chat/historial';
   static const String serenaSalud = '$baseUrl/salud';
 
+  // Password recovery
+  static const String passwordResetRequest = '$baseUrl/auth/password-reset-request';
+  static const String passwordResetConfirm = '$baseUrl/auth/password-reset-confirm';
+  static const String changePassword = '$baseUrl/auth/change-password';
+
   // Alertas para padres
   static const String padresAlertas = '$baseUrl/users/padres/alertas';
   static String padreAlertaVista(int idAlerta) =>

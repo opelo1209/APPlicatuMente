@@ -10,6 +10,8 @@ import 'admin/editor_cuestionarios_admin.dart';
 import 'juegos/tcg_flame_screen.dart';
 import 'modulos/selector_modulo_crisis.dart';
 import 'modulos/chatbot_serena.dart';
+import 'modulos/ejercicio_respiracion.dart';
+import 'configuracion.dart';
 import 'servicios/auth.dart';
 import 'servicios/personalizacion.dart';
 import 'servicios/user.dart';
@@ -1475,7 +1477,16 @@ class _PrincipalState extends State<Principal>
                 _buildDrawerItem(
                   icon: Icons.settings_outlined,
                   title: "Configuración",
-                  onTap: () => Navigator.pop(context),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final changed = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(builder: (_) => const Configuracion()),
+                    );
+                    if (changed == true && mounted) {
+                      _loadCurrentUser();
+                    }
+                  },
                   color: _isStudentProfile ? drawerPalette[1] : Colors.orange,
                 ),
                 _buildDrawerItem(
@@ -1795,12 +1806,20 @@ class _HomeDailyBannerCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(22),
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${banner.title}: contenido próximamente.'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            if (banner.label == 'RESPIRA 1 MINUTO') {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => const EjercicioRespiracion(),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${banner.title}: contenido próximamente.'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
           },
           child: Container(
             padding: const EdgeInsets.all(18),
