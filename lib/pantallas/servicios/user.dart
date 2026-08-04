@@ -337,13 +337,56 @@ class User {
 
       return {
         'success': false,
-        'message': 'Error al vincular estudiante',
+        'message': _detailFromBody(response.body) ?? 'Error al vincular estudiante',
         'body': response.body,
       };
     } catch (e) {
       debugPrint('Error en vincularEstudiante: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
+  }
+
+  // DELETE /users/padres/estudiantes/{curp} - Desvincular estudiante del padre por CURP
+  Future<Map<String, dynamic>> desvincularEstudiante(String curp) async {
+    try {
+      final token = await _getToken();
+
+      if (token == null) {
+        return {'success': false, 'message': 'No hay token de autenticación'};
+      }
+
+      final response = await http.delete(
+        Uri.parse(Peticiones.padreEstudianteUnlink(curp)),
+        headers: Peticiones.getAuthHeaders(token),
+      );
+
+      debugPrint('Desvincular Estudiante Status Code: ${response.statusCode}');
+      debugPrint('Desvincular Estudiante Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {'success': true, 'data': data};
+      }
+
+      return {
+        'success': false,
+        'message': _detailFromBody(response.body) ?? 'Error al desvincular estudiante',
+        'body': response.body,
+      };
+    } catch (e) {
+      debugPrint('Error en desvincularEstudiante: $e');
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
+  String? _detailFromBody(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map && decoded['detail'] != null) {
+        return decoded['detail'].toString();
+      }
+    } catch (_) {}
+    return null;
   }
 
   // GET /admin/monitoreo - Respuestas de estudiantes y padres para administradores

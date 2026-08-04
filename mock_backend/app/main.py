@@ -93,7 +93,6 @@ class UserRegister(BaseModel):
     nombres: str
     apellido_paterno: str
     apellido_materno: str = ""
-    estudiantes_ids: list[int] = Field(default_factory=list)
     estudiantes_curps: list[str] = Field(default_factory=list)
     curp: str = ""
     parentesco: str = "padre/madre/tutor"
@@ -113,8 +112,7 @@ class CuestionarioUpdate(BaseModel):
 
 
 class VincularEstudiante(BaseModel):
-    curp_estudiante: str = ""
-    id_estudiante: int | None = None
+    curp_estudiante: str
     parentesco: str = "padre/madre/tutor"
 
 
@@ -495,22 +493,6 @@ def ensure_curp_is_unique(cur: Any, curp: str) -> None:
         )
 
 
-def ensure_students_exist(cur: Any, ids: list[int]) -> None:
-    if not ids:
-        return
-    cur.execute(
-        "SELECT id_usuario FROM usuarios_estudiantes WHERE id_usuario = ANY(%s)",
-        (ids,),
-    )
-    found = {row["id_usuario"] for row in cur.fetchall()}
-    missing = sorted(set(ids) - found)
-    if missing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Estudiante(s) no encontrado(s): {', '.join(map(str, missing))}",
-        )
-
-
 def find_student_by_curp(cur: Any, curp: str) -> dict[str, Any]:
     normalized = normalize_curp(curp)
     cur.execute(
@@ -561,11 +543,18 @@ def list_parent_students(cur: Any, id_padre: int) -> list[dict[str, Any]]:
         """,
         (id_padre,),
     )
-    return [user_to_dict(row, "estudiante") | {
-        "id_relacion": row["id_relacion"],
-        "parentesco": row["parentesco"],
-        "fecha_vinculacion": serialize(row["fecha_vinculacion"]),
-    } for row in cur.fetchall()]
+    result = []
+    for row in cur.fetchall():
+        student = user_to_dict(row, "estudiante")
+        student.pop("id_usuario", None)
+        student.pop("keycloack_id", None)
+        student.pop("id_relacion", None)
+        result.append({
+            **student,
+            "parentesco": row["parentesco"],
+            "fecha_vinculacion": serialize(row["fecha_vinculacion"]),
+        })
+    return result
 
 
 def list_questionnaires_by_profile(cur: Any, profile: str) -> list[dict[str, Any]]:
@@ -937,6 +926,8 @@ def list_parent_alerts(cur: Any, id_padre: int) -> list[dict[str, Any]]:
             "fecha_de_creacion": row["fecha_de_creacion"],
             "ultima_conexion": row["ultima_conexion"],
         }, "estudiante")
+        student.pop("id_usuario", None)
+        student.pop("keycloack_id", None)
         alerts.append({
             "id_alerta": row["id_alerta"],
             "tipo": row["tipo"],
@@ -1019,7 +1010,6 @@ def module_access_for_role(profile: str, progress: dict[str, Any]) -> list[dict[
 
 
 def link_parent_to_student(cur: Any, id_padre: int, id_estudiante: int, parentesco: str) -> dict[str, Any]:
-    ensure_students_exist(cur, [id_estudiante])
     cur.execute("SELECT 1 FROM usuarios_padres WHERE id_usuario = %s", (id_padre,))
     if not cur.fetchone():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Padre no encontrado")
@@ -1115,8 +1105,6 @@ def register(user: UserRegister) -> dict[str, Any]:
             if profile == "padre":
                 if normalized_student_curps:
                     ensure_students_curps_exist(cur, normalized_student_curps)
-                elif user.estudiantes_ids:
-                    ensure_students_exist(cur, user.estudiantes_ids)
                 else:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -1176,15 +1164,6 @@ def register(user: UserRegister) -> dict[str, Any]:
                             cur,
                             created["id_usuario"],
                             curp_estudiante,
-                            user.parentesco,
-                        )
-                    )
-                for id_estudiante in user.estudiantes_ids:
-                    linked.append(
-                        link_parent_to_student(
-                            cur,
-                            created["id_usuario"],
-                            id_estudiante,
                             user.parentesco,
                         )
                     )
@@ -1554,14 +1533,7 @@ def link_student(
 
     with db_conn() as conn:
         with conn.cursor() as cur:
-            if payload.id_estudiante is not None:
-                relation = link_parent_to_student(
-                    cur,
-                    user["id_usuario"],
-                    payload.id_estudiante,
-                    payload.parentesco,
-                )
-            elif payload.curp_estudiante.strip():
+            if payload.curp_estudiante.strip():
                 relation = link_parent_to_student_by_curp(
                     cur,
                     user["id_usuario"],
@@ -1592,6 +1564,48 @@ def get_linked_students(user: dict[str, Any] = Depends(current_user)) -> dict[st
         with conn.cursor() as cur:
             linked = list_parent_students(cur, user["id_usuario"])
     return {"id_padre": user["id_usuario"], "estudiantes_vinculados": linked}
+
+
+@app.delete("/users/padres/estudiantes/{curp}")
+def unlink_student(
+    curp: str,
+    user: dict[str, Any] = Depends(current_user),
+) -> dict[str, Any]:
+    if user["perfil_tipo"] != "padre":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo padres pueden desvincular estudiantes")
+
+    with db_conn() as conn:
+        with conn.cursor() as cur:
+            student = find_student_by_curp(cur, curp)
+            id_estudiante = student["id_usuario"]
+            cur.execute(
+                """
+                DELETE FROM alertas_padres
+                WHERE id_padre = %s AND id_estudiante = %s
+                """,
+                (user["id_usuario"], id_estudiante),
+            )
+            cur.execute(
+                """
+                DELETE FROM padre_estudiante
+                WHERE id_padre = %s AND id_estudiante = %s
+                RETURNING id_relacion
+                """,
+                (user["id_usuario"], id_estudiante),
+            )
+            deleted = cur.fetchone()
+            if not deleted:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="El estudiante no está vinculado a este padre",
+                )
+            linked = list_parent_students(cur, user["id_usuario"])
+        conn.commit()
+
+    return {
+        "message": "Estudiante desvinculado exitosamente",
+        "estudiantes_vinculados": linked,
+    }
 
 
 @app.get("/admin/monitoreo")

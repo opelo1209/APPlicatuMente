@@ -24,6 +24,8 @@ class Peticiones {
   static const String activarUsuario = '$baseUrl/users/activar';
   static const String desactivarUsuario = '$baseUrl/users/desactivar';
   static const String padresEstudiantes = '$baseUrl/users/padres/estudiantes';
+  static String padreEstudianteUnlink(String curp) =>
+      '$baseUrl/users/padres/estudiantes/${Uri.encodeComponent(curp)}';
   static const String adminMonitoreo = '$baseUrl/admin/monitoreo';
   static const String adminCuestionarios = '$baseUrl/admin/cuestionarios';
 

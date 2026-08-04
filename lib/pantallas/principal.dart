@@ -11,7 +11,9 @@ import 'juegos/tcg_flame_screen.dart';
 import 'modulos/selector_modulo_crisis.dart';
 import 'modulos/chatbot_serena.dart';
 import 'modulos/ejercicio_respiracion.dart';
+import 'acerca_de.dart';
 import 'configuracion.dart';
+import 'perfil.dart';
 import 'servicios/auth.dart';
 import 'servicios/personalizacion.dart';
 import 'servicios/user.dart';
@@ -868,11 +870,17 @@ class _PrincipalState extends State<Principal>
                         student['nombre_completo']?.toString() ??
                         student['nombre_usuario']?.toString() ??
                         'Estudiante';
+                    final curp = student['curp']?.toString() ?? '';
+                    final parentesco = student['parentesco']?.toString() ?? '';
                     return ListTile(
                       leading: const Icon(Icons.school_outlined),
                       title: Text(name),
                       subtitle: Text(
-                        'ID ${student['id_usuario'] ?? '-'} · ${student['parentesco'] ?? 'vinculado'}',
+                        [
+                          if (curp.isNotEmpty) curp,
+                          if (parentesco.isNotEmpty) parentesco,
+                        ].join(' · ') +
+                            (curp.isEmpty && parentesco.isEmpty ? 'vinculado' : ''),
                       ),
                     );
                   },
@@ -1471,7 +1479,13 @@ class _PrincipalState extends State<Principal>
                 _buildDrawerItem(
                   icon: Icons.person_outline_rounded,
                   title: "Mi Perfil",
-                  onTap: () => Navigator.pop(context),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Perfil()),
+                    );
+                  },
                   color: primaryGreen,
                 ),
                 _buildDrawerItem(
@@ -1537,7 +1551,13 @@ class _PrincipalState extends State<Principal>
                 _buildDrawerItem(
                   icon: Icons.info_outline_rounded,
                   title: "Acerca de",
-                  onTap: () => Navigator.pop(context),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AcercaDe()),
+                    );
+                  },
                   color: _isStudentProfile ? drawerPalette[4] : Colors.purple,
                 ),
               ],
