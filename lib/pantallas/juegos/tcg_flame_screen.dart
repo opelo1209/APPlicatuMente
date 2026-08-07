@@ -29,16 +29,23 @@ class _TcgFlameScreenState extends State<TcgFlameScreen>
   bool _disposed = false;
   Size _gameAreaSize = Size.zero;
   bool _tutorReady = false;
+  bool _showCardText = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _game = TcgGame();
+    _game.cardPreviewNotifier.addListener(_onCardPreviewChanged);
     _tutorService = TutorService();
     _tutorService.addListener(_onTutorChanged);
     _initTutor();
     _initAudio();
+  }
+
+  void _onCardPreviewChanged() {
+    if (!mounted || !_showCardText) return;
+    setState(() => _showCardText = false);
   }
 
   @override
@@ -266,6 +273,7 @@ class _TcgFlameScreenState extends State<TcgFlameScreen>
   void dispose() {
     _disposed = true;
     WidgetsBinding.instance.removeObserver(this);
+    _game.cardPreviewNotifier.removeListener(_onCardPreviewChanged);
     _tutorService.removeListener(_onTutorChanged);
     _game.state.removeListener(_onGameStateChanged);
     _player?.stop();
@@ -757,13 +765,73 @@ class _TcgFlameScreenState extends State<TcgFlameScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      'assets/imagenes/tcg/${card.imagePath}',
-                      height: MediaQuery.of(context).size.height * 0.5,
-                      fit: BoxFit.contain,
-                    ),
+                  Stack(
+                    clipBehavior: Clip.hardEdge,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          'assets/imagenes/tcg/${card.imagePath}',
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      if (_showCardText && card.effectText != null)
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.75),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            alignment: Alignment.center,
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.all(18),
+                              child: Text(
+                                card.effectText!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  height: 1.35,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (card.effectText != null)
+                        Positioned(
+                          bottom: 8,
+                          left: 8,
+                          child: GestureDetector(
+                            onTap: () => setState(
+                              () => _showCardText = !_showCardText,
+                            ),
+                            behavior: HitTestBehavior.opaque,
+                            child: Semantics(
+                              label: 'Ver texto de la carta',
+                              button: true,
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.6),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.4),
+                                    width: 1.2,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.menu_rounded,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   Container(

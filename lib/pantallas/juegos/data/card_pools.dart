@@ -12,7 +12,7 @@ List<CardData> createEnemyCardPool() {
       cost: 2,
       attack: 3,
       isBossCard: true,
-      effectText: 'Tu mente se va directo al peor final posible, aunque apenas vaya empezando el problema.',
+      effectText: 'Tu mente se va directo al peor final posibie, aunque apenas vaya empezando el problema. Todo se siente más grande de lo que es.',
     ),
     CardData(
       id: 'boss_02',
@@ -22,7 +22,7 @@ List<CardData> createEnemyCardPool() {
       cost: 2,
       attack: 2,
       isBossCard: true,
-      effectText: 'Solo ves lo que salió mal y borras todo lo que hiciste bien.',
+      effectText: 'Sientes que solo eres capaz de notar lo negativo de las situaciones, sin importar cuántas cosas buenas haya a tu airededor.',
     ),
     CardData(
       id: 'boss_03',
@@ -32,7 +32,7 @@ List<CardData> createEnemyCardPool() {
       cost: 3,
       attack: 4,
       isBossCard: true,
-      effectText: 'Si no te sale perfecto, tu cabeza dice que eres un fracaso total.',
+      effectText: 'Sientes que todos los resultados son extremos. O te sale perfecto y sin errores, o es un gran fracaso sin nada rescatable.',
     ),
     CardData(
       id: 'boss_04',
@@ -42,7 +42,7 @@ List<CardData> createEnemyCardPool() {
       cost: 2,
       attack: 2,
       isBossCard: true,
-      effectText: 'Asumes que todos te juzgan o hablan mal de ti, aunque nadie haya dicho nada.',
+      effectText: 'Observas los pensamientos de tu oponente. Mira 2 cartas de su mano y elige 1: • Esa carta no puede jugarse en su próximo turno. • O descártala si tiene el efecto “robar” o “buscar”',
     ),
     CardData(
       id: 'boss_05',
@@ -52,7 +52,7 @@ List<CardData> createEnemyCardPool() {
       cost: 3,
       attack: 4,
       isBossCard: true,
-      effectText: 'Le das vueltas a lo mismo una y otra vez, sin llegar a una solución.',
+      effectText: 'Te quedas atascado en los mismos pensamientos y emociones, una y otro vez. Te cuesta soltar el problema y seguir adelante.',
     ),
     CardData(
       id: 'boss_06',
@@ -62,7 +62,7 @@ List<CardData> createEnemyCardPool() {
       cost: 3,
       attack: 4,
       isBossCard: true,
-      effectText: 'Se acelera tu corazón, te sudan las manos y sientes que algo malo va a pasar.',
+      effectText: 'Te invade la ansiedad por un miedo repentino a todo lo que pucda salir mal, aunque no tengass razones claras o alguna situación que la justifique.',
     ),
     CardData(
       id: 'boss_07',
@@ -72,7 +72,7 @@ List<CardData> createEnemyCardPool() {
       cost: 3,
       attack: 4,
       isBossCard: true,
-      effectText: 'Todo se siente sin chiste, como si hubieras perdido la energía para disfrutar.',
+      effectText: 'Te invade una profunda tristeza y cansancio, perdiendo el interés en las coses que normalmente disfrutas. Nada parece importar.',
     ),
     CardData(
       id: 'boss_08',
@@ -82,7 +82,7 @@ List<CardData> createEnemyCardPool() {
       cost: 2,
       attack: 3,
       isBossCard: true,
-      effectText: 'Te acuerdas de algo que dijiste o hiciste y te arde por dentro.',
+      effectText: 'Todo lo que has hecho mal se siente como si te estuvlera quemando por dentro. Te ahogas en culpa por no haber hecho las cosas mejor.',
     ),
     CardData(
       id: 'boss_09',
@@ -92,7 +92,7 @@ List<CardData> createEnemyCardPool() {
       cost: 3,
       attack: 4,
       isBossCard: true,
-      effectText: 'Guardas y guardas el enojo hasta que explota por algo mínimo.',
+      effectText: 'Finalmente explotas tras aguantar mucho tiempo sin decir lo que de verdad sientes. Aunque enfrentar el problema te cuesta, la ira te ayuda a dar el paso.',
     ),
     CardData(
       id: 'boss_10',
@@ -102,7 +102,7 @@ List<CardData> createEnemyCardPool() {
       cost: 2,
       attack: 3,
       isBossCard: true,
-      effectText: 'No te sientes ni feliz ni triste, solo plano.',
+      effectText: 'Sientes que has apagado tus emociones y estás en un estado de indiferencia o entumecimienio. Nada positivo y nada negativo importa.',
     ),
     CardData(
       id: 'boss_11',
@@ -112,7 +112,7 @@ List<CardData> createEnemyCardPool() {
       cost: 3,
       attack: 4,
       isBossCard: true,
-      effectText: 'Dejas de ver a tus amigos, te encierras y dices que es por flojera.',
+      effectText: 'Te encierras solo sin ganas de salir, evitando a otros. El mundo se siente distante y desconectado como si tu habitación fuera una prisión.',
     ),
     CardData(
       id: 'boss_12',
@@ -122,7 +122,7 @@ List<CardData> createEnemyCardPool() {
       cost: 2,
       attack: 3,
       isBossCard: true,
-      effectText: 'Sabes que tienes cosas que hacer, pero las pateas una y otra vez.',
+      effectText: 'Postergas decisiones pendientes y tareas importantes hasta que ya no puedes más. Ahora tienés montones de cosas por hacer que incendian tu tranquilidad.',
     ),
     CardData(
       id: 'boss_13',
@@ -132,7 +132,7 @@ List<CardData> createEnemyCardPool() {
       cost: 1,
       attack: 2,
       isBossCard: true,
-      effectText: 'Te pierdes en el cel para no pensar en lo que te preocupa.',
+      effectText: 'No puedes dejar tu teléfono por horas mientras consumes una avalancha de información superficial. Aunque no resuelva nada, resulta casi imposible dejar de ver.',
     ),
     CardData(
       id: 'boss_14',
@@ -142,7 +142,7 @@ List<CardData> createEnemyCardPool() {
       cost: 2,
       attack: 3,
       isBossCard: true,
-      effectText: 'Dejas de hacer lo que antes te ordenaba el día: tareas, hobbies, deporte.',
+      effectText: 'Dejas de hacer lo que antes te ordenaba el día: tareas, hobbies, deporte. Todo se vuclve caótico y te sientes más perdido.',
     ),
     CardData(
       id: 'boss_15',
@@ -152,7 +152,7 @@ List<CardData> createEnemyCardPool() {
       cost: 3,
       attack: 4,
       isBossCard: true,
-      effectText: 'Te acuestas, pero tu mente se queda prendida. Entre desvelo y pantalla.',
+      effectText: 'Te acuestas, pero tu mente se queda prendida. Entre desvelo y pantalla, al otro día estás agotado y de peor humor.',
     ),
 
     // 5 Extra boss cards (tcg36-40)
@@ -164,7 +164,7 @@ List<CardData> createEnemyCardPool() {
       cost: 3,
       attack: 5,
       isBossCard: true,
-      effectText: 'Inflige 2 de Daño Mental. Este ataque se multiplica x3.',
+      effectText: 'Inflige 2 puntos de Daño Mental. Este ataque se multiplica x3.',
     ),
     CardData(
       id: 'boss_17',
@@ -222,7 +222,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.cognitivo,
       cost: 2,
       attack: 3,
-      effectText: 'Te preguntas: "¿Qué pruebas reales tengo de esto?" A veces el miedo suena fuerte, pero los datos dicen otra cosa.',
+      effectText: 'Intentas concentrarte para checar las pruebas, repasando los temas con atención y asegurándote de que todo esté correcto.',
     ),
     CardData(
       id: 'tool_02',
@@ -231,7 +231,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.cognitivo,
       cost: 3,
       attack: 4,
-      effectText: 'Después de notar el pensamiento gacho, te das chance de buscar otra forma de verlo.',
+      effectText: 'Reevalúas tus pensamientos con una alternativa más positiva, buscando otra perspectiva que disminuya los sentimientos negativos.',
     ),
     CardData(
       id: 'tool_03',
@@ -240,7 +240,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.cognitivo,
       cost: 1,
       attack: 2,
-      effectText: 'En vez de creer todo lo que piensas, lo etiquetas: "esto es mi mente exagerando".',
+      effectText: 'Le pones un nombre a tus pensamientos negativos para identificarlos y reducir su influencia sobre ti.',
     ),
     CardData(
       id: 'tool_04',
@@ -249,7 +249,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.cognitivo,
       cost: 2,
       attack: 3,
-      effectText: 'Anotas qué pasó, qué pensaste y cómo te sentiste.',
+      effectText: 'Apuntas tus ideas, pensamientos y preocupaciones en tu diario, rápido y sin filtro.',
     ),
     CardData(
       id: 'tool_05',
@@ -258,7 +258,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.cognitivo,
       cost: 2,
       attack: 3,
-      effectText: 'Usas una frase que te recuerde que esto va a pasar: "es incómodo, pero no peligroso".',
+      effectText: 'Concentras tus pensamientos en una frase positiva que te calma, usándola como una ancla para mantenerte firme.',
     ),
     CardData(
       id: 'tool_06',
@@ -267,7 +267,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.emocional,
       cost: 2,
       attack: 3,
-      effectText: 'En vez de decir "me siento mal", piensas: "estoy triste, frustrado, nervioso".',
+      effectText: 'Identificas y nombras la emoción que estás sintiendo en el momento para reconocerla y validarla.',
     ),
     CardData(
       id: 'tool_07',
@@ -276,7 +276,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.emocional,
       cost: 2,
       attack: 3,
-      effectText: 'No peleas con lo que sientes ni te regañas por estar así.',
+      effectText: 'Permites que tus emociones fluyan, dándote tiempo y espacio para sentirlas sin juzgarte.',
     ),
     CardData(
       id: 'tool_08',
@@ -285,7 +285,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.emocional,
       cost: 1,
       attack: 2,
-      effectText: 'Inhalas contando 4, sostienes y exhalas contando 4. Le mandas al cuerpo la señal de que puede bajar la alarma.',
+      effectText: 'Inhalas, retienes, exhalas y descansas, siguiendo el ritmo de una respiración profunda y calmada en cuatro tiempos.',
     ),
     CardData(
       id: 'tool_09',
@@ -294,7 +294,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.emocional,
       cost: 2,
       attack: 3,
-      effectText: 'Te fijas en 5 cosas que ves, 4 que tocas, 3 que oyes, 2 que hueles y 1 que sabes que está bien.',
+      effectText: 'Anclas tu atención en tus sentidos para traer tu mente al momento presente, notando lo que puedes oír, ver, tocar, oler y saborear.',
     ),
     CardData(
       id: 'tool_10',
@@ -303,7 +303,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.emocional,
       cost: 3,
       attack: 4,
-      effectText: 'Le cuentas a alguien de confianza cómo te sientes, sin minimizarlo.',
+      effectText: 'Compartes tus emociones con una persona de confianza que te escucha y te apoya sin juzgarte.',
     ),
     CardData(
       id: 'tool_11',
@@ -312,7 +312,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.conductual,
       cost: 1,
       attack: 2,
-      effectText: 'Cuando todo se siente demasiado, eliges una sola acción mini.',
+      effectText: 'Das un paso muy pequeño, uno que sea fácil y manejable, pero que te acerque un poco más a tu meta.',
     ),
     CardData(
       id: 'tool_12',
@@ -321,7 +321,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.conductual,
       cost: 3,
       attack: 4,
-      effectText: 'Partes una tarea grande en pedacitos alcanzables: hoy solo haces el primer paso.',
+      effectText: 'Divides una meta grande en mini-metas alcanzables y creas un plan paso a paso que puedas seguir.',
     ),
     CardData(
       id: 'tool_13',
@@ -330,7 +330,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.conductual,
       cost: 2,
       attack: 3,
-      effectText: 'Aunque no traigas ganas, haces algo que antes te gustaba: música, dibujo, juego.',
+      effectText: 'Despejas la mente participando en una actividad que te gusta, brindándote un momento de alegría y placer.',
     ),
     CardData(
       id: 'tool_14',
@@ -339,7 +339,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.conductual,
       cost: 2,
       attack: 3,
-      effectText: 'Bajas la luz, dejas el cel un rato antes y tratas de dormir casi a la misma hora.',
+      effectText: 'Estableces una rutina de sueño saludable, asegucándote un ambiente tranquilo para dormir bien.',
     ),
     CardData(
       id: 'tool_15',
@@ -348,7 +348,7 @@ List<CardData> createPlayerCardPool() {
       type: CardType.conductual,
       cost: 3,
       attack: 4,
-      effectText: 'Buscas apoyo de un orientador, psicólogo o línea de ayuda.',
+      effectText: 'Buscas asistencia de un profesional para recibir orientación y apoyo experto.',
     ),
 
     // 5 Special cards (Comodines) from DOCX
@@ -360,7 +360,7 @@ List<CardData> createPlayerCardPool() {
       cost: 2,
       attack: 0,
       effects: const [HealEffect(4, name: 'Recuperar Bienestar')],
-      effectText: 'Recuperas 4 puntos de Bienestar. Te das un minuto para respirar profundo.',
+      effectText: 'Recuperas 4 puntos de Bienestar.',
     ),
     CardData(
       id: 'spc_02',
@@ -370,7 +370,7 @@ List<CardData> createPlayerCardPool() {
       cost: 3,
       attack: 0,
       effects: const [HealEffect(6, name: 'Recuperar Bienestar')],
-      effectText: 'Recuperas 6 puntos de Bienestar. Sentirte acompañado reduce el peso del problema.',
+      effectText: 'Recuperas 6 puntos de Bienestar.',
     ),
     CardData(
       id: 'spc_03',

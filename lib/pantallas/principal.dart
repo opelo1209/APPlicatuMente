@@ -1897,15 +1897,20 @@ class _HomeDailyBannerCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                Text(
-                  banner.title,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.w900,
-                    fontSize: banner.featured ? 20 : 18,
-                    height: 1.18,
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Text(
+                      banner.title,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.w900,
+                        fontSize: banner.featured ? 20 : 18,
+                        height: 1.18,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
