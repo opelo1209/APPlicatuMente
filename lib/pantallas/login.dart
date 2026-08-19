@@ -1,6 +1,10 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'theme_provider.dart';
 import 'registro.dart';
 import 'principal.dart';
@@ -8,6 +12,8 @@ import 'cuestionarios/cuestionario_wrapper.dart';
 import 'recuperar_contrasena.dart';
 // Importar con los nombres CORRECTOS
 import 'servicios/auth.dart';
+import 'servicios/boton_instalar_app.dart';
+import 'servicios/google_web_button.dart';
 import 'servicios/user.dart';
 
 class Login extends StatefulWidget {
@@ -29,15 +35,46 @@ class _LoginState extends State<Login> {
   final Auth _auth = Auth();
   final User _user = User();
 
+  StreamSubscription<GoogleSignInAuthenticationEvent>? _googleAuthSub;
+  Widget? _googleWebButton;
+
   @override
   void initState() {
     super.initState();
+    if (kIsWeb && _auth.isGoogleConfigured) {
+      unawaited(_initGoogleWebButton());
+    }
+  }
+
+  // El botón nativo de Google solo se puede crear DESPUÉS de que el SDK de
+  // Google termine de inicializarse (ensureGoogleInitialized es async); si
+  // se crea antes, lanza una excepción que rompe el arranque de toda la
+  // pantalla (pantalla en blanco). Por eso todo va envuelto en try/catch:
+  // un fallo aquí nunca debe tumbar el login por usuario/contraseña.
+  Future<void> _initGoogleWebButton() async {
+    try {
+      await _auth.ensureGoogleInitialized();
+      if (!mounted) return;
+      setState(() {
+        _googleWebButton = renderGoogleWebButton();
+      });
+      _googleAuthSub = _auth.googleAuthEvents.listen(
+        _handleGoogleAuthEvent,
+        onError: (Object e) {
+          if (!mounted) return;
+          _showMessage('Error de Google: $e', isError: true);
+        },
+      );
+    } catch (e) {
+      debugPrint('No se pudo inicializar el botón de Google: $e');
+    }
   }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _googleAuthSub?.cancel();
     super.dispose();
   }
 
@@ -131,6 +168,8 @@ class _LoginState extends State<Login> {
     }
   }
 
+  // Login con Google en Android/iOS (en Web se usa el botón nativo, ver
+  // _handleGoogleAuthEvent).
   Future<void> _handleGoogleLogin() async {
     setState(() {
       _isLoading = true;
@@ -147,44 +186,85 @@ class _LoginState extends State<Login> {
         });
         return;
       }
-
-      // Con el nuevo endpoint del backend, la validación del token de Google y la creación del usuario
-      // se realizan internamente y nos devuelve directamente un token de acceso válido.
-      // Ya no necesitamos llamar a syncUser porque ya se guarda en base de datos.
-
-      final sessionResult = await _user.getSessionContext();
-      final sessionData = sessionResult['data'];
-      final String perfilTipo =
-          sessionResult['success'] == true && sessionData is Map
-          ? sessionData['perfil_tipo']?.toString() ?? 'estudiante'
-          : 'estudiante';
-      final progress = sessionData is Map ? sessionData['progress'] : null;
-      final bool cuestionarioCompletado =
-          progress is Map && progress['cuestionario_completado'] == true;
-      if (!mounted) return;
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      // Navegar a la pantalla correspondiente limpiando el stack anterior
-      if (perfilTipo != 'estudiante' || cuestionarioCompletado) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const Principal()),
-          (Route<dynamic> route) => false,
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const CuestionarioWrapper()),
-        );
-      }
+      await _completeSessionAndNavigate();
     } catch (error) {
       debugPrint('Error en login Google: $error');
       _showMessage('Error al iniciar sesión con Google', isError: true);
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  // Se dispara cuando el usuario completa el flujo del botón nativo de
+  // Google en Web (GoogleSignIn.instance.authenticate() no existe en Web).
+  Future<void> _handleGoogleAuthEvent(
+    GoogleSignInAuthenticationEvent event,
+  ) async {
+    final GoogleSignInAccount? user = switch (event) {
+      GoogleSignInAuthenticationEventSignIn() => event.user,
+      GoogleSignInAuthenticationEventSignOut() => null,
+    };
+    if (user == null) return;
+
+    final String? idToken = user.authentication.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      _showMessage(
+        'No se pudo obtener el token de identidad de Google',
+        isError: true,
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final loginResult = await _auth.completeGoogleSignIn(idToken);
+    if (!mounted) return;
+    if (!loginResult['success']) {
+      _showMessage(
+        loginResult['message'] ?? 'Error al iniciar sesión con Google',
+        isError: true,
+      );
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+    await _completeSessionAndNavigate();
+  }
+
+  // Con el nuevo endpoint del backend, la validación del token de Google y la
+  // creación del usuario se realizan internamente y nos devuelve
+  // directamente un token de acceso válido. Ya no necesitamos llamar a
+  // syncUser porque ya se guarda en base de datos.
+  Future<void> _completeSessionAndNavigate() async {
+    final sessionResult = await _user.getSessionContext();
+    final sessionData = sessionResult['data'];
+    final String perfilTipo = sessionResult['success'] == true && sessionData is Map
+        ? sessionData['perfil_tipo']?.toString() ?? 'estudiante'
+        : 'estudiante';
+    final progress = sessionData is Map ? sessionData['progress'] : null;
+    final bool cuestionarioCompletado =
+        progress is Map && progress['cuestionario_completado'] == true;
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    // Navegar a la pantalla correspondiente limpiando el stack anterior
+    if (perfilTipo != 'estudiante' || cuestionarioCompletado) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const Principal()),
+        (Route<dynamic> route) => false,
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const CuestionarioWrapper()),
+      );
     }
   }
 
@@ -418,12 +498,19 @@ class _LoginState extends State<Login> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _socialButton(
-                          icon: FontAwesomeIcons.google,
-                          color: const Color(0xFFDB4437),
-                          isDarkMode: isDarkMode,
-                          onTap: _handleGoogleLogin,
-                        ),
+                        if (kIsWeb && _googleWebButton != null)
+                          SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: _googleWebButton,
+                          )
+                        else if (!kIsWeb)
+                          _socialButton(
+                            icon: FontAwesomeIcons.google,
+                            color: const Color(0xFFDB4437),
+                            isDarkMode: isDarkMode,
+                            onTap: _handleGoogleLogin,
+                          ),
                       ],
                     ),
 
@@ -456,6 +543,12 @@ class _LoginState extends State<Login> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 14),
+
+                    // Instalación como PWA. El widget se oculta solo en las
+                    // compilaciones nativas y cuando ya está instalada.
+                    const Center(child: BotonInstalarApp()),
+
                     const SizedBox(height: 10),
                   ],
                 ),

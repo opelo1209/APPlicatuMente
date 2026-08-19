@@ -35,18 +35,144 @@
 
   <title>APTM</title>
   <link rel="manifest" href="manifest.json">
+
+  <script>
+    // Puente de instalación PWA.
+    //
+    // Debe ejecutarse lo antes posible: Chrome emite `beforeinstallprompt` en
+    // cuanto la página cumple los criterios de instalación, normalmente mucho
+    // antes de que main.dart.js termine de cargar. Si nadie escucha en ese
+    // momento, el evento se pierde y el botón "Instalar" nunca se habilita.
+    (function () {
+      var promptDiferido = null;
+      var suscriptores = [];
+
+      function notificar() {
+        for (var i = 0; i < suscriptores.length; i++) {
+          try {
+            suscriptores[i]();
+          } catch (e) {
+            console.warn('[APTM PWA] suscriptor falló', e);
+          }
+        }
+      }
+
+      function esIos() {
+        var ua = navigator.userAgent;
+        return (
+          /iPad|iPhone|iPod/.test(ua) ||
+          // iPadOS 13+ se identifica como Mac de escritorio.
+          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+        );
+      }
+
+      function estaInstalada() {
+        var modos = ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay'];
+        for (var i = 0; i < modos.length; i++) {
+          if (window.matchMedia('(display-mode: ' + modos[i] + ')').matches) {
+            return true;
+          }
+        }
+        // Safari en iOS no implementa display-mode; usa esta bandera propia.
+        return navigator.standalone === true;
+      }
+
+      function tipoNavegador() {
+        var ua = navigator.userAgent;
+        if (esIos()) return 'ios';
+        if (/Edg\//.test(ua)) return 'edge';
+        if (/OPR\//.test(ua)) return 'opera';
+        if (/SamsungBrowser/.test(ua)) return 'samsung';
+        if (/Firefox\//.test(ua)) return 'firefox';
+        if (/Chrome\//.test(ua)) return 'chrome';
+        if (/Safari\//.test(ua)) return 'safari';
+        return 'otro';
+      }
+
+      window.addEventListener('beforeinstallprompt', function (evento) {
+        // Evita el mini-infobar de Chrome para poder ofrecer el botón propio.
+        evento.preventDefault();
+        promptDiferido = evento;
+        notificar();
+      });
+
+      window.addEventListener('appinstalled', function () {
+        promptDiferido = null;
+        notificar();
+      });
+
+      window.aptmPwa = {
+        // ¿Hay un prompt nativo listo para dispararse?
+        sePuedeInstalar: function () {
+          return promptDiferido !== null && !estaInstalada();
+        },
+        yaInstalada: estaInstalada,
+        navegador: tipoNavegador,
+        // Devuelve 'accepted', 'dismissed' o 'unavailable'.
+        instalar: function () {
+          if (promptDiferido === null) {
+            return Promise.resolve('unavailable');
+          }
+          var evento = promptDiferido;
+          // El evento sólo puede usarse una vez.
+          promptDiferido = null;
+          notificar();
+          return evento
+            .prompt()
+            .then(function () {
+              return evento.userChoice;
+            })
+            .then(function (eleccion) {
+              return eleccion && eleccion.outcome ? eleccion.outcome : 'dismissed';
+            })
+            .catch(function (e) {
+              console.warn('[APTM PWA] prompt de instalación falló', e);
+              return 'unavailable';
+            });
+        },
+        alCambiar: function (callback) {
+          suscriptores.push(callback);
+        },
+      };
+    })();
+  </script>
 </head>
 <body>
   <script>
-    (async function clearOldFlutterWebCache() {
+    (async function arrancarAptm() {
       if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registrations.map((registration) => registration.unregister()));
+        try {
+          // Limpieza de despliegues anteriores: el service worker que generaba
+          // Flutter servía builds viejos tras cada redespliegue. Se elimina,
+          // pero sin tocar el nuestro (pwa_sw.js), que no cachea código.
+          const registros = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(
+            registros
+              .filter((registro) => {
+                const script =
+                  (registro.active || registro.waiting || registro.installing || {})
+                    .scriptURL || '';
+                return script.includes('flutter_service_worker.js');
+              })
+              .map((registro) => registro.unregister())
+          );
+
+          const llaves = await caches.keys();
+          await Promise.all(
+            llaves
+              .filter((llave) => llave.startsWith('flutter'))
+              .map((llave) => caches.delete(llave))
+          );
+
+          // Registrar el service worker propio habilita `beforeinstallprompt`,
+          // que es lo que permite instalar la app desde el botón de la interfaz.
+          await navigator.serviceWorker.register('pwa_sw.js', { scope: './' });
+        } catch (e) {
+          // Un fallo aquí sólo desactiva la instalación: la app debe arrancar igual.
+          console.warn('[APTM PWA] no se pudo preparar el service worker', e);
+        }
       }
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((key) => caches.delete(key)));
-      }
+
       const bootstrap = document.createElement('script');
       bootstrap.src = 'flutter_bootstrap.js?v=aptm_personalizacion_20260708';
       bootstrap.async = true;

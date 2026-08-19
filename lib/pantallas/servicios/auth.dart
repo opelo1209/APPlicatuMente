@@ -8,11 +8,15 @@ import 'peticiones.dart';
 class Auth {
   bool _googleInitialized = false;
 
+  static const String _googleClientId = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+  );
+
   Future<void> _initGoogle() async {
     if (!_googleInitialized) {
       await GoogleSignIn.instance.initialize(
-        serverClientId:
-            '773970807427-dqu2tgcoq7sbklofmlr9bbhmv48g9631.apps.googleusercontent.com',
+        clientId: _googleClientId,
+        serverClientId: _googleClientId,
       );
       _googleInitialized = true;
     }
@@ -294,24 +298,19 @@ class Auth {
     return token != null && token.isNotEmpty;
   }
 
-  // Login con Google usando backend
-  Future<Map<String, dynamic>> loginWithGoogle() async {
+  bool get isGoogleConfigured => _googleClientId.isNotEmpty;
+
+  /// En Flutter Web, `GoogleSignIn.instance.authenticate()` no está
+  /// soportado: hay que inicializar y luego escuchar [googleAuthEvents]
+  /// mientras se muestra el botón nativo de Google (`renderButton`).
+  Future<void> ensureGoogleInitialized() => _initGoogle();
+
+  Stream<GoogleSignInAuthenticationEvent> get googleAuthEvents =>
+      GoogleSignIn.instance.authenticationEvents;
+
+  /// Envía el idToken de Google al backend y guarda la sesión si es válido.
+  Future<Map<String, dynamic>> completeGoogleSignIn(String idToken) async {
     try {
-      await _initGoogle();
-      final GoogleSignInAccount googleUser = await GoogleSignIn.instance
-          .authenticate();
-
-      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-      final String? idToken = googleAuth.idToken;
-
-      if (idToken == null || idToken.isEmpty) {
-        return {
-          'success': false,
-          'message': 'No se pudo obtener el token de identidad de Google',
-        };
-      }
-
-      // Enviar idToken a nuestro endpoint de FastAPI
       final response = await http.post(
         Uri.parse(Peticiones.loginGoogle),
         headers: Peticiones.headers,
@@ -331,13 +330,53 @@ class Auth {
           'data': data,
           'message': 'Login con Google exitoso',
         };
-      } else {
+      }
+      return {
+        'success': false,
+        'message': 'Credenciales de Google no aceptadas por el backend',
+        'error': response.body,
+      };
+    } catch (e) {
+      debugPrint('Error en completeGoogleSignIn: $e');
+      return {
+        'success': false,
+        'message': 'Error en autenticación con Google: $e',
+      };
+    }
+  }
+
+  /// Login con Google fuera de la web (Android/iOS). En Web usa el botón
+  /// nativo (ver [googleAuthEvents]) en vez de este método.
+  Future<Map<String, dynamic>> loginWithGoogle() async {
+    if (kIsWeb) {
+      return {
+        'success': false,
+        'message': 'En la web usa el botón de Google para iniciar sesión.',
+      };
+    }
+    if (_googleClientId.isEmpty) {
+      return {
+        'success': false,
+        'message':
+            'Google Sign-In no esta configurado (falta GOOGLE_CLIENT_ID en el build)',
+      };
+    }
+    try {
+      await _initGoogle();
+      final GoogleSignInAccount googleUser = await GoogleSignIn.instance
+          .authenticate();
+
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken == null || idToken.isEmpty) {
         return {
           'success': false,
-          'message': 'Credenciales de Google no aceptadas por el backend',
-          'error': response.body,
+          'message': 'No se pudo obtener el token de identidad de Google',
         };
       }
+
+      return completeGoogleSignIn(idToken);
     } catch (e) {
       debugPrint('Error en loginWithGoogle: $e');
       return {

@@ -15,6 +15,7 @@ import 'acerca_de.dart';
 import 'configuracion.dart';
 import 'perfil.dart';
 import 'servicios/auth.dart';
+import 'servicios/boton_instalar_app.dart';
 import 'servicios/personalizacion.dart';
 import 'servicios/user.dart';
 
@@ -490,6 +491,8 @@ class _PrincipalState extends State<Principal>
           color: isDarkMode ? Colors.white : Colors.black87,
         ),
         actions: [
+          // Se oculta solo fuera de web y cuando la app ya esta instalada.
+          const BotonInstalarApp(compacto: true),
           IconButton(
             icon: const Icon(Icons.menu),
             onPressed: () async {

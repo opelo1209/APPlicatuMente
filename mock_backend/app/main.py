@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import re
 import secrets
 import time
 import uuid
@@ -12,6 +13,8 @@ import psycopg2
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
@@ -20,6 +23,7 @@ DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://postgres:postgres@127.0.0.1:55432/aptm_tmp",
 )
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 TOKEN_PREFIX = "local_access_"
 
 # In-memory password reset tokens: {token: {id_usuario, perfil_tipo, expira}}
@@ -102,6 +106,10 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
+
+
+class GoogleLogin(BaseModel):
+    token: str
 
 
 class CuestionarioUpdate(BaseModel):
@@ -448,6 +456,26 @@ def find_user(cur: Any, username_or_email: str) -> tuple[str, str, dict[str, Any
         if row:
             return profile, table, row
     return None
+
+
+def unique_username_from_email(cur: Any, correo: str) -> str:
+    base = re.sub(r"[^a-z0-9_]", "", correo.split("@")[0].lower()) or "usuario"
+    candidate = base
+    suffix = 1
+    while True:
+        exists = False
+        for table in PROFILE_TABLES.values():
+            cur.execute(
+                f"SELECT 1 FROM {table} WHERE nombre_usuario = %s LIMIT 1",
+                (candidate,),
+            )
+            if cur.fetchone():
+                exists = True
+                break
+        if not exists:
+            return candidate
+        suffix += 1
+        candidate = f"{base}{suffix}"
 
 
 def ensure_unique(cur: Any, nombre_usuario: str, correo: str) -> None:
@@ -1212,11 +1240,87 @@ def login(credentials: UserLogin) -> dict[str, Any]:
 
 
 @app.post("/auth/google")
-def google_not_configured() -> None:
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Google/Keycloak no esta configurado en este backend temporal",
-    )
+def google_login(payload: GoogleLogin) -> dict[str, Any]:
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="GOOGLE_CLIENT_ID no esta configurado en el backend",
+        )
+
+    try:
+        idinfo = google_id_token.verify_oauth2_token(
+            payload.token, google_requests.Request(), GOOGLE_CLIENT_ID
+        )
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de Google invalido",
+        )
+
+    correo = idinfo.get("email")
+    if not correo or not idinfo.get("email_verified"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Correo de Google no verificado",
+        )
+
+    nombres = idinfo.get("given_name") or idinfo.get("name") or "Usuario"
+    apellido_paterno = idinfo.get("family_name") or "Google"
+    google_sub = idinfo["sub"]
+
+    with db_conn() as conn:
+        with conn.cursor() as cur:
+            found = find_user(cur, correo)
+            if found:
+                profile, table, row = found
+                if not row["activo"]:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Usuario inactivo",
+                    )
+            else:
+                profile = "estudiante"
+                table = PROFILE_TABLES[profile]
+                nombre_usuario = unique_username_from_email(cur, correo)
+                keycloack_id = f"google-{google_sub}"
+                cur.execute(
+                    f"""
+                    INSERT INTO {table} (
+                        keycloack_id, nombre_usuario, correo, password_hash,
+                        nombres, apellido_paterno
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    RETURNING *
+                    """,
+                    (
+                        keycloack_id,
+                        nombre_usuario,
+                        correo,
+                        hash_password(secrets.token_urlsafe(24)),
+                        nombres,
+                        apellido_paterno,
+                    ),
+                )
+                row = cur.fetchone()
+
+            token = secrets.token_urlsafe(32)
+            cur.execute(
+                "INSERT INTO sesiones_locales (token, perfil_tipo, id_usuario) VALUES (%s, %s, %s)",
+                (token, profile, row["id_usuario"]),
+            )
+            cur.execute(
+                f"UPDATE {table} SET ultima_conexion = NOW() WHERE id_usuario = %s RETURNING *",
+                (row["id_usuario"],),
+            )
+            logged_user = user_to_dict(cur.fetchone(), profile)
+        conn.commit()
+
+    return {
+        "access_token": f"{TOKEN_PREFIX}{token}",
+        "token_type": "bearer",
+        "perfil_tipo": profile,
+        "user": logged_user,
+    }
 
 
 @app.post("/auth/password-reset-request")

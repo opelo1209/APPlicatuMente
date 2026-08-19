@@ -118,7 +118,6 @@ class _RegistroState extends State<Registro> {
   String _getEffectiveFirstName(String normalizedNombres) {
     const excludedPrefixes = {
       'MARIA', 'MA.', 'MA', 'JOSE', 'J.', 'J',
-      'JUAN', 'JESUS', 'GUADALUPE',
     };
     final parts = normalizedNombres.split(RegExp(r'\s+'));
     if (parts.isEmpty) return '';

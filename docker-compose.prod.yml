@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: aptm_postgres
+    network_mode: host
+    command: ["postgres", "-c", "port=55432"]
+    environment:
+      POSTGRES_DB: aptm_tmp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGPORT: 55432
+    volumes:
+      - aptm_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 55432 -U postgres -d aptm_tmp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    image: northamerica-south1-docker.pkg.dev/aptm-produccion/aptm-images/backend:latest
+    container_name: aptm_backend
+    network_mode: host
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55432/aptm_tmp
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: northamerica-south1-docker.pkg.dev/aptm-produccion/aptm-images/frontend:latest
+    container_name: aptm_frontend
+    network_mode: host
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  aptm_pgdata:
