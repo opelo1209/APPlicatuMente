@@ -31,6 +31,8 @@ class TcgGame extends FlameGame {
   final ValueNotifier<String> combatLog = ValueNotifier<String>('');
   final ValueNotifier<bool> isProcessing = ValueNotifier<bool>(false);
   final ValueNotifier<bool> waitingForContinue = ValueNotifier<bool>(false);
+  final ValueNotifier<GamePhase> phaseNotifier =
+      ValueNotifier<GamePhase>(GamePhase.playerTurn);
 
   final ValueNotifier<int> playerHpNotifier = ValueNotifier<int>(20);
   final ValueNotifier<int> enemyHpNotifier = ValueNotifier<int>(20);
@@ -123,13 +125,19 @@ class TcgGame extends FlameGame {
   }
 
   void startGame() {
+    isProcessing.value = false;
+    waitingForContinue.value = false;
+    combatLog.value = '';
+    cardPreviewNotifier.value = null;
     final playerCards = createPlayerCardPool();
     final enemyCards = createEnemyCardPool();
     state.startGame(playerCards, enemyCards);
+    phaseNotifier.value = GamePhase.enemyTurn;
     _loadBoardBg();
     _rebuildHand();
     _layoutBoard();
     _syncNotifiers();
+    _endPlayerTurn();
   }
 
   void _syncNotifiers() {
@@ -238,6 +246,7 @@ class TcgGame extends FlameGame {
   void _endPlayerTurn() {
     isProcessing.value = false;
     state.phase = GamePhase.enemyTurn;
+    phaseNotifier.value = GamePhase.enemyTurn;
     state.notify();
     _delayed(100, () => _runEnemyTurn());
   }
@@ -251,11 +260,13 @@ class TcgGame extends FlameGame {
       return;
     }
 
+    isProcessing.value = true;
     combatLog.value = '';
     battleManager.triggerOnPlay(playerCard);
     battleManager.triggerOnTurnStart();
 
     if (state.isGameOver) {
+      phaseNotifier.value = state.phase;
       isProcessing.value = false;
       return;
     }
@@ -269,6 +280,8 @@ class TcgGame extends FlameGame {
       final actualEnemyDmg = (enemyCard.attack * eMul).round();
 
       battleManager.resolveCombat(playerCard, enemyCard);
+
+      phaseNotifier.value = state.phase;
 
       _playerCardView?.add(_shakeEffect());
       _enemyCardView?.add(_shakeEffect());
@@ -308,6 +321,7 @@ class TcgGame extends FlameGame {
         _delayed(300, () {
           if (state.isGameOver) {
             _logCombat(state.playerWon ? '¡Victoria!' : 'Has perdido...');
+            phaseNotifier.value = state.phase;
             isProcessing.value = false;
             return;
           }
@@ -375,6 +389,7 @@ class TcgGame extends FlameGame {
     } else {
       _logCombat('Boss colocó ${enemyCard.name}. Tu turno.');
       state.phase = GamePhase.playerTurn;
+      phaseNotifier.value = GamePhase.playerTurn;
       state.notify();
     }
   }
