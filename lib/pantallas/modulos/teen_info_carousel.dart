@@ -126,6 +126,68 @@ class _TeenInfoCard extends StatelessWidget {
   final TeenInfoCardData card;
   final String pageLabel;
 
+  void _showExpandedImage(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.88),
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(12),
+          child: SafeArea(
+            child: Container(
+              width: double.infinity,
+              height: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: InteractiveViewer(
+                      minScale: 0.8,
+                      maxScale: 4.0,
+                      child: Center(
+                        child: Image.asset(
+                          card.imagePath!,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: card.color,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cerrar',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -133,7 +195,10 @@ class _TeenInfoCard extends StatelessWidget {
       color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
-        side: BorderSide(color: card.color.withValues(alpha: 0.22), width: 1.5),
+        side: BorderSide(
+          color: card.color.withValues(alpha: 0.22),
+          width: 1.5,
+        ),
       ),
       child: Container(
         decoration: BoxDecoration(
@@ -166,7 +231,10 @@ class _TeenInfoCard extends StatelessWidget {
                     duration: const Duration(milliseconds: 420),
                     curve: Curves.elasticOut,
                     builder: (context, value, child) {
-                      return Transform.scale(scale: value, child: child);
+                      return Transform.scale(
+                        scale: value,
+                        child: child,
+                      );
                     },
                     child: Container(
                       padding: const EdgeInsets.all(12),
@@ -174,7 +242,11 @@ class _TeenInfoCard extends StatelessWidget {
                         color: card.color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Icon(card.icon, color: card.color, size: 26),
+                      child: Icon(
+                        card.icon,
+                        color: card.color,
+                        size: 26,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -210,12 +282,16 @@ class _TeenInfoCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
+
               if (card.imagePath != null) ...[
                 Expanded(
                   child: Center(
-                    child: Image.asset(
-                      card.imagePath!,
-                      fit: BoxFit.contain,
+                    child: GestureDetector(
+                      onTap: () => _showExpandedImage(context),
+                      child: Image.asset(
+                        card.imagePath!,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 ),
