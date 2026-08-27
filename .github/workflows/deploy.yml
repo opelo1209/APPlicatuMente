@@ -56,24 +56,32 @@ jobs:
       - name: Configurar Docker para Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
-      # DIAGNOSTICO TEMPORAL: confirmar que el SHA no llega vacio al paso de
-      # build. Se quita en cuanto se confirme la causa del fallo anterior.
-      - name: Diagnostico version
-        run: |
-          echo "::notice::SHA calculado='${{ steps.version.outputs.sha }}'"
-          echo "::notice::Tag destino='${{ env.REPO_IMAGENES }}/frontend:${{ steps.version.outputs.sha }}'"
-
       # El frontend se compila aquí, no en la VM: la e2-small tiene 2 GB de RAM
       # y se satura compilando Flutter Web. Ya tumbó el SSH una vez.
+      #
+      # DIAGNOSTICO TEMPORAL: el build fallaba en <1s sin razon aparente. Como
+      # no hay acceso a los logs completos sin permisos de admin del repo, se
+      # captura la salida real de `docker build` y se reenvia como anotaciones
+      # (::error::), que si son publicas via la API de Checks. Se revierte en
+      # cuanto se identifique la causa.
       - name: Compilar y publicar la imagen del frontend
         run: |
+          set +e
           docker build \
             --build-arg API_BASE_URL=https://aptm-api-uami.duckdns.org \
             --build-arg GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
             --build-arg BUILD_SHA=${{ steps.version.outputs.sha }} \
             -t ${{ env.REPO_IMAGENES }}/frontend:${{ steps.version.outputs.sha }} \
             -t ${{ env.REPO_IMAGENES }}/frontend:latest \
-            .
+            . > /tmp/build.log 2>&1
+          BUILD_EXIT=$?
+          if [ $BUILD_EXIT -ne 0 ]; then
+            echo "::notice::docker build fallo, exit=$BUILD_EXIT. Ultimas 15 lineas:"
+            tail -n 15 /tmp/build.log | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit $BUILD_EXIT
+          fi
           docker push --all-tags ${{ env.REPO_IMAGENES }}/frontend
 
       - name: Compilar y publicar la imagen del backend
