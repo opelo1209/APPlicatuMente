@@ -56,6 +56,13 @@ jobs:
       - name: Configurar Docker para Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
+      # DIAGNOSTICO TEMPORAL: confirmar que el SHA no llega vacio al paso de
+      # build. Se quita en cuanto se confirme la causa del fallo anterior.
+      - name: Diagnostico version
+        run: |
+          echo "::notice::SHA calculado='${{ steps.version.outputs.sha }}'"
+          echo "::notice::Tag destino='${{ env.REPO_IMAGENES }}/frontend:${{ steps.version.outputs.sha }}'"
+
       # El frontend se compila aquí, no en la VM: la e2-small tiene 2 GB de RAM
       # y se satura compilando Flutter Web. Ya tumbó el SSH una vez.
       - name: Compilar y publicar la imagen del frontend
