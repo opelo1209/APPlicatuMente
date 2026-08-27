@@ -54,51 +54,48 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Configurar Docker para Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
 
       # El frontend se compila aquí, no en la VM: la e2-small tiene 2 GB de RAM
       # y se satura compilando Flutter Web. Ya tumbó el SSH una vez.
       #
-      # DIAGNOSTICO TEMPORAL: el build fallaba en <1s sin razon aparente. Como
-      # no hay acceso a los logs completos sin permisos de admin del repo, se
-      # captura la salida real de `docker build` y se reenvia como anotaciones
-      # (::error::), que si son publicas via la API de Checks. Se revierte en
-      # cuanto se identifique la causa.
+      # Los secrets se pasan por `env:` y se citan como "$VAR" en vez de
+      # interpolarlos directo con ${{ }} dentro del run. Un secret con un
+      # espacio o salto de linea de mas al pegarlo (facil de hacer) rompe el
+      # parseo de argumentos de `docker buildx` (el builder que usa el runner
+      # de GitHub) si no va citado; ademas es la practica recomendada por
+      # GitHub para no interpolar valores no confiables directo en el script.
       - name: Compilar y publicar la imagen del frontend
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          BUILD_SHA: ${{ steps.version.outputs.sha }}
         run: |
-          set +e
           docker build \
             --build-arg API_BASE_URL=https://aptm-api-uami.duckdns.org \
-            --build-arg GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
-            --build-arg BUILD_SHA=${{ steps.version.outputs.sha }} \
-            -t ${{ env.REPO_IMAGENES }}/frontend:${{ steps.version.outputs.sha }} \
-            -t ${{ env.REPO_IMAGENES }}/frontend:latest \
-            . > /tmp/build.log 2>&1
-          BUILD_EXIT=$?
-          if [ $BUILD_EXIT -ne 0 ]; then
-            echo "::notice::docker build fallo, exit=$BUILD_EXIT. Ultimas 15 lineas:"
-            tail -n 15 /tmp/build.log | while IFS= read -r line; do
-              echo "::error::$line"
-            done
-            exit $BUILD_EXIT
-          fi
-          docker push --all-tags ${{ env.REPO_IMAGENES }}/frontend
+            --build-arg GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
+            --build-arg BUILD_SHA="$BUILD_SHA" \
+            -t "$REPO_IMAGENES/frontend:$BUILD_SHA" \
+            -t "$REPO_IMAGENES/frontend:latest" \
+            .
+          docker push --all-tags "$REPO_IMAGENES/frontend"
 
       - name: Compilar y publicar la imagen del backend
+        env:
+          BUILD_SHA: ${{ steps.version.outputs.sha }}
         run: |
           docker build \
-            -t ${{ env.REPO_IMAGENES }}/backend:${{ steps.version.outputs.sha }} \
-            -t ${{ env.REPO_IMAGENES }}/backend:latest \
+            -t "$REPO_IMAGENES/backend:$BUILD_SHA" \
+            -t "$REPO_IMAGENES/backend:latest" \
             ./mock_backend
-          docker push --all-tags ${{ env.REPO_IMAGENES }}/backend
+          docker push --all-tags "$REPO_IMAGENES/backend"
 
       # La VM solo descarga y arranca. `--command` evita abrir una sesión
       # interactiva, que en un runner sin terminal fallaría.
       - name: Desplegar en la VM
         run: |
-          gcloud compute ssh ${{ env.VM }} \
-            --project=${{ env.PROYECTO }} \
-            --zone=${{ env.ZONA }} \
+          gcloud compute ssh "$VM" \
+            --project="$PROYECTO" \
+            --zone="$ZONA" \
             --tunnel-through-iap \
             --command="
               set -e
@@ -111,13 +108,15 @@ jobs:
       # Verificación de que lo publicado es lo que se acaba de compilar.
       # Si el sitio devuelve otro hash, el despliegue falló en silencio.
       - name: Verificar que la versión publicada coincide
+        env:
+          BUILD_SHA: ${{ steps.version.outputs.sha }}
         run: |
           sleep 20
           PUBLICADO=$(curl -sf https://aptm-uami.duckdns.org/version.json \
             | grep -o '"build_sha":"[^"]*"' | cut -d'"' -f4 || echo "")
-          echo "esperado:  ${{ steps.version.outputs.sha }}"
-          echo "publicado: ${PUBLICADO}"
-          if [ "$PUBLICADO" != "${{ steps.version.outputs.sha }}" ]; then
+          echo "esperado:  $BUILD_SHA"
+          echo "publicado: $PUBLICADO"
+          if [ "$PUBLICADO" != "$BUILD_SHA" ]; then
             echo "::error::La versión publicada no coincide con la compilada."
             exit 1
           fi
