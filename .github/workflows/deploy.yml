@@ -1,0 +1,109 @@
+name: Compilar y desplegar APTM
+
+# Se dispara al empujar a la rama de trabajo. `workflow_dispatch` permite
+# lanzarlo a mano desde la pestaña Actions, útil para redesplegar sin commit.
+on:
+  push:
+    branches: [demo]
+  workflow_dispatch:
+
+# Impide dos despliegues simultáneos: si se empuja dos veces seguidas, el
+# segundo espera en vez de pisar al primero a medio camino.
+concurrency:
+  group: despliegue-produccion
+  cancel-in-progress: false
+
+env:
+  PROYECTO: aptm-produccion
+  REGION: northamerica-south1
+  ZONA: northamerica-south1-a
+  VM: aptm-server
+  REPO_IMAGENES: northamerica-south1-docker.pkg.dev/aptm-produccion/aptm-images
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+
+    # Permisos mínimos. `id-token: write` es lo que habilita la federación de
+    # identidad: sin esto, GitHub no puede pedirle un token a Google.
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      # El hash corto del commit se usa como marca de versión. Sustituye a la
+      # cadena escrita a mano en web/index.html, que llevaba semanas sin
+      # cambiar y por eso no servía para saber qué había publicado.
+      - name: Calcular la versión
+        id: version
+        run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      # Autenticación sin llaves. GitHub emite un token OIDC de un solo uso,
+      # Google lo verifica y devuelve credenciales temporales. No hay ningún
+      # secreto de larga duración guardado en el repositorio.
+      - name: Autenticar contra Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Instalar gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configurar Docker para Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      # El frontend se compila aquí, no en la VM: la e2-small tiene 2 GB de RAM
+      # y se satura compilando Flutter Web. Ya tumbó el SSH una vez.
+      - name: Compilar y publicar la imagen del frontend
+        run: |
+          docker build \
+            --build-arg API_BASE_URL=https://aptm-api-uami.duckdns.org \
+            --build-arg GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+            --build-arg BUILD_SHA=${{ steps.version.outputs.sha }} \
+            -t ${{ env.REPO_IMAGENES }}/frontend:${{ steps.version.outputs.sha }} \
+            -t ${{ env.REPO_IMAGENES }}/frontend:latest \
+            .
+          docker push --all-tags ${{ env.REPO_IMAGENES }}/frontend
+
+      - name: Compilar y publicar la imagen del backend
+        run: |
+          docker build \
+            -t ${{ env.REPO_IMAGENES }}/backend:${{ steps.version.outputs.sha }} \
+            -t ${{ env.REPO_IMAGENES }}/backend:latest \
+            ./mock_backend
+          docker push --all-tags ${{ env.REPO_IMAGENES }}/backend
+
+      # La VM solo descarga y arranca. `--command` evita abrir una sesión
+      # interactiva, que en un runner sin terminal fallaría.
+      - name: Desplegar en la VM
+        run: |
+          gcloud compute ssh ${{ env.VM }} \
+            --project=${{ env.PROYECTO }} \
+            --zone=${{ env.ZONA }} \
+            --tunnel-through-iap \
+            --command="
+              set -e
+              cd ~/aptm
+              docker compose -f docker-compose.prod.yml pull
+              docker compose -f docker-compose.prod.yml up -d
+              docker image prune -f
+            "
+
+      # Verificación de que lo publicado es lo que se acaba de compilar.
+      # Si el sitio devuelve otro hash, el despliegue falló en silencio.
+      - name: Verificar que la versión publicada coincide
+        run: |
+          sleep 20
+          PUBLICADO=$(curl -sf https://aptm-uami.duckdns.org/version.json \
+            | grep -o '"build_sha":"[^"]*"' | cut -d'"' -f4 || echo "")
+          echo "esperado:  ${{ steps.version.outputs.sha }}"
+          echo "publicado: ${PUBLICADO}"
+          if [ "$PUBLICADO" != "${{ steps.version.outputs.sha }}" ]; then
+            echo "::error::La versión publicada no coincide con la compilada."
+            exit 1
+          fi
+          echo "Despliegue verificado."
