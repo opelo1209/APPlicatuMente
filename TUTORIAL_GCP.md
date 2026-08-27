@@ -1,19 +1,18 @@
-# Tutorial: Desplegar APTM en Google Cloud Platform (GCP)
+# Tutorial: cómo desplegué APTM en Google Cloud Platform (GCP)
 
-> Estado real de referencia (ya desplegado con esta guía):
+> Estado real, tal como quedó:
 > - **Proyecto GCP:** `aptm-produccion`
 > - **VM:** `aptm-server` (e2-small, 2 vCPU comp., 2 GB RAM) en `northamerica-south1-a` (Querétaro, México)
 > - **IP estática:** `34.51.63.92`
 > - **Frontend:** https://aptm-uami.duckdns.org
 > - **Backend:** https://aptm-api-uami.duckdns.org
-> - **Costo aprox.:** ~$13-15 USD/mes si la VM queda encendida 24/7 (ver §8 para apagarla y ahorrar).
-
-Sigue el mismo patrón que el despliegue en GCP del proyecto de tesis (Compute Engine + Docker +
-Nginx + Let's Encrypt + DuckDNS), adaptado a una app más ligera (Flutter Web + FastAPI + Postgres).
+> - **Costo:** por ahora corre sobre el crédito de prueba gratuito de GCP (90 días desde la activación). A día de hoy me quedan aproximadamente **64 días** antes de que se acabe el periodo de prueba — es un cálculo mío a partir de la última vez que revisé el saldo, así que antes de citarlo en algo formal conviene confirmar la cifra exacta en Facturación → Resumen.
 
 ---
 
 ## 0. Arquitectura
+
+Así quedó armado, una vez desplegado:
 
 ```
 Internet
@@ -34,19 +33,22 @@ Internet
                               └──────────────────────────────┘
 ```
 
-**Decisión clave (lección aprendida):** las imágenes Docker se **compilan en tu máquina local**
-y se suben a **Artifact Registry**; la VM solo hace `docker pull` + `docker compose up`. Compilar
-Flutter Web (`dart2js`) dentro de una VM de 2 GB de RAM la satura (llegamos a colgar SSH por
-memoria agotada). Compilar localmente y desplegar imágenes ya construidas es más rápido, más
-confiable y es la práctica estándar en CI/CD.
+**Decisión clave (la aprendí a la mala):** compilo las imágenes Docker en mi máquina local y las
+subo ya construidas a Artifact Registry; la VM solo hace `docker pull` + `docker compose up`. La
+primera vez intenté compilar Flutter Web (`dart2js`) directamente dentro de la VM de 2 GB de RAM
+y la saturé por completo — se me colgó hasta el SSH. Compilar en mi máquina y desplegar imágenes
+ya armadas resultó más rápido, más confiable, y además es la práctica estándar en cualquier flujo
+de CI/CD.
 
 ---
 
 ## 1. Prerrequisitos
 
-- Cuenta de Google con facturación habilitada (tarjeta registrada; GCP no cobra sin tu
-  confirmación explícita, pero la VM y la IP sí generan costo mientras estén activas).
-- `gcloud` CLI instalado y autenticado en tu máquina:
+Esto es lo que tuve que tener listo antes de empezar:
+
+- Cuenta de Google con facturación habilitada (tarjeta registrada; GCP no cobra sin confirmación
+  explícita, pero la VM y la IP sí generan costo mientras están activas).
+- `gcloud` CLI instalado y autenticado en mi máquina:
   ```bash
   curl https://sdk.cloud.google.com | bash
   exec -l $SHELL
@@ -54,7 +56,7 @@ confiable y es la práctica estándar en CI/CD.
   gcloud auth login
   ```
 - Docker instalado localmente (para compilar y subir las imágenes).
-- Una cuenta gratuita en [duckdns.org](https://www.duckdns.org) (login con Google/GitHub).
+- Una cuenta gratuita en [duckdns.org](https://www.duckdns.org) (entré con mi cuenta de Google).
 
 ---
 
@@ -113,13 +115,14 @@ ZONE=northamerica-south1-a
   --address=aptm-ip
 ```
 
-> **Tamaño de VM:** `e2-small` (2 GB RAM) es suficiente para *correr* los 3 contenedores ya
-> compilados. Si más adelante conectas un backend de IA real para el chatbot "Serena" (modelos
-> más pesados), sube a `e2-medium` o `e2-standard-2`.
+Elegí `e2-small` (2 GB de RAM) porque alcanza de sobra para **correr** los tres contenedores ya
+compilados — el problema nunca fue correrlos, fue compilar ahí mismo (ver la decisión del punto 0).
 
 ---
 
 ## 5. Instalar Docker, Nginx y Certbot en la VM
+
+Esto lo corrí una sola vez, por SSH:
 
 ```bash
 "$GC" compute ssh aptm-server --zone=$ZONE --project=aptm-produccion --command='
@@ -137,7 +140,8 @@ sudo systemctl enable --now docker
 '
 ```
 
-**Swap de seguridad** (2 GB RAM es justo; sin swap, cualquier pico de memoria puede colgar la VM):
+**Swap de seguridad** (con 2 GB de RAM al límite, sin swap cualquier pico de memoria me iba a
+volver a colgar la VM):
 
 ```bash
 "$GC" compute ssh aptm-server --zone=$ZONE --project=aptm-produccion --command='
@@ -153,16 +157,17 @@ echo "/swapfile none swap sw 0 0" | sudo tee -a /etc/fstab
 
 ## 6. DuckDNS (DNS gratuito) apuntando a la IP estática
 
-1. Entra a https://www.duckdns.org e inicia sesión.
-2. Crea dos subdominios, por ejemplo `aptm-uami` y `aptm-api-uami`.
-3. Copia tu **token** (aparece arriba de la página) y actualiza los registros con la IP estática
-   del paso 3 (¡ojo!: DuckDNS a veces detecta automáticamente tu IP local al visitar la página —
-   verifica que quede apuntando a la IP de la VM, no a tu IP de casa):
+1. Entré a https://www.duckdns.org e inicié sesión.
+2. Creé dos subdominios: `aptm-uami` y `aptm-api-uami`.
+3. Copié mi **token** (aparece arriba de la página) y actualicé los registros con la IP estática
+   del paso 3. Ojo con esto: a mí DuckDNS me autocompletó el campo con mi propia IP de casa la
+   primera vez que entré a la página — tuve que corregirlo a mano para que apuntara a la IP de la
+   VM:
    ```bash
    TOKEN=tu_token_duckdns
    curl "https://www.duckdns.org/update?domains=aptm-uami,aptm-api-uami&token=${TOKEN}&ip=34.51.63.92"
    ```
-4. Verifica la propagación:
+4. Verifiqué la propagación:
    ```bash
    getent hosts aptm-uami.duckdns.org
    getent hosts aptm-api-uami.duckdns.org
@@ -191,14 +196,14 @@ docker build -t "$REGISTRY/backend:latest" .
 docker push "$REGISTRY/backend:latest"
 ```
 
-> Si cambias el dominio del backend más adelante, **debes reconstruir el frontend** (el
+> Si cambio el dominio del backend más adelante, tengo que reconstruir el frontend (el
 > `API_BASE_URL` se compila dentro del JavaScript, no es una variable de entorno en runtime).
 
 ---
 
 ## 8. Desplegar en la VM
 
-Copia `docker-compose.prod.yml` (incluido en este repo) y despliega:
+Copio `docker-compose.prod.yml` (incluido en este repo) y despliego:
 
 ```bash
 SSH_OPTS="-i ~/.ssh/google_compute_engine -o StrictHostKeyChecking=no"
@@ -217,17 +222,17 @@ docker compose -f docker-compose.prod.yml ps
 '
 ```
 
-> **Nota sobre el login a Artifact Registry:** el token dura ~1 hora, suficiente para el `pull`
-> inicial. Para no repetir esto en cada redeploy, la opción robusta es re-crear la VM con el scope
-> `cloud-platform` y otorgar el rol `roles/artifactregistry.reader` a su cuenta de servicio; con
-> eso, `gcloud auth configure-docker` funciona de forma permanente sin tokens manuales.
+> **Nota que me dejé anotada:** el token dura ~1 hora, suficiente para el `pull` inicial. Para no
+> repetir esto en cada redeploy, la opción robusta es re-crear la VM con el scope `cloud-platform`
+> y otorgar el rol `roles/artifactregistry.reader` a su cuenta de servicio; con eso,
+> `gcloud auth configure-docker` funciona de forma permanente sin tokens manuales.
 
 ---
 
 ## 9. Nginx como reverse proxy + HTTPS con Let's Encrypt
 
-Crea dos server blocks (uno por subdominio) que redirigen a los puertos internos de los
-contenedores, y deja que Certbot añada TLS automáticamente:
+Creé dos server blocks (uno por subdominio) que redirigen a los puertos internos de los
+contenedores, y dejé que Certbot añadiera TLS automáticamente:
 
 `/etc/nginx/sites-available/aptm-uami.conf`:
 ```nginx
@@ -258,11 +263,13 @@ sudo certbot --nginx -n --agree-tos -m tu_correo@ejemplo.com \
 ```
 
 Certbot instala un **systemd timer** (`certbot.timer`) que renueva los certificados
-automáticamente antes de que expiren — no requiere mantenimiento manual.
+automáticamente antes de que expiren — no tuve que volver a tocar esto.
 
 ---
 
 ## 10. Verificación
+
+Así confirmé que todo servía:
 
 ```bash
 curl -I https://aptm-uami.duckdns.org/                 # 200 OK, sirve el HTML de Flutter
@@ -273,7 +280,8 @@ curl -I http://aptm-uami.duckdns.org/                   # 301 → https (redirec
 curl --max-time 5 http://34.51.63.92:8080/              # debe fallar / timeout
 ```
 
-Abre `https://aptm-uami.duckdns.org` en el navegador y prueba registro + login end-to-end.
+Y por último abrí `https://aptm-uami.duckdns.org` en el navegador y probé registro + login
+de punta a punta.
 
 ---
 
@@ -285,7 +293,7 @@ Abre `https://aptm-uami.duckdns.org` en el navegador y prueba registro + login e
   --command='cd ~/aptm && docker compose -f docker-compose.prod.yml logs --tail=50 backend'
 ```
 
-**Redesplegar tras un cambio de código** (repite pasos 7 y luego):
+**Redesplegar tras un cambio de código** (repito el paso 7 y luego):
 ```bash
 "$GC" compute ssh aptm-server --zone=$ZONE --project=aptm-produccion --command='
 cd ~/aptm
@@ -294,14 +302,15 @@ docker compose -f docker-compose.prod.yml up -d
 '
 ```
 
-**Apagar la VM para ahorrar crédito** (la IP estática se conserva, el disco sigue cobrando ~$1-2/mes):
+**Apagar la VM para ahorrar crédito** (la IP estática se conserva, el disco sigue cobrando
+~$1-2/mes):
 ```bash
 "$GC" compute instances stop aptm-server --zone=$ZONE --project=aptm-produccion
 # ... y para reactivar:
 "$GC" compute instances start aptm-server --zone=$ZONE --project=aptm-produccion
 ```
 Los contenedores tienen `restart: unless-stopped`, así que **vuelven a arrancar solos** cuando la
-VM enciende — no hace falta repetir `docker compose up` manualmente.
+VM enciende — no tengo que repetir `docker compose up` a mano.
 
 **Backup de la base de datos:**
 ```bash
@@ -313,29 +322,15 @@ VM enciende — no hace falta repetir `docker compose up` manualmente.
 
 ## 12. Pendientes de seguridad antes de usarlo con datos reales de estudiantes
 
-- **CORS abierto (`allow_origins=["*"]`)** en el backend — restringir a los dominios reales del
-  frontend antes de manejar datos sensibles.
-- **Contraseña de Postgres por defecto** (`postgres`/`postgres`) — cambiarla; aunque el puerto
-  55432 no es público, es buena práctica no dejar credenciales por defecto.
-- El backend actual (`mock_backend`) es un **stub de desarrollo**: el chat de "Serena" solo
-  responde un mensaje fijo, no hay rate limiting ni verificación real de JWT contra un proveedor
-  de identidad. Antes de producción real con usuarios finales, sustituir por el backend
-  definitivo del proyecto.
-- Considera mover los tokens de DuckDNS y credenciales fuera de este repo si alguna vez se hace
-  público.
+Esto lo dejo anotado porque todavía no lo resuelvo:
 
----
-
-## 13. Costos estimados (northamerica-south1, ago. 2026)
-
-| Recurso | Costo aprox. |
-|---|---|
-| VM e2-small (24/7) | ~$13-14 USD/mes |
-| VM e2-small (detenida) | ~$0 cómputo + ~$1-2 disco |
-| IP estática (en uso) | Gratis mientras está asignada a una VM corriendo |
-| IP estática (VM detenida) | ~$3-4 USD/mes (GCP cobra por IPs reservadas sin usar) |
-| Artifact Registry (2 imágenes ~350MB) | Centavos/mes |
-| DuckDNS, Let's Encrypt | Gratis |
-
-> Recomendación: si no necesitas la app corriendo 24/7, apaga la VM cuando no la uses (§11) para
-> minimizar el gasto del crédito de prueba.
+- **CORS abierto (`allow_origins=["*"]`)** en el backend — hay que restringirlo a los dominios
+  reales del frontend antes de manejar datos sensibles.
+- **Contraseña de Postgres por defecto** (`postgres`/`postgres`) — tengo que cambiarla; aunque el
+  puerto 55432 no es público, no es buena práctica dejar credenciales por defecto.
+- El backend actual (`mock_backend`) sigue siendo un **stub de desarrollo**: el chat de "Serena"
+  solo responde un mensaje fijo, no hay rate limiting ni verificación real de JWT contra un
+  proveedor de identidad. Antes de producción real con usuarios finales, tengo que sustituirlo por
+  el backend definitivo del proyecto.
+- Me falta sacar los tokens de DuckDNS y demás credenciales fuera de este repo, por si en algún
+  momento se hace público.
