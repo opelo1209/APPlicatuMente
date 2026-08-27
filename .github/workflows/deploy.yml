@@ -70,14 +70,29 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           BUILD_SHA: ${{ steps.version.outputs.sha }}
         run: |
+          set +e
           docker build \
             --build-arg API_BASE_URL=https://aptm-api-uami.duckdns.org \
             --build-arg GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
             --build-arg BUILD_SHA="$BUILD_SHA" \
             -t "$REPO_IMAGENES/frontend:$BUILD_SHA" \
             -t "$REPO_IMAGENES/frontend:latest" \
-            .
-          docker push --all-tags "$REPO_IMAGENES/frontend"
+            . > /tmp/build.log 2>&1
+          BUILD_EXIT=$?
+          if [ $BUILD_EXIT -ne 0 ]; then
+            tail -n 25 /tmp/build.log | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit $BUILD_EXIT
+          fi
+          docker push --all-tags "$REPO_IMAGENES/frontend" > /tmp/push.log 2>&1
+          PUSH_EXIT=$?
+          if [ $PUSH_EXIT -ne 0 ]; then
+            tail -n 25 /tmp/push.log | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit $PUSH_EXIT
+          fi
 
       - name: Compilar y publicar la imagen del backend
         env:
