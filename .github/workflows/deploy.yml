@@ -103,35 +103,27 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          echo "::notice::llave: $(wc -c < ~/.ssh/deploy_key) bytes, $(wc -l < ~/.ssh/deploy_key) lineas, primera linea='$(head -c 30 ~/.ssh/deploy_key)'"
-          ssh-keygen -y -f ~/.ssh/deploy_key > /tmp/pub_check.log 2>&1 \
-            && echo "::notice::la llave privada es valida (se pudo derivar la publica)" \
-            || { echo "::notice::la llave privada NO es valida:"; while IFS= read -r l; do echo "::error::$l"; done < /tmp/pub_check.log; }
 
           gcloud compute start-iap-tunnel "$VM" 22 \
             --local-host-port=localhost:2222 \
-            --project="$PROYECTO" --zone="$ZONA" > /tmp/tunnel.log 2>&1 &
-
+            --project="$PROYECTO" --zone="$ZONA" &
           sleep 8
-          echo "::notice::probando conexion TCP al puerto local del tunel"
-          timeout 5 bash -c "echo > /dev/tcp/localhost/2222" \
-            && echo "::notice::puerto 2222 responde" \
-            || echo "::notice::puerto 2222 NO responde todavia"
 
-          ssh -v -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+          # La VM solo tiene los scopes minimos (sin cloud-platform), asi que
+          # no puede refrescar sola su token de Artifact Registry: se le pasa
+          # uno fresco en cada despliegue, generado aqui con la identidad de
+          # este job (WIF), en vez de depender de un token pegado a mano que
+          # dura ~1h y ya habia expirado.
+          REGISTRY_TOKEN=$(gcloud auth print-access-token)
+
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             -o ConnectTimeout=15 -p 2222 deploy-aptm@localhost "
               set -e
+              echo '$REGISTRY_TOKEN' | sudo docker login -u oauth2accesstoken --password-stdin https://$REGION-docker.pkg.dev
               sudo docker compose -f /home/purpple-alien/aptm/docker-compose.prod.yml pull
               sudo docker compose -f /home/purpple-alien/aptm/docker-compose.prod.yml up -d
               sudo docker image prune -f
-            " > /tmp/ssh.log 2>&1
-          SSH_EXIT=$?
-          echo "::notice::ssh termino con codigo $SSH_EXIT, log de $(wc -l < /tmp/ssh.log) lineas"
-          if [ $SSH_EXIT -ne 0 ]; then
-            tail -n 40 /tmp/ssh.log | while IFS= read -r line; do echo "::error::$line"; done
-            exit $SSH_EXIT
-          fi
-          cat /tmp/ssh.log
+            "
 
       # Verificación de que lo publicado es lo que se acaba de compilar.
       # Si el sitio devuelve otro hash, el despliegue falló en silencio.
