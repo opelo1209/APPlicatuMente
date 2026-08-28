@@ -89,21 +89,45 @@ jobs:
             ./mock_backend
           docker push --all-tags "$REPO_IMAGENES/backend"
 
-      # La VM solo descarga y arranca. `--command` evita abrir una sesión
-      # interactiva, que en un runner sin terminal fallaría.
+      # SSH con llave dedicada en vez de `gcloud compute ssh` + OS Login: el
+      # login por OS Login de la cuenta de servicio queda bloqueado por una
+      # restriccion de la organizacion de Workspace (confirmado: el mismo
+      # rol funciona para una cuenta humana pero no para la cuenta de
+      # servicio). El tunel sigue yendo por IAP (eso si lo autoriza WIF);
+      # solo la autenticacion SSH usa una llave propia, anadida a mano al
+      # metadata de la VM bajo el usuario deploy-aptm.
       - name: Desplegar en la VM
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
-          gcloud compute ssh "$VM" \
-            --project="$PROYECTO" \
-            --zone="$ZONA" \
-            --tunnel-through-iap \
-            --command="
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          gcloud compute start-iap-tunnel "$VM" 22 \
+            --local-host-port=localhost:2222 \
+            --project="$PROYECTO" --zone="$ZONA" > /tmp/tunnel.log 2>&1 &
+
+          for i in $(seq 1 15); do
+            (exec 3<>/dev/tcp/localhost/2222) >/dev/null 2>&1 && break
+            sleep 2
+          done
+          echo "::notice::log del tunel:"
+          cat /tmp/tunnel.log | while IFS= read -r line; do echo "::notice::$line"; done
+
+          ssh -v -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -o ConnectTimeout=15 -p 2222 deploy-aptm@localhost "
               set -e
-              cd ~/aptm
-              docker compose -f docker-compose.prod.yml pull
-              docker compose -f docker-compose.prod.yml up -d
-              docker image prune -f
-            "
+              sudo docker compose -f /home/purpple-alien/aptm/docker-compose.prod.yml pull
+              sudo docker compose -f /home/purpple-alien/aptm/docker-compose.prod.yml up -d
+              sudo docker image prune -f
+            " > /tmp/ssh.log 2>&1
+          SSH_EXIT=$?
+          if [ $SSH_EXIT -ne 0 ]; then
+            tail -n 30 /tmp/ssh.log | while IFS= read -r line; do echo "::error::$line"; done
+            exit $SSH_EXIT
+          fi
+          cat /tmp/ssh.log
 
       # Verificación de que lo publicado es lo que se acaba de compilar.
       # Si el sitio devuelve otro hash, el despliegue falló en silencio.
