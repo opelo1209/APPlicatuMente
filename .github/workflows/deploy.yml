@@ -103,17 +103,20 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          echo "::notice::llave: $(wc -c < ~/.ssh/deploy_key) bytes, $(wc -l < ~/.ssh/deploy_key) lineas, primera linea='$(head -c 30 ~/.ssh/deploy_key)'"
+          ssh-keygen -y -f ~/.ssh/deploy_key > /tmp/pub_check.log 2>&1 \
+            && echo "::notice::la llave privada es valida (se pudo derivar la publica)" \
+            || { echo "::notice::la llave privada NO es valida:"; while IFS= read -r l; do echo "::error::$l"; done < /tmp/pub_check.log; }
 
           gcloud compute start-iap-tunnel "$VM" 22 \
             --local-host-port=localhost:2222 \
             --project="$PROYECTO" --zone="$ZONA" > /tmp/tunnel.log 2>&1 &
 
-          for i in $(seq 1 15); do
-            (exec 3<>/dev/tcp/localhost/2222) >/dev/null 2>&1 && break
-            sleep 2
-          done
-          echo "::notice::log del tunel:"
-          cat /tmp/tunnel.log | while IFS= read -r line; do echo "::notice::$line"; done
+          sleep 8
+          echo "::notice::probando conexion TCP al puerto local del tunel"
+          timeout 5 bash -c "echo > /dev/tcp/localhost/2222" \
+            && echo "::notice::puerto 2222 responde" \
+            || echo "::notice::puerto 2222 NO responde todavia"
 
           ssh -v -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             -o ConnectTimeout=15 -p 2222 deploy-aptm@localhost "
@@ -123,8 +126,9 @@ jobs:
               sudo docker image prune -f
             " > /tmp/ssh.log 2>&1
           SSH_EXIT=$?
+          echo "::notice::ssh termino con codigo $SSH_EXIT, log de $(wc -l < /tmp/ssh.log) lineas"
           if [ $SSH_EXIT -ne 0 ]; then
-            tail -n 30 /tmp/ssh.log | while IFS= read -r line; do echo "::error::$line"; done
+            tail -n 40 /tmp/ssh.log | while IFS= read -r line; do echo "::error::$line"; done
             exit $SSH_EXIT
           fi
           cat /tmp/ssh.log
