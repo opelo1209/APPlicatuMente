@@ -74,3 +74,10 @@ app.*.map.json
 .agents/
 
 skills-lock.json
+
+# Python / mock_backend
+mock_backend/.venv/
+mock_backend/__pycache__/
+mock_backend/app/__pycache__/
+mock_backend/.pytest_cache/
+**/__pycache__/
