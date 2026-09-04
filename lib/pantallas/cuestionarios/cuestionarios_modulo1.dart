@@ -304,7 +304,8 @@ class _CuestionarioState extends State<Cuestionario> {
         .where((r) => r['tipo_respuesta'] == 'likert4')
         .fold<int>(0, (sum, r) => sum + (r['respuesta_valor'] as int));
 
-    // Puntuación C-SSRS: cantidad de "Sí"
+    // Puntuación C-SSRS: cantidad de "Sí" (se conserva como referencia, pero
+    // el nivel de riesgo real NO se decide por este conteo, ver más abajo).
     final cssrsScore = cssrsReactivos.fold<int>(
       0,
       (sum, r) =>
@@ -312,12 +313,14 @@ class _CuestionarioState extends State<Cuestionario> {
           ((r['respuesta_valor'] as int) *
               ((r['puntaje_configurado'] as int?) ?? 1)),
     );
+    final nivelCssrs = nivelCssrsPorDominio(cssrsReactivos);
 
     final payload = {
       'tipo_cuestionario': 'suicidio',
       'fecha_aplicacion': DateTime.now().toUtc().toIso8601String(),
       'phq9_score': phq9Score,
       'cssrs_score': cssrsScore,
+      'cssrs_nivel_dominio': nivelCssrs.name,
       'bloques': [
         {
           'bloque': 'PHQ9',
@@ -329,6 +332,7 @@ class _CuestionarioState extends State<Cuestionario> {
           'bloque': 'CSSRS',
           'nombre': 'Ideación Suicida (C-SSRS)',
           'puntuacion_total': cssrsScore,
+          'nivel_dominio': nivelCssrs.name,
           'reactivos': cssrsReactivos,
         },
       ],
@@ -359,10 +363,14 @@ class _CuestionarioState extends State<Cuestionario> {
     if (!mounted) return;
     setState(() => _enviando = false);
 
-    _mostrarResultado(phq9Score, cssrsScore);
+    _mostrarResultado(phq9Score, cssrsScore, nivelCssrs);
   }
 
-  void _mostrarResultado(int phq9Score, int cssrsScore) {
+  void _mostrarResultado(
+    int phq9Score,
+    int cssrsScore,
+    NivelCssrs nivelCssrs,
+  ) {
     final isDark = Provider.of<ThemeProvider>(
       context,
       listen: false,
@@ -419,10 +427,8 @@ class _CuestionarioState extends State<Cuestionario> {
             _ScoreRow(
               label: 'C-SSRS',
               score: '$cssrsScore / 5',
-              extra: cssrsScore == 0 ? 'Sin ideación' : 'Con ideación',
-              color: cssrsScore == 0
-                  ? const Color(0xFF43A047)
-                  : const Color(0xFFE53935),
+              extra: nivelCssrs.etiqueta,
+              color: nivelCssrs.color,
               isDark: isDark,
             ),
           ],
@@ -889,6 +895,55 @@ class _BinaryButton extends StatelessWidget {
       ),
     );
   }
+}
+
+enum NivelCssrs { sinRiesgo, ideacion, planeacion, planConcreto }
+
+extension NivelCssrsUi on NivelCssrs {
+  String get etiqueta {
+    switch (this) {
+      case NivelCssrs.sinRiesgo:
+        return 'Sin indicadores';
+      case NivelCssrs.ideacion:
+        return 'Ideación';
+      case NivelCssrs.planeacion:
+        return 'Riesgo alto: planeación';
+      case NivelCssrs.planConcreto:
+        return 'Riesgo alto: plan concreto';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case NivelCssrs.sinRiesgo:
+        return const Color(0xFF43A047);
+      case NivelCssrs.ideacion:
+        return const Color(0xFFFDD835);
+      case NivelCssrs.planeacion:
+      case NivelCssrs.planConcreto:
+        return const Color(0xFFE53935);
+    }
+  }
+}
+
+// C-SSRS validado en población mexicana (Austria-Corrales et al., 2023): la
+// severidad la determina cuál dominio jerárquico se activa (ideación <
+// planeación < plan concreto), no la cantidad de reactivos marcados "Sí".
+// Cualquier respuesta afirmativa en planeación o plan concreto escala
+// directo a riesgo alto, sin importar cómo se respondan las demás preguntas.
+NivelCssrs nivelCssrsPorDominio(List<Map<String, dynamic>> cssrsReactivos) {
+  bool endosado(String id) => cssrsReactivos.any(
+    (r) => r['id'] == id && (r['respuesta_valor'] as int) > 0,
+  );
+
+  if (endosado('detalles_plan')) return NivelCssrs.planConcreto;
+  if (endosado('como_lo_haria') || endosado('intencion_llevarlo')) {
+    return NivelCssrs.planeacion;
+  }
+  if (endosado('desear_muerto') || endosado('idea_suicidarse')) {
+    return NivelCssrs.ideacion;
+  }
+  return NivelCssrs.sinRiesgo;
 }
 
 class _ScoreRow extends StatelessWidget {

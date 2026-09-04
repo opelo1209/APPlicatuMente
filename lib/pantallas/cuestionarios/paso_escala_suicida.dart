@@ -11,6 +11,8 @@ class PasoEscalaSuicida extends StatefulWidget {
   State<PasoEscalaSuicida> createState() => _PasoEscalaSuicidaState();
 }
 
+enum _NivelCssrs { sinRiesgo, ideacion, planeacion, planConcreto }
+
 class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
   int _currentQuestionIndex = 0;
   final Map<String, int> _respuestas = {};
@@ -191,47 +193,62 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
   }
 
   void _finalizarCuestionario() {
-    // Calcular puntuación total
-    int puntuacionTotal = _respuestas.values.fold(0, (sum, value) => sum + value);
-    
-    // Mostrar mensaje de finalización con el nivel de riesgo
-    _mostrarMensajeFinal(puntuacionTotal);
+    final nivel = _calcularNivelPorDominio();
+    _mostrarMensajeFinal(nivel);
   }
 
-  void _mostrarMensajeFinal(int puntuacion) {
+  // C-SSRS validado en población mexicana (Austria-Corrales et al., 2023):
+  // la severidad la determina cuál dominio jerárquico se activa (ideación <
+  // planeación < plan concreto), no la suma de puntos. Cualquier respuesta
+  // afirmativa en planeación o plan concreto escala directo a riesgo alto,
+  // sin importar cómo se hayan respondido las demás preguntas.
+  _NivelCssrs _calcularNivelPorDominio() {
+    bool endosado(String id) => (_respuestas[id] ?? 0) > 0;
+
+    if (endosado('detalles_plan')) return _NivelCssrs.planConcreto;
+    if (endosado('como_lo_haria') || endosado('intencion_llevarlo')) {
+      return _NivelCssrs.planeacion;
+    }
+    if (endosado('desear_muerto') || endosado('idea_suicidarse')) {
+      return _NivelCssrs.ideacion;
+    }
+    return _NivelCssrs.sinRiesgo;
+  }
+
+  void _mostrarMensajeFinal(_NivelCssrs nivelCssrs) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDarkMode = themeProvider.isDarkMode;
-    
+
     String nivel;
     String mensaje;
     Color color;
     IconData icono;
 
-    if (puntuacion == 0) {
-      nivel = "Sin riesgo detectado";
-      mensaje = "¡Excelente! No identificamos señales de riesgo.";
-      color = const Color(0xFF4CAF50);
-      icono = Icons.check_circle;
-    } else if (puntuacion <= 4) {
-      nivel = "Riesgo bajo";
-      mensaje = "Es normal tener altibajos. Estamos aquí para apoyarte.";
-      color = const Color(0xFF8BC34A);
-      icono = Icons.info;
-    } else if (puntuacion <= 9) {
-      nivel = "Riesgo moderado";
-      mensaje = "Te recomendamos hablar con alguien de confianza.";
-      color = const Color(0xFFFFC107);
-      icono = Icons.warning;
-    } else if (puntuacion <= 15) {
-      nivel = "Riesgo alto";
-      mensaje = "Es importante que busques apoyo profesional pronto.";
-      color = const Color(0xFFFF9800);
-      icono = Icons.priority_high;
-    } else {
-      nivel = "Riesgo muy alto";
-      mensaje = "Por favor, busca ayuda profesional de inmediato.";
-      color = const Color(0xFFF44336);
-      icono = Icons.emergency;
+    switch (nivelCssrs) {
+      case _NivelCssrs.sinRiesgo:
+        nivel = "Sin riesgo detectado";
+        mensaje = "¡Excelente! No identificamos señales de riesgo.";
+        color = const Color(0xFF4CAF50);
+        icono = Icons.check_circle;
+        break;
+      case _NivelCssrs.ideacion:
+        nivel = "Riesgo bajo";
+        mensaje = "Es normal tener altibajos. Estamos aquí para apoyarte.";
+        color = const Color(0xFF8BC34A);
+        icono = Icons.info;
+        break;
+      case _NivelCssrs.planeacion:
+        nivel = "Riesgo alto";
+        mensaje = "Es importante que busques apoyo profesional pronto.";
+        color = const Color(0xFFFF9800);
+        icono = Icons.priority_high;
+        break;
+      case _NivelCssrs.planConcreto:
+        nivel = "Riesgo muy alto";
+        mensaje = "Por favor, busca ayuda profesional de inmediato.";
+        color = const Color(0xFFF44336);
+        icono = Icons.emergency;
+        break;
     }
 
     showDialog(
@@ -298,7 +315,8 @@ class _PasoEscalaSuicidaState extends State<PasoEscalaSuicida> {
                   ],
                 ),
               ),
-              if (puntuacion > 4) ...[
+              if (nivelCssrs == _NivelCssrs.planeacion ||
+                  nivelCssrs == _NivelCssrs.planConcreto) ...[
                 const SizedBox(height: 20),
                 Container(
                   padding: const EdgeInsets.all(15),

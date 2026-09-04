@@ -6,30 +6,30 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'peticiones.dart';
 
 class ServicioSerena {
-  static Future<String> _getSesionId() async {
+  // La identidad de la sesion la asigna el backend a partir del token de
+  // autenticacion (ver chat_session_id en main.py); ya no se genera ni se
+  // confia en un id creado por el cliente, que era adivinable.
+  static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    final actual = prefs.getString('serena_sesion_id');
-    if (actual != null && actual.isNotEmpty) {
-      return actual;
-    }
-
-    final nuevo = 'sesion_${DateTime.now().millisecondsSinceEpoch}';
-    await prefs.setString('serena_sesion_id', nuevo);
-    return nuevo;
+    return prefs.getString('access_token');
   }
 
   static Future<Map<String, dynamic>> enviarMensaje(String mensaje) async {
-    final sesionId = await _getSesionId();
+    final token = await _getToken();
+    if (token == null) {
+      return {
+        'respuesta': 'Inicia sesion para hablar con Serena.',
+        'tipo': 'error',
+        'fuentes': <Map<String, String>>[],
+      };
+    }
 
     try {
       final response = await http
           .post(
             Uri.parse(Peticiones.serenaChat),
-            headers: Peticiones.headers,
-            body: jsonEncode({
-              'mensaje': mensaje,
-              'sesion_id': sesionId,
-            }),
+            headers: Peticiones.getAuthHeaders(token),
+            body: jsonEncode({'mensaje': mensaje}),
           )
           .timeout(const Duration(seconds: 60));
 
@@ -64,20 +64,19 @@ class ServicioSerena {
   }
 
   static Future<void> limpiarHistorial() async {
-    final sesionId = await _getSesionId();
+    final token = await _getToken();
+    if (token == null) return;
 
     try {
       await http
           .delete(
-            Uri.parse('${Peticiones.serenaHistorial}?sesion_id=$sesionId'),
-            headers: Peticiones.headers,
+            Uri.parse(Peticiones.serenaHistorial),
+            headers: Peticiones.getAuthHeaders(token),
           )
           .timeout(const Duration(seconds: 10));
     } catch (_) {
-      // No-op: si falla, igual limpiamos sesion local para empezar limpio.
+      // No-op: si falla, la proxima conversacion sigue funcionando igual,
+      // solo no se limpio el historial del lado del servidor.
     }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('serena_sesion_id');
   }
 }

@@ -126,7 +126,6 @@ class VincularEstudiante(BaseModel):
 
 class ChatRequest(BaseModel):
     mensaje: str = ""
-    sesion_id: str | None = None
 
 
 class PasswordResetRequest(BaseModel):
@@ -1798,14 +1797,31 @@ def update_admin_question_config(
     }
 
 
+def chat_session_id(user: dict[str, Any]) -> str:
+    return f"{user['perfil_tipo']}_{user['id_usuario']}"
+
+
 @app.post("/chat")
-def chat_stub(payload: ChatRequest) -> dict[str, Any]:
+def chat_stub(
+    payload: ChatRequest,
+    user: dict[str, Any] = Depends(current_user),
+) -> dict[str, Any]:
+    # La identidad de la sesion la determina el usuario autenticado, no un
+    # valor mandado por el cliente (antes era un timestamp adivinable).
     return {
         "respuesta": "Backend temporal activo. El chat real se conectara despues.",
-        "sesion_id": payload.sesion_id or "temporal",
+        "sesion_id": chat_session_id(user),
     }
 
 
 @app.get("/chat/historial")
-def chat_history_stub() -> dict[str, list[Any]]:
+def chat_history_stub(user: dict[str, Any] = Depends(current_user)) -> dict[str, list[Any]]:
     return {"historial": []}
+
+
+@app.delete("/chat/historial")
+def chat_history_delete(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    # No hay historial persistido todavia (el chat sigue sin conectarse a un
+    # LLM real), pero la ruta debe existir y estar autenticada porque el
+    # frontend ya la llama al limpiar la conversacion.
+    return {"success": True, "sesion_id": chat_session_id(user)}
