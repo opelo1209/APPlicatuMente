@@ -92,7 +92,10 @@ registrar "frontend actualizado"
 # 4. Instalar el backend solo si cambió (reiniciarlo corta las sesiones en
 #    curso, así que no se hace sin necesidad)
 # --------------------------------------------------------------------------
-if ! diff -rq "$TRABAJO/contenido/backend/app" "$DESTINO_BACKEND/app" > /dev/null 2>&1 \
+# Se ignora __pycache__: lo genera Python al ejecutarse, no viene en el
+# paquete, y sin excluirlo la comparación siempre ve diferencias y el
+# backend se reiniciaría en cada despliegue aunque su código sea idéntico.
+if ! diff -rq --exclude='__pycache__' "$TRABAJO/contenido/backend/app" "$DESTINO_BACKEND/app" > /dev/null 2>&1 \
    || ! diff -q "$TRABAJO/contenido/backend/requirements.txt" "$DESTINO_BACKEND/requirements.txt" > /dev/null 2>&1; then
 
   if ! diff -q "$TRABAJO/contenido/backend/requirements.txt" "$DESTINO_BACKEND/requirements.txt" > /dev/null 2>&1; then
@@ -101,7 +104,7 @@ if ! diff -rq "$TRABAJO/contenido/backend/app" "$DESTINO_BACKEND/app" > /dev/nul
     "$DESTINO_BACKEND/.venv/bin/pip" install --quiet -r "$DESTINO_BACKEND/requirements.txt"
   fi
 
-  rsync -a --delete "$TRABAJO/contenido/backend/app/" "$DESTINO_BACKEND/app/"
+  rsync -a --delete --exclude='__pycache__' "$TRABAJO/contenido/backend/app/" "$DESTINO_BACKEND/app/"
   sudo -n /usr/bin/systemctl restart "$SERVICIO"
   sleep 5
 
