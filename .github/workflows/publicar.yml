@@ -5,6 +5,13 @@ name: Publicar APTM para ml.izt.uam.mx
 # minutos si hay una publicación nueva y se actualiza solo (ver
 # scripts/actualizar_servidor.sh). Así no hay ninguna llave de acceso al
 # servidor de la universidad guardada en GitHub.
+#
+# Son dos trabajos a propósito:
+#   - `compilar` corre DENTRO de la imagen oficial de Flutter, que trae el SDK
+#     pero no las herramientas de GitHub (`gh`).
+#   - `publicar` corre en el entorno normal del runner, que sí las trae.
+# Hacer las dos cosas en el mismo trabajo dentro del contenedor falla al
+# publicar, porque ahí `gh` no existe.
 on:
   push:
     branches: [demo]
@@ -25,10 +32,11 @@ env:
   ETIQUETA: ultimo-despliegue
 
 jobs:
-  publicar:
+  compilar:
     runs-on: ubuntu-latest
-    # Imagen oficial de Flutter: evita instalar el SDK en cada ejecución.
     container: ghcr.io/cirruslabs/flutter:stable
+    outputs:
+      sha: ${{ steps.version.outputs.sha }}
 
     steps:
       - name: Descargar el código
@@ -63,7 +71,6 @@ jobs:
           sed -i "s/}$/,\"build_sha\":\"${BUILD_SHA}\"}/" build/web/version.json
 
       - name: Armar el paquete de despliegue
-        id: paquete
         env:
           BUILD_SHA: ${{ steps.version.outputs.sha }}
         run: |
@@ -75,13 +82,34 @@ jobs:
           echo "$BUILD_SHA" > paquete/COMMIT
 
           tar -czf aptm-despliegue.tar.gz -C paquete .
-          echo "sha256=$(sha256sum aptm-despliegue.tar.gz | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
           ls -lh aptm-despliegue.tar.gz
+
+      - name: Guardar el paquete para el siguiente trabajo
+        uses: actions/upload-artifact@v4
+        with:
+          name: paquete-despliegue
+          path: aptm-despliegue.tar.gz
+          retention-days: 3
+
+  publicar:
+    needs: compilar
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Recuperar el paquete
+        uses: actions/download-artifact@v4
+        with:
+          name: paquete-despliegue
+
+      - name: Calcular la suma de verificación
+        id: paquete
+        run: echo "sha256=$(sha256sum aptm-despliegue.tar.gz | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
       - name: Publicar el paquete
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BUILD_SHA: ${{ steps.version.outputs.sha }}
+          GH_REPO: ${{ github.repository }}
+          BUILD_SHA: ${{ needs.compilar.outputs.sha }}
           SHA256: ${{ steps.paquete.outputs.sha256 }}
         run: |
           # Una sola publicación que se reemplaza en cada despliegue: el
@@ -97,7 +125,7 @@ jobs:
 
       - name: Resumen
         env:
-          BUILD_SHA: ${{ steps.version.outputs.sha }}
+          BUILD_SHA: ${{ needs.compilar.outputs.sha }}
         run: |
           echo "Paquete publicado para el commit $BUILD_SHA." >> "$GITHUB_STEP_SUMMARY"
           echo "El servidor lo instalará en los próximos minutos." >> "$GITHUB_STEP_SUMMARY"
