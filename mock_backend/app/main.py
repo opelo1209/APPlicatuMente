@@ -1110,6 +1110,18 @@ def favicon() -> dict[str, str]:
 @app.post("/auth/register", status_code=status.HTTP_201_CREATED)
 def register(user: UserRegister) -> dict[str, Any]:
     profile = normalize_profile(user.perfil_tipo)
+
+    # El registro publico no puede crear administradores. Una cuenta de
+    # administrador puede leer las respuestas de TODOS los estudiantes
+    # (/admin/monitoreo) y editar los cuestionarios clinicos, asi que no
+    # puede quedar a un clic de distancia de cualquiera que abra la app.
+    # Estas cuentas se crean desde el servidor con scripts/crear_admin.py.
+    if profile == "administrador":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Las cuentas de administrador no se crean desde el registro publico.",
+        )
+
     table = PROFILE_TABLES[profile]
     keycloack_id = f"local-{profile}-{secrets.token_hex(16)}"
 

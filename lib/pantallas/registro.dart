@@ -853,13 +853,11 @@ class _RegistroState extends State<Registro> {
               isDarkMode: isDarkMode,
               accentColor: accentColor,
             ),
-            _buildPerfilChip(
-              value: 'administrador',
-              label: 'Admin',
-              icon: Icons.admin_panel_settings_outlined,
-              isDarkMode: isDarkMode,
-              accentColor: accentColor,
-            ),
+            // El perfil de administrador NO se ofrece aquí: da acceso a las
+            // respuestas de todos los estudiantes. Las cuentas de
+            // administrador las crea una persona con acceso al servidor con
+            // scripts/crear_admin.py; el backend rechaza registrarlas por
+            // esta vía.
           ],
         ),
       ],
