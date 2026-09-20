@@ -1,10 +1,21 @@
-name: Compilar y desplegar APTM
+name: (Inactivo) Desplegar APTM en Google Cloud
 
-# Se dispara al empujar a la rama de trabajo. `workflow_dispatch` permite
-# lanzarlo a mano desde la pestaña Actions, útil para redesplegar sin commit.
+# DESACTIVADO desde el 20 de septiembre de 2026.
+#
+# Este flujo desplegaba en la VM de GCP (proyecto `aptm-produccion`). Al
+# terminarse los créditos gratuitos se desactivó la facturación del proyecto,
+# la VM quedó apagada y cada push hacía fallar el despliegue.
+#
+# La aplicación ahora vive en el servidor de la universidad:
+#   https://ml.izt.uam.mx/aptm/     (frontend)
+#   https://ml.izt.uam.mx/aptm-api/ (backend)
+# y se publica con el flujo `publicar.yml` + el actualizador del servidor
+# (ver documentacion/despliegue_servidor/despliegue_uam.md).
+#
+# Se conserva, sin disparador automático, por si algún día se vuelve a usar
+# GCP. Para lanzarlo hay que hacerlo a mano desde la pestaña Actions, y antes
+# habría que reactivar la facturación del proyecto.
 on:
-  push:
-    branches: [demo]
   workflow_dispatch:
 
 # Impide dos despliegues simultáneos: si se empuja dos veces seguidas, el

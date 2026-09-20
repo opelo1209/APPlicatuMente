@@ -1,0 +1,104 @@
+name: Publicar APTM para ml.izt.uam.mx
+
+# Compila la aplicación y publica el resultado como un archivo descargable.
+# GitHub NO entra al servidor: es el servidor el que consulta cada pocos
+# minutos si hay una publicación nueva y se actualiza solo (ver
+# scripts/actualizar_servidor.sh). Así no hay ninguna llave de acceso al
+# servidor de la universidad guardada en GitHub.
+on:
+  push:
+    branches: [demo]
+  workflow_dispatch:
+
+# Dos publicaciones seguidas no se pisan: la segunda espera a la primera.
+concurrency:
+  group: publicar-aptm
+  cancel-in-progress: false
+
+permissions:
+  contents: write # necesario para crear la publicación (release)
+
+env:
+  # Direcciones del despliegue en la universidad.
+  API_BASE_URL: https://ml.izt.uam.mx/aptm-api
+  BASE_HREF: /aptm/
+  ETIQUETA: ultimo-despliegue
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    # Imagen oficial de Flutter: evita instalar el SDK en cada ejecución.
+    container: ghcr.io/cirruslabs/flutter:stable
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Calcular la versión
+        id: version
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Instalar dependencias de Flutter
+        run: flutter pub get
+
+      - name: Compilar la aplicación web
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          BUILD_SHA: ${{ steps.version.outputs.sha }}
+        run: |
+          # Los valores se citan: un secreto con un espacio de más rompe el
+          # parseo de argumentos y Flutter interpreta el sobrante como si
+          # fuera el archivo de entrada.
+          flutter build web --release --pwa-strategy=none \
+            --base-href "$BASE_HREF" \
+            --dart-define=API_BASE_URL="$API_BASE_URL" \
+            --dart-define=GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
+            --dart-define=BUILD_SHA="$BUILD_SHA"
+
+          # Marca de versión visible en /aptm/version.json, para comprobar
+          # desde fuera qué commit está publicado.
+          sed -i "s/main.dart.js/main.dart.js?v=${BUILD_SHA}/g" build/web/flutter_bootstrap.js
+          sed -i "s/}$/,\"build_sha\":\"${BUILD_SHA}\"}/" build/web/version.json
+
+      - name: Armar el paquete de despliegue
+        id: paquete
+        env:
+          BUILD_SHA: ${{ steps.version.outputs.sha }}
+        run: |
+          mkdir -p paquete/web paquete/backend
+          cp -r build/web/. paquete/web/
+          # El backend es Python puro: no se compila, se copia tal cual.
+          cp -r mock_backend/app paquete/backend/app
+          cp mock_backend/requirements.txt paquete/backend/requirements.txt
+          echo "$BUILD_SHA" > paquete/COMMIT
+
+          tar -czf aptm-despliegue.tar.gz -C paquete .
+          echo "sha256=$(sha256sum aptm-despliegue.tar.gz | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          ls -lh aptm-despliegue.tar.gz
+
+      - name: Publicar el paquete
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_SHA: ${{ steps.version.outputs.sha }}
+          SHA256: ${{ steps.paquete.outputs.sha256 }}
+        run: |
+          # Una sola publicación que se reemplaza en cada despliegue: el
+          # servidor siempre busca la misma etiqueta. El commit y la suma de
+          # verificación van en las notas; el servidor comprueba ambos antes
+          # de instalar nada.
+          gh release delete "$ETIQUETA" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$ETIQUETA" aptm-despliegue.tar.gz \
+            --title "Último despliegue ($BUILD_SHA)" \
+            --notes "commit: $BUILD_SHA
+          sha256: $SHA256
+          compilado: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      - name: Resumen
+        env:
+          BUILD_SHA: ${{ steps.version.outputs.sha }}
+        run: |
+          echo "Paquete publicado para el commit $BUILD_SHA." >> "$GITHUB_STEP_SUMMARY"
+          echo "El servidor lo instalará en los próximos minutos." >> "$GITHUB_STEP_SUMMARY"
+          echo "Comprobar en: https://ml.izt.uam.mx/aptm/version.json" >> "$GITHUB_STEP_SUMMARY"
