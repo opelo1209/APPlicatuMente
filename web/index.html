@@ -139,8 +139,28 @@
 </head>
 <body>
   <script>
-    (async function arrancarAptm() {
-      if ('serviceWorker' in navigator) {
+    (function arrancarAptm() {
+      // La app se carga PRIMERO y sin esperar a nada más.
+      //
+      // Antes, el mantenimiento del service worker se hacía con `await` antes
+      // de inyectar este script. Si alguna de esas llamadas no respondía
+      // -y `caches.keys()` se queda colgada en navegadores sin pantalla, en
+      // ventanas privadas o con el almacenamiento bloqueado- la app nunca
+      // arrancaba y el usuario se quedaba viendo una pantalla en blanco, sin
+      // ningún mensaje de error. Encontrado al desplegar en ml.izt.uam.mx.
+      const bootstrap = document.createElement('script');
+      bootstrap.src = 'flutter_bootstrap.js?v=aptm_personalizacion_20260708';
+      bootstrap.async = true;
+      document.body.appendChild(bootstrap);
+
+      if (!('serviceWorker' in navigator)) {
+        return;
+      }
+
+      // Mantenimiento en segundo plano: ya no bloquea el arranque. Si algo
+      // falla o se queda colgado, lo único que se pierde es el botón de
+      // instalación, no la aplicación.
+      (async function mantenimientoPwa() {
         try {
           // Limpieza de despliegues anteriores: el service worker que generaba
           // Flutter servía builds viejos tras cada redespliegue. Se elimina,
@@ -157,26 +177,23 @@
               .map((registro) => registro.unregister())
           );
 
-          const llaves = await caches.keys();
-          await Promise.all(
-            llaves
-              .filter((llave) => llave.startsWith('flutter'))
-              .map((llave) => caches.delete(llave))
-          );
+          if (window.caches) {
+            const llaves = await caches.keys();
+            await Promise.all(
+              llaves
+                .filter((llave) => llave.startsWith('flutter'))
+                .map((llave) => caches.delete(llave))
+            );
+          }
 
           // Registrar el service worker propio habilita `beforeinstallprompt`,
           // que es lo que permite instalar la app desde el botón de la interfaz.
           await navigator.serviceWorker.register('pwa_sw.js', { scope: './' });
         } catch (e) {
-          // Un fallo aquí sólo desactiva la instalación: la app debe arrancar igual.
+          // Un fallo aquí sólo desactiva la instalación: la app arranca igual.
           console.warn('[APTM PWA] no se pudo preparar el service worker', e);
         }
-      }
-
-      const bootstrap = document.createElement('script');
-      bootstrap.src = 'flutter_bootstrap.js?v=aptm_personalizacion_20260708';
-      bootstrap.async = true;
-      document.body.appendChild(bootstrap);
+      })();
     })();
   </script>
 </body>
