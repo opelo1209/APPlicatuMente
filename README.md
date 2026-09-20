@@ -2,6 +2,25 @@
 
 Frontend Flutter web de Aplicate Por Tu Mente.
 
+## Dónde está desplegado
+
+| | Dirección |
+|---|---|
+| Aplicación | https://ml.izt.uam.mx/aptm/ |
+| API | https://ml.izt.uam.mx/aptm-api/ |
+
+Corre en el servidor de la UAM Iztapalapa, con Python y PostgreSQL instalados
+directamente (sin Docker) y publicado a través del Apache del servidor. El
+despliegue anterior en Google Cloud quedó fuera de servicio al terminarse los
+créditos gratuitos.
+
+**Cada push a la rama `demo` se publica solo:** GitHub compila la app y publica
+un paquete (`.tar.gz`); el servidor lo recoge, verifica su suma sha256 y lo
+instala, en menos de cinco minutos. GitHub no tiene ningún acceso al servidor.
+
+El procedimiento completo, con capturas y decisiones, está en
+`documentacion/despliegue_servidor/despliegue_uam.md` (también en PDF).
+
 ## Ejecutar con Docker
 
 No necesitas tener Flutter instalado en la computadora o servidor. Docker usa la

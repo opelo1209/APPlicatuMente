@@ -1,5 +1,11 @@
 # Tutorial: cómo desplegué APTM en Google Cloud Platform (GCP)
 
+> **HISTÓRICO — este despliegue ya no existe.** El proyecto de GCP
+> (`aptm-produccion`) se cerró el 20 de septiembre de 2026 al terminarse los
+> créditos gratuitos. La aplicación vive ahora en el servidor de la
+> universidad: ver `documentacion/despliegue_servidor/despliegue_uam.md`.
+> Este documento se conserva por su valor de registro.
+
 > Estado real, tal como quedó:
 > - **Proyecto GCP:** `aptm-produccion`
 > - **VM:** `aptm-server` (e2-small, 2 vCPU comp., 2 GB RAM) en `northamerica-south1-a` (Querétaro, México)
