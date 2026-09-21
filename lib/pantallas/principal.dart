@@ -13,6 +13,7 @@ import 'modulos/chatbot_serena.dart';
 import 'modulos/ejercicio_respiracion.dart';
 import 'acerca_de.dart';
 import 'configuracion.dart';
+import 'cuestionarios/envio_cuestionario.dart';
 import 'perfil.dart';
 import 'servicios/auth.dart';
 import 'servicios/boton_instalar_app.dart';
@@ -109,6 +110,20 @@ class _PrincipalState extends State<Principal>
       duration: const Duration(milliseconds: 3600),
     )..repeat(reverse: true);
     _loadCurrentUser();
+    _reintentarCuestionariosPendientes();
+  }
+
+  /// Reenvía los cuestionarios que no se pudieron guardar en su momento.
+  ///
+  /// Si el estudiante contestó sin conexión, sus respuestas quedaron en el
+  /// dispositivo; aquí se envían en cuanto vuelve a entrar con internet. Si
+  /// alguno llega, se recarga la sesión para que el progreso y los módulos
+  /// reflejen lo que ya tiene el servidor.
+  Future<void> _reintentarCuestionariosPendientes() async {
+    final enviados = await EnvioCuestionario.reintentarPendientes();
+    if (enviados > 0 && mounted) {
+      await _loadCurrentUser();
+    }
   }
 
   @override

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:aptm/text_utils.dart';
 
 import '../principal.dart';
 import '../theme_provider.dart';
-import 'dart:convert';
+import 'aviso_envio_fallido.dart';
+import 'envio_cuestionario.dart';
 import '../servicios/user.dart';
 
 class CuestionarioAutolesion extends StatefulWidget {
@@ -163,27 +163,31 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
         },
       ],
     };
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('cuestionario_autolesion', jsonEncode(payload));
-    await prefs.setBool('cuestionario_autolesion_completado', true);
-    await prefs.setBool('modulo_autolesion_completado', true);
-    final perfilTipo = prefs.getString('perfil_tipo') ?? 'estudiante';
-    final idUsuario = prefs.getInt('id_usuario');
-    if (idUsuario != null) {
-      await prefs.setBool(
-        'modulo_autolesion_completado_${perfilTipo}_$idUsuario',
-        true,
-      );
-    }
-
-    // Enviar al backend
-    final userService = User();
-    final resultado = await userService.updateCuestionario(
-      tipoCuestionario: 'autolesion',
-      respuestas: payload,
+    // El envío guarda la respuesta en el dispositivo, la manda al servidor y
+    // solo marca el módulo como completado si el servidor la recibió. Antes
+    // se daba por completado antes de enviar y sin revisar el resultado: si
+    // fallaba, la respuesta no llegaba a ningún lado y nadie se enteraba.
+    var enviado = await EnvioCuestionario.enviar(
+      tipo: 'autolesion',
+      payload: payload,
     );
-    debugPrint('Backend cuestionario autolesion: $resultado');
+
+    if (!mounted) return;
+
+    while (!enviado) {
+      final esDark = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+      final accion = await mostrarAvisoEnvioFallido(context, esDark: esDark);
+      if (accion == AccionEnvioFallido.continuar) break;
+
+      if (!mounted) return;
+      setState(() => _enviando = true);
+      enviado = await EnvioCuestionario.enviar(
+        tipo: 'autolesion',
+        payload: payload,
+      );
+      if (!mounted) return;
+      setState(() => _enviando = false);
+    }
 
     if (!mounted) return;
     setState(() => _enviando = false);

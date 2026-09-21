@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:aptm/text_utils.dart';
 import '../theme_provider.dart';
 import '../principal.dart';
-import 'dart:convert';
+import 'aviso_envio_fallido.dart';
+import 'envio_cuestionario.dart';
 import 'paso_identificacion.dart'; // IMPORT PASO IDENTIFICACION
 import '../servicios/user.dart';
 
@@ -338,27 +338,32 @@ class _CuestionarioState extends State<Cuestionario> {
       ],
     };
 
-    // Guardar localmente
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('cuestionario_suicidio', jsonEncode(payload));
-    await prefs.setBool('cuestionario_suicidio_completado', true);
-    await prefs.setBool('modulo_suicidio_completado', true);
-    final perfilTipo = prefs.getString('perfil_tipo') ?? 'estudiante';
-    final idUsuario = prefs.getInt('id_usuario');
-    if (idUsuario != null) {
-      await prefs.setBool(
-        'modulo_suicidio_completado_${perfilTipo}_$idUsuario',
-        true,
-      );
-    }
-
-    // Enviar al backend
-    final userService = User();
-    final resultado = await userService.updateCuestionario(
-      tipoCuestionario: 'suicidio',
-      respuestas: payload,
+    // El envío guarda la respuesta en el dispositivo, la manda al servidor y
+    // solo marca el módulo como completado si el servidor la recibió. Antes
+    // se daba por completado antes de enviar y sin revisar el resultado: si
+    // fallaba, el estudiante veía "Cuestionario completado", la respuesta no
+    // llegaba a ningún lado y la alerta al padre o tutor nunca se enviaba.
+    var enviado = await EnvioCuestionario.enviar(
+      tipo: 'suicidio',
+      payload: payload,
     );
-    debugPrint('Backend cuestionario suicidio: $resultado');
+
+    if (!mounted) return;
+
+    while (!enviado) {
+      final esDark = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+      final accion = await mostrarAvisoEnvioFallido(context, esDark: esDark);
+      if (accion == AccionEnvioFallido.continuar) break;
+
+      if (!mounted) return;
+      setState(() => _enviando = true);
+      enviado = await EnvioCuestionario.enviar(
+        tipo: 'suicidio',
+        payload: payload,
+      );
+      if (!mounted) return;
+      setState(() => _enviando = false);
+    }
 
     if (!mounted) return;
     setState(() => _enviando = false);

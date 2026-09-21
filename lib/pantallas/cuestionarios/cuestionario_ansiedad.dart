@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:aptm/text_utils.dart';
 import '../theme_provider.dart';
+import 'aviso_envio_fallido.dart';
+import 'envio_cuestionario.dart';
 import '../principal.dart';
-import 'dart:convert';
 
 import '../servicios/user.dart';
 
@@ -224,28 +223,31 @@ class _CuestionarioAnsiedadState extends State<CuestionarioAnsiedad> {
         },
       ],
     };
-
-    // Guardar localmente
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('cuestionario_ansiedad', jsonEncode(payload));
-    await prefs.setBool('cuestionario_ansiedad_completado', true);
-    await prefs.setBool('modulo_ansiedad_completado', true);
-    final perfilTipo = prefs.getString('perfil_tipo') ?? 'estudiante';
-    final idUsuario = prefs.getInt('id_usuario');
-    if (idUsuario != null) {
-      await prefs.setBool(
-        'modulo_ansiedad_completado_${perfilTipo}_$idUsuario',
-        true,
-      );
-    }
-
-    // Enviar al backend
-    final userService = User();
-    final resultado = await userService.updateCuestionario(
-      tipoCuestionario: 'ansiedad',
-      respuestas: payload,
+    // El envío guarda la respuesta en el dispositivo, la manda al servidor y
+    // solo marca el módulo como completado si el servidor la recibió. Antes
+    // se daba por completado antes de enviar y sin revisar el resultado: si
+    // fallaba, la respuesta no llegaba a ningún lado y nadie se enteraba.
+    var enviado = await EnvioCuestionario.enviar(
+      tipo: 'ansiedad',
+      payload: payload,
     );
-    debugPrint('Backend cuestionario ansiedad: $resultado');
+
+    if (!mounted) return;
+
+    while (!enviado) {
+      final esDark = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+      final accion = await mostrarAvisoEnvioFallido(context, esDark: esDark);
+      if (accion == AccionEnvioFallido.continuar) break;
+
+      if (!mounted) return;
+      setState(() => _enviando = true);
+      enviado = await EnvioCuestionario.enviar(
+        tipo: 'ansiedad',
+        payload: payload,
+      );
+      if (!mounted) return;
+      setState(() => _enviando = false);
+    }
 
     if (!mounted) return;
     setState(() => _enviando = false);
@@ -348,6 +350,29 @@ class _CuestionarioAnsiedadState extends State<CuestionarioAnsiedad> {
         ),
       );
     }
+
+    // Mientras se envía (y en cada reintento) se avisa que está guardando, en
+    // vez de dejar la pantalla como si nada estuviera pasando.
+    if (_enviando) {
+      final esDark = Provider.of<ThemeProvider>(context).isDarkMode;
+      return Scaffold(
+        backgroundColor: esDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: Color(0xFF5C6BC0)),
+              const SizedBox(height: 16),
+              Text(
+                'Guardando respuestas...',
+                style: TextStyle(color: esDark ? Colors.white70 : Colors.black54),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
     final pregunta = _preguntas[_currentIndex];
 
