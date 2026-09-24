@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:aptm/text_utils.dart';
+import '../cuestionarios/cuestionario_sustancias.dart';
 import '../servicios/personalizacion.dart';
 import '../servicios/user.dart';
 import 'parent_triptych.dart';
@@ -269,6 +271,39 @@ class _ModuloSustanciasState extends State<ModuloSustancias> {
               ] else ...[
                 ParentTriptych(panels: parentPanels, height: 520),
               ],
+
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CuestionarioSustancias(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.touch_app, color: Colors.white),
+                  label: const Text(
+                    'Entendido, empezar cuestionario',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _isForTeens ? _accentColor : const Color(0xFF00897B),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
               const SizedBox(height: 24),
             ],
           ),
