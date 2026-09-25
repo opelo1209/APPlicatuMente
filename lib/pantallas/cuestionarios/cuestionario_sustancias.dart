@@ -85,7 +85,7 @@ class _CuestionarioSustanciasState
         'tipo': 'RespuestasB6B7',
         'pregunta':
             '¿Ha intentado alguna vez controlar, reducir o dejar de consumir (PRIMERA DROGA, SEGUNDA DROGA, ETC) y no lo ha logrado?',
-      },{
+      },/*{
         'id': 'B8',
         'numero': 8,
         'bloque': 'PreguntasBloque8',
@@ -93,7 +93,7 @@ class _CuestionarioSustanciasState
         'tipo': 'RespuestasB8',
         'pregunta':
             '¿Ha consumido alguna vez alguna droga por vía inyectada? (ÚNICAMENTE PARA USOS NO MÉDICOS) ',
-      },
+      },*/
     ];
 
     // Tipos de respuestas *~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~

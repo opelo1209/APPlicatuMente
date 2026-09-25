@@ -25,14 +25,14 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
   bool _autolesionCompletado = false;
   bool _suicidioCompletado = false;
   bool _ansiedadCompletado = false;
+  bool _sustanciasCompletado = false;
 
   bool get _isAdmin => _permissions['can_edit_questionnaires'] == true;
   bool get _canAnswer => _permissions['can_answer_questionnaires'] == true;
-  bool get _ansiedadDisponible =>
-      _canAnswer && _autolesionCompletado && _suicidioCompletado;
-  bool get _sustanciasDisponible => _canAnswer && _autolesionCompletado && _suicidioCompletado;
+  bool get _ansiedadDisponible => _canAnswer && _autolesionCompletado && _suicidioCompletado;
+  bool get _sustanciasDisponible => _canAnswer && _ansiedadCompletado;
 
-  @override
+   @override
   void initState() {
     super.initState();
     _loadProgress();
@@ -47,6 +47,7 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
     bool autolesionCompletado = false;
     bool suicidioCompletado = false;
     bool ansiedadCompletado = false;
+    bool sustanciasCompletado = false;
 
     if (sessionResult['success'] == true) {
       final data = sessionResult['data'];
@@ -64,10 +65,20 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
             : const {};
         final progress = data['progress'];
         if (progress is Map) {
-          autolesionCompletado =
-              progress['modulo_autolesion_completado'] == true;
+          autolesionCompletado =progress['modulo_autolesion_completado'] == true;
           suicidioCompletado = progress['modulo_suicidio_completado'] == true;
-          ansiedadCompletado = progress['modulo_ansiedad_completado'] == true;
+          
+          // Extraemos el mapa interno de cuestionarios completados
+          final cuestionariosCompletados = progress['cuestionarios_completados'];
+          
+          if (cuestionariosCompletados is Map) {
+            ansiedadCompletado = cuestionariosCompletados['ansiedad'] == true;
+            sustanciasCompletado = cuestionariosCompletados['sustancias'] == true;
+          } else {
+            // Respaldos para futuros cambios
+            ansiedadCompletado = progress['modulo_ansiedad_completado'] == true;
+            sustanciasCompletado = progress['modulo_sustancias_completado'] == true;
+          }
         }
       }
     }
@@ -79,17 +90,22 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
       _autolesionCompletado = autolesionCompletado;
       _suicidioCompletado = suicidioCompletado;
       _ansiedadCompletado = ansiedadCompletado;
+      _sustanciasCompletado = sustanciasCompletado;
       _loadingProgress = false;
     });
   }
 
   Future<void> _openModule(Widget screen) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
-    );
-    await _loadProgress();
+  final result = await Navigator.push<bool>(
+    context,
+    MaterialPageRoute(builder: (context) => screen),
+  );
+  if (result == true) {
+    await Future.delayed(const Duration(milliseconds: 300));
   }
+  
+  await _loadProgress();[1];
+}
 
   @override
   Widget build(BuildContext context) {
@@ -162,6 +178,9 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
                                 _openModule(const EditorCuestionariosAdmin()),
                           ),
                         ] else if (_canAnswer) ...[
+                          /*=====================================================
+                                MÓDULO DE AUTOLESIONES
+                            =====================================================*/ 
                           _ModuleCard(
                             title: 'Autolesiones',
                             subtitle: _autolesionCompletado
@@ -183,6 +202,9 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
                                 _openModule(const ModuloAutolesiones()),
                           ),
                           const SizedBox(height: 20),
+                          /*=====================================================
+                                MÓDULO DE SUICIDIO
+                            =====================================================*/ 
                           _ModuleCard(
                             title: 'Riesgo de suicidio',
                             subtitle: _suicidioCompletado
@@ -203,6 +225,9 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
                             onTap: () => _openModule(const ModuloSuicidio()),
                           ),
                           const SizedBox(height: 20),
+                          /*=====================================================
+                                MÓDULO DE ANSIEDAD
+                            =====================================================*/ 
                           _ModuleCard(
                             title: 'Ansiedad',
                             subtitle: _ansiedadCompletado
@@ -229,25 +254,35 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
                             onTap: () => _openModule(const ModuloAnsiedad()),
                           ),
                           const SizedBox(height: 20),
+                          /*=====================================================
+                                MÓDULO DE SUSTANCIAS
+                            =====================================================*/ 
                           _ModuleCard(
                             title: 'Uso de sustancias',
-                            subtitle: _sustanciasDisponible
-                                ? 'Módulo desbloqueado. El contenido informativo se integrará próximamente.'
-                                : 'Se desbloquea al completar Ansiedad.',
+                            subtitle: _sustanciasCompletado
+                                ? 'Este cuestionario ya fue respondido. Continúa con el siguiente módulo.'
+                                : _sustanciasDisponible
+                                ? 'Módulo desbloqueado. Revisa la información y responde el cuestionario.'
+                                : 'Se desbloquea al completar Ansiedad',
                             icon: Icons.spa_outlined,
                             color: _perfilTipo == 'estudiante'
                                 ? AppPersonalizacion.darken(_accentColor, 0.22)
                                 : const Color(0xFF00897B),
                             isDarkMode: isDarkMode,
-                            enabled: _sustanciasDisponible,
-                            statusLabel: _sustanciasDisponible
-                                ? 'Desbloqueado'
-                                : 'Bloqueado',
-                            statusIcon: _sustanciasDisponible
+                            enabled: _sustanciasDisponible && !_sustanciasCompletado,
+                            statusLabel: _sustanciasCompletado
+                              ? 'Completado'
+                              : _sustanciasDisponible
+                              ? 'Desbloqueado'
+                              : 'Bloqueado',
+                            statusIcon: _sustanciasCompletado
+                                ? Icons.lock_outline_rounded
+                                : _sustanciasDisponible
                                 ? Icons.arrow_forward_ios
                                 : Icons.lock_outline_rounded,
                             onTap: () => _openModule(const ModuloSustancias()),
                           ),
+
                         ] else ...[
                           _ModuleCard(
                             title: 'Sin acceso a cuestionarios',

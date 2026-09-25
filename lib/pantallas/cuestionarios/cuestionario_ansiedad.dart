@@ -245,8 +245,6 @@ class _CuestionarioAnsiedadState extends State<CuestionarioAnsiedad> {
         tipo: 'ansiedad',
         payload: payload,
       );
-      if (!mounted) return;
-      setState(() => _enviando = false);
     }
 
     if (!mounted) return;
