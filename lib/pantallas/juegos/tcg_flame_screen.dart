@@ -56,10 +56,8 @@ class _TcgFlameScreenState extends State<TcgFlameScreen>
       if (!_disposed && _soundEnabled && p.playing) {
         p.pause();
       }
-    } else if (state == AppLifecycleState.resumed) {
-      if (!_disposed && _soundEnabled && !p.playing) {
-        p.play();
-      }
+    } else if (state == AppLifecycleState.resumed && _started) {
+      _playMusic();
     }
   }
 
@@ -100,24 +98,34 @@ class _TcgFlameScreenState extends State<TcgFlameScreen>
     }
   }
 
+  // La música solo se carga aquí. Empieza al pulsar "Comenzar partida": los
+  // navegadores bloquean el audio que arranca sin un toque del usuario, y
+  // ese play() rechazado quedaba como error sin capturar (y sin música).
   void _initAudio() {
     final p = AudioPlayer();
     _player = p;
     p.setAsset('assets/musica/tcg/The_Keeper_s_Ledger.mp3').then((_) {
       if (_disposed) return;
       p.setLoopMode(LoopMode.all);
-      if (_soundEnabled) p.play();
-    }).catchError((_) {});
+    }).catchError((Object e) {
+      debugPrint('TCG: no se pudo cargar la música: $e');
+    });
+  }
+
+  void _playMusic() {
+    final p = _player;
+    if (p == null || _disposed || !_soundEnabled || p.playing) return;
+    p.play().catchError((Object e) {
+      debugPrint('TCG: el navegador no permitió reproducir la música: $e');
+    });
   }
 
   void _toggleSound() {
     _soundEnabled = !_soundEnabled;
-    final p = _player;
-    if (p == null) return;
     if (_soundEnabled) {
-      p.play();
+      _playMusic();
     } else {
-      p.pause();
+      _player?.pause();
     }
   }
 
@@ -240,6 +248,7 @@ class _TcgFlameScreenState extends State<TcgFlameScreen>
 
   void _startMatch() {
     setState(() => _started = true);
+    _playMusic();
     _game.startGame();
     if (_tutorReady && !_tutorService.completed) {
       _startTutorial();

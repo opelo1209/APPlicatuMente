@@ -43,17 +43,22 @@ class TcgGame extends FlameGame {
 
   SpriteComponent? _boardBg;
 
+  // Flame pinta negro por defecto y tapaba el verde del Scaffold: la pantalla
+  // de inicio quedaba con texto verde oscuro sobre fondo negro.
+  @override
+  Color backgroundColor() => const Color(0x00000000);
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
     images.prefix = '';
     battleManager = BattleManager(state);
 
+    // Los slots se crean aquí pero se agregan al iniciar la partida: antes de
+    // eso no tienen posición y aparecían vacíos en la esquina superior
+    // izquierda, encima de la pantalla de inicio.
     _playerSlot = DropZone(size: Vector2(180, 240));
-    add(_playerSlot);
-
     _enemySlot = DropZone(size: Vector2(180, 240));
-    add(_enemySlot);
 
     state.addListener(() {
       playerHpNotifier.value = state.playerHp;
@@ -89,6 +94,10 @@ class TcgGame extends FlameGame {
     final slotW = 180.0;
     final slotH = 240.0;
     final centerX = (size.x - slotW) / 2;
+
+    // El fondo se crea con el tamaño del momento; sin esto, al girar el
+    // teléfono o redimensionar la ventana dejaba franjas sin tablero.
+    _boardBg?.size = size;
 
     _enemySlot
       ..position = Vector2(centerX, size.y * 0.10)
@@ -133,6 +142,8 @@ class TcgGame extends FlameGame {
     final enemyCards = createEnemyCardPool();
     state.startGame(playerCards, enemyCards);
     phaseNotifier.value = GamePhase.enemyTurn;
+    if (_playerSlot.parent == null) add(_playerSlot);
+    if (_enemySlot.parent == null) add(_enemySlot);
     _loadBoardBg();
     _rebuildHand();
     _layoutBoard();
