@@ -9,6 +9,7 @@ import 'modulo_autolesiones.dart';
 import 'modulo_ansiedad.dart';
 import 'modulo_sustancias.dart';
 import 'modulo_suicidio.dart';
+import 'modulo_relaciones.dart';
 
 class SelectorModuloCrisis extends StatefulWidget {
   const SelectorModuloCrisis({super.key});
@@ -26,11 +27,13 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
   bool _suicidioCompletado = false;
   bool _ansiedadCompletado = false;
   bool _sustanciasCompletado = false;
+  bool _relacionesCompletado = false;
 
   bool get _isAdmin => _permissions['can_edit_questionnaires'] == true;
   bool get _canAnswer => _permissions['can_answer_questionnaires'] == true;
   bool get _ansiedadDisponible => _canAnswer && _autolesionCompletado && _suicidioCompletado;
   bool get _sustanciasDisponible => _canAnswer && _ansiedadCompletado;
+  bool get _relacionesDisponible => _canAnswer && _sustanciasCompletado;
 
    @override
   void initState() {
@@ -48,6 +51,7 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
     bool suicidioCompletado = false;
     bool ansiedadCompletado = false;
     bool sustanciasCompletado = false;
+    bool relacionesCompletado = false;
 
     if (sessionResult['success'] == true) {
       final data = sessionResult['data'];
@@ -74,10 +78,12 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
           if (cuestionariosCompletados is Map) {
             ansiedadCompletado = cuestionariosCompletados['ansiedad'] == true;
             sustanciasCompletado = cuestionariosCompletados['sustancias'] == true;
+            relacionesCompletado = cuestionariosCompletados['relaciones'] == true;
           } else {
             // Respaldos para futuros cambios
             ansiedadCompletado = progress['modulo_ansiedad_completado'] == true;
             sustanciasCompletado = progress['modulo_sustancias_completado'] == true;
+            relacionesCompletado = progress['modulo_relaciones_completado'] == true;
           }
         }
       }
@@ -91,6 +97,7 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
       _suicidioCompletado = suicidioCompletado;
       _ansiedadCompletado = ansiedadCompletado;
       _sustanciasCompletado = sustanciasCompletado;
+      _relacionesCompletado = relacionesCompletado;
       _loadingProgress = false;
     });
   }
@@ -281,6 +288,35 @@ class _SelectorModuloCrisisState extends State<SelectorModuloCrisis> {
                                 ? Icons.arrow_forward_ios
                                 : Icons.lock_outline_rounded,
                             onTap: () => _openModule(const ModuloSustancias()),
+                          ),
+                          const SizedBox(height: 20),
+                          /*=====================================================
+                                MÓDULO DE RELACIONES SANAS
+                            =====================================================*/ 
+                          _ModuleCard(
+                            title: 'Relaciones sanas',
+                            subtitle: _relacionesCompletado
+                                ? 'Este cuestionario ya fue respondido. Es todo por ahora.'
+                                : _relacionesDisponible
+                                ? 'Módulo desbloqueado. Revisa la información y responde el cuestionario.'
+                                : 'Se desbloquea al completar Sustancias',
+                            icon: Icons.diversity_3,
+                            color: _perfilTipo == 'estudiante'
+                                ? AppPersonalizacion.darken(_accentColor, 0.22)
+                                : const Color(0xFF00897B),
+                            isDarkMode: isDarkMode,
+                            enabled: _relacionesDisponible && !_relacionesCompletado,
+                            statusLabel: _relacionesCompletado
+                              ? 'Completado'
+                              : _relacionesDisponible
+                              ? 'Desbloqueado'
+                              : 'Bloqueado',
+                            statusIcon: _relacionesCompletado
+                                ? Icons.lock_outline_rounded
+                                : _relacionesDisponible
+                                ? Icons.arrow_forward_ios
+                                : Icons.lock_outline_rounded,
+                            onTap: () => _openModule(const ModuloRelaciones()),
                           ),
 
                         ] else ...[

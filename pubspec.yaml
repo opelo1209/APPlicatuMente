@@ -90,6 +90,7 @@ flutter:
     - assets/imagenes/autolesiones/
     - assets/imagenes/suicidio/
     - assets/imagenes/sustancias/
+    - assets/imagenes/relaciones/
     - assets/musica/tcg/Quick_Save.mp3
     - 'assets/musica/tcg/The_Keeper_s_Ledger.mp3'
 
