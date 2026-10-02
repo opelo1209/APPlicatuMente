@@ -34,7 +34,10 @@ RESPUESTA=$(curl -sS -m 30 -H "Accept: application/vnd.github+json" "$API") || {
 
 leer_json() { python3 -c "import json,sys; print(json.loads(sys.stdin.read()).get('$1',''))"; }
 
-NOTAS=$(printf '%s' "$RESPUESTA" | leer_json body)
+# Se quitan los \r: si la publicación se edita o publica desde la web de
+# GitHub, las notas quedan con saltos de línea \r\n y la suma leída llevaría
+# un \r invisible al final, así que nunca coincidiría con la del paquete.
+NOTAS=$(printf '%s' "$RESPUESTA" | leer_json body | tr -d '\r')
 URL=$(printf '%s' "$RESPUESTA" | python3 -c "
 import json,sys
 datos = json.loads(sys.stdin.read())
