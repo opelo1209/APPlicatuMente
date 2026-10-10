@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 
 import 'diario_catalogo.dart';
+import 'diario_estilo.dart';
 import 'diario_modelos.dart';
 import 'diario_widgets.dart';
 
@@ -27,14 +28,16 @@ class DiarioResultadoPantalla extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = resultado;
+    final c = DiarioColores.de(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F5),
+      backgroundColor: c.fondo,
       appBar: AppBar(
         title: const Text(
           'Tu día',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
         backgroundColor: Colors.transparent,
+        foregroundColor: c.texto,
         elevation: 0,
       ),
       body: ListView(
@@ -77,6 +80,8 @@ class DiarioResultadoPantalla extends StatelessWidget {
             icon: const Icon(Icons.calendar_month_rounded),
             label: const Text('Ver mi semana'),
             style: OutlinedButton.styleFrom(
+              foregroundColor: c.tinta(Polaridad.positivo),
+              side: BorderSide(color: c.tinta(Polaridad.positivo)),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -102,10 +107,11 @@ class _Comparacion extends StatelessWidget {
   Widget build(BuildContext context) {
     final propia = kPolaridades[resultado.polaridad]!;
     final analisis = resultado.analisis;
+    final c = DiarioColores.de(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.superficie,
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
@@ -128,12 +134,12 @@ class _Comparacion extends StatelessWidget {
                   runSpacing: 6,
                   children: [
                     for (final e in resultado.emociones)
-                      _Pastilla(texto: e, color: propia.color),
+                      _Pastilla(texto: e, polaridad: propia.polaridad),
                   ],
                 ),
               ),
             ),
-            VerticalDivider(width: 24, color: Colors.grey[300]),
+            VerticalDivider(width: 24, color: c.borde),
             Expanded(
               child: analisis == null
                   ? const _SinAnalisis()
@@ -151,7 +157,7 @@ class _Comparacion extends StatelessWidget {
                           for (final e in analisis.emociones.take(3))
                             _BarraEmocion(
                               emocion: e,
-                              color: kPolaridades[analisis.polaridad]!.color,
+                              color: c.tinta(analisis.polaridad),
                             ),
                         ],
                       ),
@@ -178,16 +184,17 @@ class _Columna extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = DiarioColores.de(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           titulo.toUpperCase(),
           style: TextStyle(
-            fontSize: 11,
+            fontSize: DiarioTexto.etiqueta,
             letterSpacing: 0.8,
             fontWeight: FontWeight.w800,
-            color: Colors.grey[600],
+            color: c.textoSuave,
           ),
         ),
         const SizedBox(height: 8),
@@ -206,7 +213,11 @@ class _Columna extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Icon(info.icono, color: Colors.white, size: 22),
+              child: Icon(
+                info.icono,
+                color: DiarioColores.sobreLuz(info.polaridad),
+                size: 22,
+              ),
             ),
             const SizedBox(width: 8),
             Flexible(
@@ -214,8 +225,8 @@ class _Columna extends StatelessWidget {
                 info.nombre,
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
-                  fontSize: 17,
-                  color: info.color,
+                  fontSize: DiarioTexto.titulo,
+                  color: c.tinta(info.polaridad),
                 ),
               ),
             ),
@@ -226,7 +237,10 @@ class _Columna extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               'confianza ${(confianza! * 100).round()} %',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: DiarioTexto.etiqueta,
+                color: c.textoSuave,
+              ),
             ),
           ),
         const SizedBox(height: 10),
@@ -243,6 +257,7 @@ class _BarraEmocion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = DiarioColores.de(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Column(
@@ -253,15 +268,19 @@ class _BarraEmocion extends StatelessWidget {
               Expanded(
                 child: Text(
                   emocion.nombre,
-                  style: const TextStyle(
-                    fontSize: 12.5,
+                  style: TextStyle(
+                    fontSize: DiarioTexto.apoyo,
                     fontWeight: FontWeight.w600,
+                    color: c.texto,
                   ),
                 ),
               ),
               Text(
                 '${(emocion.probabilidad * 100).round()} %',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(
+                  fontSize: DiarioTexto.etiqueta,
+                  color: c.textoSuave,
+                ),
               ),
             ],
           ),
@@ -288,7 +307,10 @@ class _SinAnalisis extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       'Hoy no escribiste texto, así que solo se guardó tu semáforo.',
-      style: TextStyle(color: Colors.grey[700], height: 1.35),
+      style: TextStyle(
+        color: DiarioColores.de(context).textoSuave,
+        height: 1.35,
+      ),
     );
   }
 }
@@ -298,24 +320,25 @@ class _AnalisisNoConcluyente extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = DiarioColores.de(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'EN TU TEXTO',
           style: TextStyle(
-            fontSize: 11,
+            fontSize: DiarioTexto.etiqueta,
             letterSpacing: 0.8,
             fontWeight: FontWeight.w800,
-            color: Colors.grey[600],
+            color: c.textoSuave,
           ),
         ),
         const SizedBox(height: 8),
-        Icon(Icons.help_outline_rounded, color: Colors.grey[500], size: 30),
+        Icon(Icons.help_outline_rounded, color: c.textoSuave, size: 30),
         const SizedBox(height: 6),
         Text(
           'El análisis automático no fue concluyente. Cuenta lo que tú marcaste.',
-          style: TextStyle(color: Colors.grey[700], height: 1.35),
+          style: TextStyle(color: c.textoSuave, height: 1.35),
         ),
       ],
     );
@@ -323,24 +346,25 @@ class _AnalisisNoConcluyente extends StatelessWidget {
 }
 
 class _Pastilla extends StatelessWidget {
-  const _Pastilla({required this.texto, required this.color});
+  const _Pastilla({required this.texto, required this.polaridad});
   final String texto;
-  final Color color;
+  final Polaridad polaridad;
 
   @override
   Widget build(BuildContext context) {
+    final c = DiarioColores.de(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.13),
+        color: kPolaridades[polaridad]!.color.withValues(alpha: 0.13),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
         texto,
         style: TextStyle(
           fontWeight: FontWeight.w700,
-          fontSize: 12.5,
-          color: Color.lerp(color, Colors.black, 0.35),
+          fontSize: DiarioTexto.etiqueta,
+          color: c.tinta(polaridad),
         ),
       ),
     );
@@ -358,6 +382,7 @@ class _MensajeConcordancia extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final coincide = concordancia == 'coincide';
+    final c = DiarioColores.de(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -365,11 +390,13 @@ class _MensajeConcordancia extends StatelessWidget {
           coincide
               ? Icons.check_circle_rounded
               : Icons.lightbulb_outline_rounded,
-          color: coincide ? const Color(0xFF43A047) : const Color(0xFF8D6E00),
+          color: c.tinta(coincide ? Polaridad.positivo : Polaridad.neutro),
           size: 20,
         ),
         const SizedBox(width: 8),
-        Expanded(child: Text(mensaje, style: const TextStyle(height: 1.35))),
+        Expanded(
+          child: Text(mensaje, style: TextStyle(height: 1.35, color: c.texto)),
+        ),
       ],
     );
   }
@@ -382,22 +409,27 @@ class _Consejos extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = kPolaridades[polaridad]!.color;
+    final c = DiarioColores.de(context);
+    final color = c.tinta(polaridad);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.superficie,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Ideas para ti',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: DiarioTexto.titulo,
+              color: c.texto,
+            ),
           ),
           const SizedBox(height: 8),
-          for (final c in consejos)
+          for (final consejo in consejos)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Row(
@@ -406,7 +438,10 @@ class _Consejos extends StatelessWidget {
                   Icon(Icons.tips_and_updates_rounded, size: 20, color: color),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(c, style: const TextStyle(height: 1.35)),
+                    child: Text(
+                      consejo,
+                      style: TextStyle(height: 1.35, color: c.texto),
+                    ),
                   ),
                 ],
               ),
@@ -424,20 +459,25 @@ class _AvisoSuave extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = DiarioColores.de(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF1EC),
+        color: c.avisoFondo,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          Icon(icono, color: const Color(0xFFE8664F)),
+          Icon(icono, color: c.tinta(Polaridad.negativo)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               texto,
-              style: const TextStyle(fontWeight: FontWeight.w700, height: 1.3),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                height: 1.3,
+                color: c.texto,
+              ),
             ),
           ),
         ],

@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 
 import 'diario_catalogo.dart';
+import 'diario_estilo.dart';
 import 'diario_widgets.dart';
 
 class EntradaDiarioDatos {
@@ -81,14 +82,16 @@ class _DiarioEntradaPantallaState extends State<DiarioEntradaPantalla> {
   @override
   Widget build(BuildContext context) {
     final info = _polaridad == null ? null : kPolaridades[_polaridad]!;
+    final c = DiarioColores.de(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F5),
+      backgroundColor: c.fondo,
       appBar: AppBar(
         title: const Text(
           'Mi diario',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
         backgroundColor: Colors.transparent,
+        foregroundColor: c.texto,
         elevation: 0,
         actions: [
           IconButton(
@@ -113,7 +116,10 @@ class _DiarioEntradaPantallaState extends State<DiarioEntradaPantalla> {
           Center(
             child: Text(
               'Toca la luz que mejor describa tu día',
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              style: TextStyle(
+                color: c.textoSuave,
+                fontSize: DiarioTexto.apoyo,
+              ),
             ),
           ),
           AnimatedSize(
@@ -121,15 +127,16 @@ class _DiarioEntradaPantallaState extends State<DiarioEntradaPantalla> {
             curve: Curves.easeOutCubic,
             child: info == null
                 ? const SizedBox(width: double.infinity)
-                : _seccionEmociones(info),
+                : _seccionEmociones(info, c),
           ),
           if (info != null) ...[
             const SizedBox(height: 20),
-            _seccionTexto(info),
+            _seccionTexto(info, c),
             const SizedBox(height: 20),
             FilledButton.icon(
               style: FilledButton.styleFrom(
-                backgroundColor: widget.acento,
+                // Más oscuro que el acento: texto blanco con contraste AA.
+                backgroundColor: Color.lerp(widget.acento, Colors.black, 0.3),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -162,7 +169,8 @@ class _DiarioEntradaPantallaState extends State<DiarioEntradaPantalla> {
     );
   }
 
-  Widget _seccionEmociones(PolaridadInfo info) {
+  Widget _seccionEmociones(PolaridadInfo info, DiarioColores c) {
+    final p = info.polaridad;
     return Padding(
       padding: const EdgeInsets.only(top: 24),
       child: Column(
@@ -170,12 +178,16 @@ class _DiarioEntradaPantallaState extends State<DiarioEntradaPantalla> {
         children: [
           Text(
             '¿Qué emociones sentiste?',
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: DiarioTexto.titulo,
+              color: c.texto,
+            ),
           ),
           const SizedBox(height: 2),
           Text(
             'Elige una o varias',
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            style: TextStyle(color: c.textoSuave, fontSize: DiarioTexto.apoyo),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -190,11 +202,12 @@ class _DiarioEntradaPantallaState extends State<DiarioEntradaPantalla> {
                   showCheckmark: false,
                   labelStyle: TextStyle(
                     fontWeight: FontWeight.w700,
+                    fontSize: DiarioTexto.apoyo,
                     color: _emociones.contains(e.clave)
-                        ? Colors.white
-                        : const Color(0xFF33413A),
+                        ? c.textoSobreElegido(p)
+                        : c.texto,
                   ),
-                  selectedColor: info.color,
+                  selectedColor: c.rellenoElegido(p),
                   backgroundColor: info.color.withValues(alpha: 0.10),
                   side: BorderSide(color: info.color.withValues(alpha: 0.45)),
                   shape: RoundedRectangleBorder(
@@ -208,18 +221,22 @@ class _DiarioEntradaPantallaState extends State<DiarioEntradaPantalla> {
     );
   }
 
-  Widget _seccionTexto(PolaridadInfo info) {
+  Widget _seccionTexto(PolaridadInfo info, DiarioColores c) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           info.pregunta,
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: DiarioTexto.titulo,
+            color: c.texto,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
           'Opcional. Escribe con tus palabras, nadie más lo lee.',
-          style: TextStyle(color: Colors.grey[600], fontSize: 13),
+          style: TextStyle(color: c.textoSuave, fontSize: DiarioTexto.apoyo),
         ),
         const SizedBox(height: 10),
         TextField(
@@ -227,17 +244,20 @@ class _DiarioEntradaPantallaState extends State<DiarioEntradaPantalla> {
           maxLines: 5,
           minLines: 4,
           maxLength: _maxCaracteres,
+          style: TextStyle(color: c.texto, fontSize: DiarioTexto.cuerpo),
           decoration: InputDecoration(
             hintText: 'Hoy...',
+            hintStyle: TextStyle(color: c.textoSuave),
+            counterStyle: TextStyle(color: c.textoSuave),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: c.superficie,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: info.color, width: 2),
+              borderSide: BorderSide(color: c.tinta(info.polaridad), width: 2),
             ),
           ),
         ),
@@ -256,8 +276,13 @@ class _Encabezado extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
       decoration: BoxDecoration(
+        // Más oscuro que el acento para que el texto blanco tenga contraste
+        // suficiente (el verde puro daba ~3:1).
         gradient: LinearGradient(
-          colors: [acento, Color.lerp(acento, Colors.teal, 0.45)!],
+          colors: [
+            Color.lerp(acento, Colors.black, 0.3)!,
+            Color.lerp(acento, const Color(0xFF004D40), 0.55)!,
+          ],
         ),
         borderRadius: BorderRadius.circular(22),
       ),
@@ -270,10 +295,10 @@ class _Encabezado extends StatelessWidget {
                 Text(
                   fecha.toUpperCase(),
                   style: const TextStyle(
-                    color: Colors.white70,
+                    color: Colors.white,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.1,
-                    fontSize: 12,
+                    fontSize: DiarioTexto.etiqueta,
                   ),
                 ),
                 const SizedBox(height: 4),

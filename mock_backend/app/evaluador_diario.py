@@ -94,11 +94,15 @@ _CONSEJOS = {
         "Un paseo corto, música que te guste o descansar bien pueden ayudar a que el día pese menos.",
     ),
     CLASE_ENOJO: (
-        "Antes de reaccionar, prueba la respiración 4-7-8 del módulo de ansiedad.",
+        # Misma técnica que el módulo de Ansiedad (teenImgActividades); antes
+        # decía «4-7-8», que no es la del material aprobado.
+        "Antes de reaccionar, respira lento: inhala 4 segundos, sostén 4 y exhala 6. Repítelo varias veces.",
         "Escribe qué te hizo enojar y qué necesitabas en ese momento; ayuda a ordenar la idea.",
     ),
     CLASE_MIEDO: (
-        "Cuando la angustia sube, nombra 5 cosas que ves, 4 que tocas y 3 que oyes.",
+        # Atención plena del módulo de Ansiedad; antes proponía «5 cosas que
+        # ves…», técnica que no está en ningún texto aprobado.
+        "Cuando la angustia sube, dedica 3 minutos al presente: mira, escucha y siente lo que te rodea.",
         "Si lo que te preocupa se repite varios días, platícalo con un adulto de confianza.",
     ),
     CLASE_SORPRESA: ("Tómate un momento para pensar qué cambió hoy y cómo te hace sentir.",),

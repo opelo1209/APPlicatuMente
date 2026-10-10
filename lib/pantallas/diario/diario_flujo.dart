@@ -11,6 +11,7 @@ import 'diario_entrada.dart';
 import 'diario_historial.dart';
 import 'diario_modelos.dart';
 import 'diario_resultado.dart';
+import 'diario_widgets.dart';
 
 const _dias = [
   'Lunes',
@@ -139,23 +140,7 @@ class _DiarioFlujoState extends State<DiarioFlujo> {
           onGuardar: _guardando ? (_) {} : _guardar,
           onVerHistorial: _abrirHistorial,
         ),
-        if (_guardando)
-          const ColoredBox(
-            color: Color(0x88FFFFFF),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 12),
-                  Text(
-                    'Analizando tu día...',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        if (_guardando) const DiarioGuardando(),
       ],
     );
   }

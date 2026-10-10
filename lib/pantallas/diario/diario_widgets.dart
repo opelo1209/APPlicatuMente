@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import 'diario_catalogo.dart';
+import 'diario_estilo.dart';
 
 /// Semáforo horizontal: una carcasa oscura con tres luces. La elegida se
 /// enciende con un halo de su color; las otras quedan apagadas.
@@ -25,7 +26,7 @@ class SemaforoAnimo extends StatelessWidget {
         vertical: tamano * 0.22,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF22303A),
+        color: DiarioColores.carcasa,
         borderRadius: BorderRadius.circular(tamano),
         boxShadow: const [
           BoxShadow(
@@ -113,7 +114,7 @@ class _Luz extends StatelessWidget {
                 size: tamano * 0.56,
                 color: apagadaDelTodo
                     ? Colors.white.withValues(alpha: 0.35)
-                    : Colors.white,
+                    : DiarioColores.sobreLuz(info.polaridad),
               ),
             ),
             SizedBox(height: tamano * 0.14),
@@ -124,7 +125,7 @@ class _Luz extends StatelessWidget {
                     ? Colors.white
                     : Colors.white54,
                 fontWeight: encendida ? FontWeight.w800 : FontWeight.w600,
-                fontSize: 12.5,
+                fontSize: DiarioTexto.etiqueta,
               ),
             ),
           ],
@@ -143,27 +144,29 @@ class TarjetaLineasAyuda extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const azul = Color(0xFF1565C0);
+    const azul = DiarioColores.azulAyuda;
+    final c = DiarioColores.de(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F1FB),
+        color: c.ayudaFondo,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: azul.withValues(alpha: 0.25)),
+        border: Border.all(color: c.ayudaBorde),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.support_agent_rounded, color: azul),
+              Icon(Icons.support_agent_rounded, color: c.ayudaTitulo),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   titulo,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF0D3C78),
+                    fontSize: DiarioTexto.cuerpo,
+                    color: c.ayudaTitulo,
                   ),
                 ),
               ),
@@ -181,13 +184,16 @@ class TarjetaLineasAyuda extends StatelessWidget {
                       children: [
                         Text(
                           linea.nombre,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: c.texto,
+                          ),
                         ),
                         Text(
                           '${linea.telefono} · ${linea.horario}',
                           style: TextStyle(
-                            color: Colors.grey[700],
-                            fontSize: 13,
+                            color: c.textoSuave,
+                            fontSize: DiarioTexto.apoyo,
                           ),
                         ),
                       ],
@@ -222,12 +228,13 @@ class TarjetaSerena extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const morado = Color(0xFF6A4FB3);
+    const morado = DiarioColores.moradoSerena;
+    final c = DiarioColores.de(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFF1ECFB), Color(0xFFE7F4EE)],
+        gradient: LinearGradient(
+          colors: c.serenaFondo,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -246,7 +253,10 @@ class TarjetaSerena extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(mensaje, style: const TextStyle(height: 1.35)),
+                child: Text(
+                  mensaje,
+                  style: TextStyle(height: 1.35, color: c.texto),
+                ),
               ),
             ],
           ),
@@ -272,17 +282,133 @@ class EtiquetaPrototipo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = DiarioColores.de(context);
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.science_outlined, size: 14, color: Colors.grey[600]),
-        const SizedBox(width: 4),
+        Icon(Icons.science_outlined, size: 15, color: c.textoSuave),
+        const SizedBox(width: 6),
         Expanded(
           child: Text(
             texto,
-            style: TextStyle(fontSize: 11.5, color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: DiarioTexto.etiqueta,
+              color: c.textoSuave,
+            ),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Aviso mientras el servidor guarda y analiza la entrada del día.
+///
+/// Va dentro del Stack del flujo, encima de la pantalla de entrada. Lleva su
+/// propio Material: sin él, Flutter dibujaba el texto con el estilo de error
+/// (rojo y subrayado en amarillo).
+class DiarioGuardando extends StatelessWidget {
+  const DiarioGuardando({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = DiarioColores.de(context);
+    return Positioned.fill(
+      child: Material(
+        color: c.fondo.withValues(alpha: 0.85),
+        child: Center(
+          child: Semantics(
+            liveRegion: true,
+            child: Container(
+              width: 300,
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
+              decoration: BoxDecoration(
+                color: c.superficie,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: c.borde),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1F000000),
+                    blurRadius: 24,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _MiniSemaforo(),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Guardando tu día',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: DiarioTexto.titulo,
+                      fontWeight: FontWeight.w800,
+                      color: c.texto,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Estamos guardando lo que marcaste. En un momento verás '
+                    'tu análisis.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: DiarioTexto.apoyo,
+                      height: 1.35,
+                      color: c.textoSuave,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      minHeight: 6,
+                      color: c.tinta(Polaridad.positivo),
+                      backgroundColor: c.borde,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Las tres luces del semáforo en pequeño, como marca del diario.
+class _MiniSemaforo extends StatelessWidget {
+  const _MiniSemaforo();
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: DiarioColores.carcasa,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final p in Polaridad.values)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: kPolaridades[p]!.color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

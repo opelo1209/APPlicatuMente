@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import 'diario_catalogo.dart';
+import 'diario_estilo.dart';
 import 'diario_modelos.dart';
 import 'diario_widgets.dart';
 
@@ -42,14 +43,16 @@ class DiarioHistorialPantalla extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = DiarioColores.de(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F5),
+      backgroundColor: c.fondo,
       appBar: AppBar(
         title: const Text(
           'Mi semana',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
         backgroundColor: Colors.transparent,
+        foregroundColor: c.texto,
         elevation: 0,
       ),
       body: ListView(
@@ -58,8 +61,9 @@ class DiarioHistorialPantalla extends StatelessWidget {
           Text(
             rango,
             style: TextStyle(
-              color: Colors.grey[600],
+              color: c.textoSuave,
               fontWeight: FontWeight.w700,
+              fontSize: DiarioTexto.apoyo,
             ),
           ),
           const SizedBox(height: 12),
@@ -76,9 +80,13 @@ class DiarioHistorialPantalla extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 18),
-          const Text(
+          Text(
             'Lo que más sentiste',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: DiarioTexto.titulo,
+              color: c.texto,
+            ),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -88,8 +96,12 @@ class DiarioHistorialPantalla extends StatelessWidget {
               for (final e in _emociones.entries)
                 Chip(
                   label: Text('${e.key} · ${e.value}'),
-                  backgroundColor: Colors.white,
-                  side: BorderSide(color: Colors.grey[300]!),
+                  labelStyle: TextStyle(
+                    color: c.texto,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  backgroundColor: c.superficie,
+                  side: BorderSide(color: c.borde),
                 ),
             ],
           ),
@@ -127,7 +139,7 @@ class _TiraSemana extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF22303A),
+        color: DiarioColores.carcasa,
         borderRadius: BorderRadius.circular(22),
       ),
       child: Row(
@@ -139,9 +151,9 @@ class _TiraSemana extends StatelessWidget {
                 Text(
                   d.etiqueta,
                   style: const TextStyle(
-                    color: Colors.white70,
+                    color: Colors.white,
                     fontWeight: FontWeight.w800,
-                    fontSize: 12,
+                    fontSize: DiarioTexto.etiqueta,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -177,7 +189,7 @@ class _TiraSemana extends StatelessWidget {
                         )
                       : Icon(
                           kPolaridades[d.polaridad]!.icono,
-                          color: Colors.white,
+                          color: DiarioColores.sobreLuz(d.polaridad!),
                           size: 18,
                         ),
                 ),
@@ -196,6 +208,7 @@ class _Conteo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = DiarioColores.de(context);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
@@ -209,12 +222,16 @@ class _Conteo extends StatelessWidget {
             style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w900,
-              color: info.color,
+              color: c.tinta(info.polaridad),
             ),
           ),
           Text(
             info.nombre,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: DiarioTexto.etiqueta,
+              color: c.texto,
+            ),
           ),
         ],
       ),

@@ -217,3 +217,40 @@ def test_consejos_siguen_la_emocion_que_marco_el_estudiante():
 def test_resultado_incluye_la_prueba_de_wang():
     r = evaluar_entrada(entrada(), AnalizadorFalso())
     assert r.decision.prueba.pasos
+
+
+# --------------------------------------------------------------------------
+# Consejos solo con técnicas del material aprobado (pulido del diario, 10 oct)
+# --------------------------------------------------------------------------
+# El consejo de enojo recomendaba «respiración 4-7-8», pero el módulo de
+# Ansiedad enseña «inhala 4, sostén 4, exhala 6»; el de miedo proponía
+# «5 cosas que ves...», que no está en ningún texto del corpus.
+
+import json as _json  # noqa: E402
+import re as _re  # noqa: E402
+
+from app.emociones_catalogo import CLASE_ENOJO  # noqa: E402
+from app.evaluador_diario import _CONSEJOS  # noqa: E402
+
+_ACTIVIDADES = next(
+    t["texto"]
+    for t in _json.loads((Path(__file__).resolve().parents[1] / "app" / "datos" / "corpus_serena.json").read_text(encoding="utf-8"))
+    if t["id"] == "ansiedad.teenImgActividades.adolescente"
+)
+
+
+def test_ningun_consejo_usa_tecnicas_fuera_del_material():
+    todos = " ".join(c for consejos in _CONSEJOS.values() for c in consejos)
+    assert "4-7-8" not in todos
+    assert "5 cosas" not in todos
+
+
+def test_los_numeros_de_una_tecnica_coinciden_con_el_modulo_de_ansiedad():
+    for consejos in _CONSEJOS.values():
+        for c in consejos:
+            for n in _re.findall(r"\d+", c):
+                assert n in _ACTIVIDADES, f"«{c}» usa {n}, que no está en el material aprobado"
+
+
+def test_el_consejo_de_enojo_es_la_respiracion_del_modulo():
+    assert any("inhala 4 segundos" in c and "exhala 6" in c for c in _CONSEJOS[CLASE_ENOJO])
