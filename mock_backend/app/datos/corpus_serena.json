@@ -1,0 +1,1091 @@
+[
+ {
+  "id": "ansiedad.heroDescription.adolescente",
+  "modulo": "Ansiedad",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_ansiedad.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "La ansiedad puede sentirse en tus pensamientos, emociones, cuerpo y acciones. Aquí aprenderás cuándo es normal y cuándo conviene pedir ayuda.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "ansiedad.heroDescription.familia",
+  "modulo": "Ansiedad",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_ansiedad.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "La ansiedad es común y tratable. Esta sección ayuda a reconocer señales, opciones de apoyo y cuándo buscar evaluación profesional.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "ansiedad.warningMsg.adolescente",
+  "modulo": "Ansiedad",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_ansiedad.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Pide apoyo si el miedo es muy intenso, dura mucho o afecta escuela, amistades, familia o actividades.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "ansiedad.warningMsg.familia",
+  "modulo": "Ansiedad",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_ansiedad.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Atención si los síntomas persisten, son muy intensos o afectan escuela, familia, amistades o bienestar.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "ansiedad.parentIntroContent.familia",
+  "modulo": "Ansiedad",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_ansiedad.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "La ansiedad puede ser normal, pero preocupa cuando domina la vida diaria.\n\nSe puede notar en:\n• Preocupación frecuente.\n• Nerviosismo o tensión.\n• Evitación.\n• Cambios físicos como sudoración o tensión muscular.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "ansiedad.parentTypesContent.familia",
+  "modulo": "Ansiedad",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_ansiedad.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Tipos frecuentes:\n\n• Generalizada: preocupación excesiva.\n• Social: miedo a juicio o rechazo.\n• Pánico: miedo intenso repentino.\n• Fobias: miedo fuerte a algo específico.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "ansiedad.parentDiagnosisContent.familia",
+  "modulo": "Ansiedad",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_ansiedad.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "La evaluación debe hacerla un profesional. Revisa síntomas, antecedentes, funcionamiento diario y puede usar cuestionarios.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "ansiedad.parentTreatmentContent.familia",
+  "modulo": "Ansiedad",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_ansiedad.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "El tratamiento suele combinar psicoterapia, autocuidado, manejo emocional y medicación cuando está indicada.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "ansiedad.parentTherapyContent.familia",
+  "modulo": "Ansiedad",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_ansiedad.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "La TCC ayuda a identificar pensamientos y conductas que mantienen la ansiedad, y enseña herramientas para afrontarla.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "ansiedad.parentActionContent.familia",
+  "modulo": "Ansiedad",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_ansiedad.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "• Fomentar rutinas saludables.\n• Promover respiración y relajación.\n• Practicar mindfulness o atención plena.\n• Escuchar sin minimizar sus emociones.\n• Buscar apoyo profesional si los síntomas persisten o aumentan.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "ansiedad.parentMedicationMsg.familia",
+  "modulo": "Ansiedad",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_ansiedad.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Los medicamentos pueden ayudar, pero requieren seguimiento médico. No deben iniciarse ni suspenderse sin supervisión.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "ansiedad.parentFooterMsg.familia",
+  "modulo": "Ansiedad",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_ansiedad.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Detectar temprano, acompañar y buscar apoyo profesional mejora el pronóstico.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "autolesiones.heroDescription.adolescente",
+  "modulo": "Autolesión no suicida",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "A veces, el dolor emocional es tan fuerte que buscamos apagarlo. Aquí aprenderemos qué pasa y cómo pedir ayuda.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "autolesiones.heroDescription.familia",
+  "modulo": "Autolesión no suicida",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Comprender la autolesión no suicida (NSSI) es clave para brindar apoyo. Aquí aprenderá sus causas, factores de riesgo y cómo actuar.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "autolesiones.qyaContent.adolescente",
+  "modulo": "Autolesión no suicida",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "• Es hacerse daño a propósito, sin querer morir.\n• Suele aparecer cuando las emociones se sienten demasiado intensas.\n• No es una forma segura de manejar el dolor.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "autolesiones.qyaContent.familia",
+  "modulo": "Autolesión no suicida",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "• Daño deliberado del cuerpo sin intención suicida.\n• Suele funcionar como intento de regular emociones intensas.\n• Requiere escucha, contención y evaluación profesional.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "autolesiones.warningMsg.adolescente",
+  "modulo": "Autolesión no suicida",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Aunque no es para morir, hacerlo mucho sí aumenta el riesgo de tener pensamientos o conductas mucho más peligrosas.",
+  "bloqueada": true,
+  "nivel_actual": null,
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "autolesiones.warningMsg.familia",
+  "modulo": "Autolesión no suicida",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Aunque el objetivo inicial no es terminar con la vida, la repetición de autolesiones incrementa significativamente el riesgo de conducta suicida futura.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "autolesiones.pkContent.adolescente",
+  "modulo": "Autolesión no suicida",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Puede pasar por:\n\n• Calmar tristeza, enojo o ansiedad.\n• Castigarse por culpa o vergüenza.\n• Sentir control cuando hay vacío.\n• Mostrar dolor cuando faltan palabras.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "autolesiones.pkContent.familia",
+  "modulo": "Autolesión no suicida",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Funciones frecuentes:\n\n• Regular angustia o tensión.\n• Expresar culpa o vergüenza.\n• Contrarrestar desconexión emocional.\n• Comunicar sufrimiento sin palabras.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "autolesiones.riskContent.adolescente",
+  "modulo": "Autolesión no suicida",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Puede aumentar con:\n\n• Tristeza o ansiedad intensa.\n• Bullying o conflictos familiares.\n• Experiencias traumáticas.\n• Alcohol o drogas.\n\nNada de esto define a una persona; solo indica que necesita apoyo.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "autolesiones.riskContent.familia",
+  "modulo": "Autolesión no suicida",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Factores a observar:\n\n• Depresión o ansiedad intensa.\n• Bullying, acoso o conflicto familiar.\n• Trauma o abuso.\n• Consumo de sustancias.\n\nNo determinan la conducta, pero aumentan vulnerabilidad.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "autolesiones.actionContent.adolescente",
+  "modulo": "Autolesión no suicida",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Prueba algo más seguro:\n\n• Habla con alguien de confianza.\n• Escribe o dibuja lo que sientes.\n• Muévete, respira o escucha música.\n• Pide ayuda profesional si vuelve a pasar.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "autolesiones.actionContent.familia",
+  "modulo": "Autolesión no suicida",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Cómo responder:\n\n• Mantener la calma.\n• Escuchar sin regaños ni juicio.\n• Validar el dolor sin justificar la lesión.\n• Buscar apoyo profesional.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "autolesiones.footerMsg.adolescente",
+  "modulo": "Autolesión no suicida",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Pedir ayuda es el acto más grande de valentía. Hablar con alguien de confianza puede cambiarlo todo.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "autolesiones.footerMsg.familia",
+  "modulo": "Autolesión no suicida",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Abordar el tema con empatía, contención y sin juicios de valor, es el primer paso vital para su recuperación.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.bloque1Content.adolescente",
+  "modulo": "Riesgo de suicidio",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Revisa señales recientes como:\n\n• Tristeza fuerte.\n• Pocas ganas de hacer cosas.\n• Cambios de sueño o apetito.\n• Cansancio.\n• Culpa o sentirte mal contigo.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "suicidio.bloque1Content.familia",
+  "modulo": "Riesgo de suicidio",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Explora señales recientes de depresión: tristeza, pérdida de interés, sueño o apetito alterado, cansancio y culpa.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.bloque2Content.adolescente",
+  "modulo": "Riesgo de suicidio",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Ayuda a ubicar pensamientos como:\n\n• Querer desaparecer.\n• Sentir que no quieres existir.\n• Pensar en hacerte daño.\n\nResponder con honestidad ayuda a pedir apoyo adecuado.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "suicidio.bloque2Content.familia",
+  "modulo": "Riesgo de suicidio",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Identifica el nivel de ideación: desde deseo de no existir hasta pensamientos con intención o plan.",
+  "bloqueada": true,
+  "nivel_actual": null,
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.devCerebralDesc.adolescente",
+  "modulo": "Riesgo de suicidio",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Tu cerebro aún está aprendiendo a decidir y frenar impulsos. Por eso algunas emociones pueden sentirse enormes.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.devCerebralDesc.familia",
+  "modulo": "Riesgo de suicidio",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "El córtex prefrontal aún está en desarrollo, lo que puede dificultar controlar impulsos durante crisis emocionales.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.quimicaDesc.adolescente",
+  "modulo": "Riesgo de suicidio",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Sustancias como serotonina y dopamina influyen en tu ánimo. Si se desbalancean, el dolor emocional puede sentirse más fuerte.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Simplificación química",
+    "detalle": "Explica el ánimo solo por serotonina o dopamina. El modelo de «desbalance químico» se considera hoy insuficiente como explicación única."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.quimicaDesc.familia",
+  "modulo": "Riesgo de suicidio",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Cambios en neurotransmisores pueden intensificar el dolor emocional y alterar la percepción del problema.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.estresDesc.adolescente",
+  "modulo": "Riesgo de suicidio",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Mucho estrés por mucho tiempo cansa al cuerpo y vuelve más difícil manejar lo que sientes.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.estresDesc.familia",
+  "modulo": "Riesgo de suicidio",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Estrés prolongado o trauma puede agotar la capacidad del cuerpo para regularse.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.esperanzaMsg.adolescente",
+  "modulo": "Riesgo de suicidio",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "No tienes que cargar esto solo.\n\nHabla con alguien de confianza o con un profesional. Pedir ayuda cuenta.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.esperanzaMsg.familia",
+  "modulo": "Riesgo de suicidio",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "La evaluación temprana orienta el apoyo. Escuchar, creer y actuar a tiempo puede marcar la diferencia.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "sustancias.heroDescription.adolescente",
+  "modulo": "Consumo de sustancias",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Tu cerebro sigue creciendo. Conocer cómo actúan las sustancias puede ayudarte a tomar decisiones informadas y cuidar tu futuro.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "sustancias.heroDescription.familia",
+  "modulo": "Consumo de sustancias",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Información para comprender cómo las sustancias afectan el desarrollo cerebral adolescente y cómo acompañar con prevención.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "sustancias.brainContent.adolescente",
+  "modulo": "Consumo de sustancias",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Tu cerebro sigue construyéndose hasta aprox. los 25 años.\n\n• Aprende a decidir, controlar impulsos y manejar emociones.\n• Las drogas alteran la comunicación entre neuronas.\n• La dopamina puede dar placer al inicio, pero después el cerebro pide más para sentir lo mismo.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Simplificación química",
+    "detalle": "Explica el ánimo solo por serotonina o dopamina. El modelo de «desbalance químico» se considera hoy insuficiente como explicación única."
+   }
+  ]
+ },
+ {
+  "id": "sustancias.brainContent.familia",
+  "modulo": "Consumo de sustancias",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Aunque un adolescente parezca maduro, su cerebro sigue desarrollando autocontrol, toma de decisiones y regulación emocional.\n\nLas sustancias modifican la comunicación neuronal y el sistema de recompensa. Con el tiempo pueden reducir el interés por actividades cotidianas y aumentar la necesidad de consumir.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "sustancias.brainAreasContent.adolescente",
+  "modulo": "Consumo de sustancias",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Tres zonas clave:\n\n• Recompensa: deja de disfrutar cosas normales.\n• Amígdala: aumenta ansiedad, irritabilidad o estrés.\n• Corteza prefrontal: cuesta más frenar impulsos y medir riesgos.\n\nPor eso empezar en la adolescencia aumenta la vulnerabilidad.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "sustancias.brainAreasContent.familia",
+  "modulo": "Consumo de sustancias",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Áreas más afectadas:\n\n• Sistema de recompensa: puede desplazar actividades saludables.\n• Amígdala: favorece ansiedad, irritabilidad y malestar.\n• Corteza prefrontal: dificulta evaluar riesgos y resistir presión social.\n\nEl inicio temprano aumenta el riesgo de dependencia.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "sustancias.marijuanaContent.adolescente",
+  "modulo": "Consumo de sustancias",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Contiene THC.\n\nPuede causar:\n• Problemas de memoria y concentración.\n• Cambios de percepción y del tiempo.\n• Menor coordinación.\n• Cambios de humor, paranoia o alucinaciones en dosis altas.\n\nEn adolescentes puede afectar aprendizaje y resolución de problemas.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "sustancias.marijuanaContent.familia",
+  "modulo": "Consumo de sustancias",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "La marihuana contiene THC.\n\nRiesgos principales:\n• Concentración y memoria más débiles.\n• Alteraciones de percepción y coordinación.\n• Paranoia o episodios psicóticos en algunos casos.\n• Mayor riesgo si el consumo inicia temprano.\n\nUso médico supervisado no equivale a consumo recreativo seguro.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Nombra sustancias o conductas concretas",
+    "detalle": "Conviene comprobar que informe sin funcionar como instructivo ni despertar curiosidad."
+   }
+  ]
+ },
+ {
+  "id": "sustancias.nicotineContent.adolescente",
+  "modulo": "Consumo de sustancias",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "La nicotina engancha rápido.\n\n• Está en cigarros y muchos vapeadores.\n• El efecto de placer dura poco.\n• Después puede aparecer ansiedad, irritabilidad o ganas fuertes de repetir.\n• Vapear también puede dañar pulmones y generar dependencia.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "sustancias.nicotineContent.familia",
+  "modulo": "Consumo de sustancias",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "La nicotina activa rápido el sistema de recompensa y favorece dependencia.\n\nSeñales comunes: ansiedad, irritabilidad, dificultad para concentrarse y deseo intenso de consumir.\n\nEl vapeo puede parecer menos riesgoso por sabores y diseño, pero también puede contener nicotina, THC u otras sustancias.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "sustancias.inhalantsContent.adolescente",
+  "modulo": "Consumo de sustancias",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Son productos comunes: pegamentos, pinturas, aerosoles, gasolina o solventes.\n\nPueden provocar mareos, euforia, pérdida de equilibrio, dificultad para hablar o alucinaciones.\n\nRiesgo importante: pueden causar daño permanente o una emergencia grave incluso desde el primer consumo.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "sustancias.inhalantsContent.familia",
+  "modulo": "Consumo de sustancias",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Pegamentos, solventes, pinturas, aerosoles o gasolina pueden ser inhalantes.\n\nEfectos: mareos, euforia, mala coordinación, dificultad para hablar y alucinaciones.\n\nRiesgo alto: daño neurológico, hepático o renal, además de muerte súbita. Conviene supervisar almacenamiento y uso.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "sustancias.otherDrugsContent.adolescente",
+  "modulo": "Consumo de sustancias",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Otras sustancias de alto riesgo:\n\n• Opioides: pueden causar dependencia y sobredosis.\n• Metanfetamina: afecta memoria, ánimo y conducta.\n• Cocaína: eleva riesgo de infarto y adicción.\n• Sintéticas: sus efectos son impredecibles.\n• Estimulantes sin receta: pueden dañar corazón y cerebro.",
+  "bloqueada": true,
+  "nivel_actual": null,
+  "avisos": [
+   {
+    "corto": "Nombra sustancias o conductas concretas",
+    "detalle": "Conviene comprobar que informe sin funcionar como instructivo ni despertar curiosidad."
+   }
+  ]
+ },
+ {
+  "id": "sustancias.otherDrugsContent.familia",
+  "modulo": "Consumo de sustancias",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Sustancias a vigilar:\n\n• Opioides: dependencia y sobredosis respiratoria.\n• Metanfetamina: daño cerebral y agresividad.\n• Cocaína: adicción, infartos y eventos cerebrovasculares.\n• K2, Spice y sales de baño: efectos impredecibles.\n• Estimulantes recetados sin indicación: riesgo cardiovascular y dependencia.",
+  "bloqueada": true,
+  "nivel_actual": null,
+  "avisos": [
+   {
+    "corto": "Nombra sustancias o conductas concretas",
+    "detalle": "Conviene comprobar que informe sin funcionar como instructivo ni despertar curiosidad."
+   }
+  ]
+ },
+ {
+  "id": "sustancias.footerMsg.adolescente",
+  "modulo": "Consumo de sustancias",
+  "publico": "adolescente",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "No se trata de asustarte: se trata de decidir con información.\n\nCuidar tu cerebro hoy protege tu memoria, emociones, relaciones y metas.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "sustancias.footerMsg.familia",
+  "modulo": "Consumo de sustancias",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "La prevención funciona mejor con información clara, diálogo frecuente y acompañamiento emocional.\n\nUn ambiente seguro ayuda a que los adolescentes hablen, pidan apoyo y tomen decisiones más saludables.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "sustancias.parentActionsContent.familia",
+  "modulo": "Consumo de sustancias",
+  "publico": "familia",
+  "origen": "lib/pantallas/modulos/modulo_sustancias.dart",
+  "fuente_tipo": "texto de la app",
+  "titulo": null,
+  "texto": "Acciones útiles:\n\n• Hablar seguido, sin juicio.\n• Escuchar antes de corregir.\n• Conocer amistades y rutinas.\n• Poner límites claros.\n• Observar cambios de ánimo, escuela o relaciones.\n• Buscar ayuda profesional ante señales de consumo o malestar.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "ansiedad.teenImgQueEs.adolescente",
+  "modulo": "Ansiedad",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/ansiedad/1-que_es.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "¿Qué es?",
+  "texto": "LA ANSIEDAD ES UNA EMOCIÓN NORMAL QUE TODAS LAS PERSONAS SIENTEN ALGUNA VEZ.\n\nPuede aparecer cuando algo te preocupa, te da miedo o te genera estrés.\n\nPUEDE NOTARSE COMO:\n- Pensar demasiado en algo.\n- Sentirte nervioso o inquieto.\n- Tener manos sudorosas o el corazón acelerado.\n- Evitar situaciones que causan miedo o incomodidad.\n\nLa ansiedad es parte de nosotros y todos la sentimos. Entenderla es el primer paso para aprender a manejarla.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "ansiedad.teenImgAdvertencia.adolescente",
+  "modulo": "Ansiedad",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/ansiedad/2-advertencia.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Señal para pedir apoyo",
+  "texto": "Pide apoyo si el miedo es muy intenso, dura mucho o afecta escuela, amistades, familia o actividades.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "ansiedad.teenImgTiposTrastornos.adolescente",
+  "modulo": "Ansiedad",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/ansiedad/3-tipos_de_trastornos.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Tipos de ansiedad",
+  "texto": "Existen diferentes trastornos de ansiedad que pueden afectar nuestra vida diaria. Conocerlos es el primer paso para entenderlos y buscar ayuda.\n\n1. ANSIEDAD GENERALIZADA: preocuparse constantemente por muchas cosas. La preocupación es constante y difícil de controlar, incluso cuando no hay un peligro real.\n2. ANSIEDAD SOCIAL: miedo intenso a interactuar o ser juzgado. Puede causar vergüenza, miedo al rechazo o evitar situaciones sociales.\n3. TRASTORNO DE PÁNICO: ataques repentinos de miedo intenso sin razón clara (dificultad para respirar, corazón acelerado, temblor o escalofríos, mareo o sensación de irrealidad).\n4. AGORAFOBIA: miedo a lugares donde sería difícil escapar o recibir ayuda. Puede llevar a evitar salir de casa, usar transporte público, centros comerciales o lugares concurridos.\n5. FOBIAS ESPECÍFICAS: miedo extremo a algo concreto, como alturas o agujas. El miedo es desproporcionado y puede provocar evitación o crisis de ansiedad.\n\nTener ansiedad no es debilidad, es una condición que se puede tratar. Buscar apoyo profesional hace una gran diferencia.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "ansiedad.teenImgDiagnostico.adolescente",
+  "modulo": "Ansiedad",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/ansiedad/4-diagnostico.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Diagnóstico",
+  "texto": "Un profesional te hará preguntas para entender cómo te sientes. También puede revisar tu salud o usar cuestionarios.\n\n1. ENTREVISTA Y PREGUNTAS: te preguntará cómo te sientes, cuándo comenzó y cómo afecta tu día a día. No hay respuestas correctas o incorrectas. Sé honesto.\n2. REVISIÓN MÉDICA: puede revisar tu salud para descartar otras causas (revisión general, signos vitales, antecedentes médicos).\n3. ESTUDIOS (SI HACEN FALTA): a veces puede pedir análisis o evaluaciones. No siempre son necesarios.\n4. CUESTIONARIOS: ayudan a conocer tus síntomas y cómo afectan tu vida. Sirven para orientar un diagnóstico. Tus respuestas son confidenciales.\n\nUn diagnóstico no te define. Es un paso para entenderte y recibir apoyo. ¡No estás solo!",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Promete confidencialidad",
+    "detalle": "Dice que las respuestas son confidenciales, pero el padre, madre o tutor vinculado recibe una alerta con los puntajes. Es la misma promesa que el sistema tiene prohibido hacer."
+   }
+  ]
+ },
+ {
+  "id": "ansiedad.teenImgTratamiento.adolescente",
+  "modulo": "Ansiedad",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/ansiedad/5-tratamiento.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "¿Cómo se trata?",
+  "texto": "La ansiedad tiene tratamiento. Con apoyo, puedes sentirte mucho mejor.\n\nOPCIONES DE APOYO:\n1. RESPIRACIÓN Y RELAJACIÓN: ayudan a calmar tu cuerpo y mente. Practícalas todos los días.\n2. ATENCIÓN PLENA: concéntrate en el presente sin juzgar. Ayuda a reducir preocupaciones.\n3. TERAPIA PSICOLÓGICA: un profesional te ayuda a entender y manejar lo que sientes. Pedir ayuda es valiente.\n4. LIBROS Y APPS: ofrecen ejercicios útiles para sentirte mejor. Úsalos como apoyo.\n5. MEDICAMENTOS: a veces pueden ayudar con los síntomas, siempre con indicación profesional. Su objetivo es apoyarte.\n\nCada persona es diferente. Encuentra lo que mejor funcione para ti.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "ansiedad.teenImgTerapia.adolescente",
+  "modulo": "Ansiedad",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/ansiedad/6-terapia.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "El papel de la terapia",
+  "texto": "La terapia es un espacio seguro para hablar y aprender a manejar lo que sientes.\n\n1. UN LUGAR SEGURO: puedes hablar sin miedo a ser juzgado.\n2. ENTENDER LO QUE SIENTES: te ayuda a reconocer qué provoca tu ansiedad (situaciones, emociones, pensamientos).\n3. APRENDER HERRAMIENTAS: practicarás formas de manejar el estrés (respiración, relajación, organizar ideas, resolver problemas).\n4. ¿QUÉ ES LA TCC?: la TCC ayuda a cambiar pensamientos y conductas que aumentan la ansiedad.\n5. CAMBIAR PASO A PASO: de \"todo va a salir mal\" a \"puedo hacerlo paso a paso\" (menos ansiedad, más seguridad, mayor bienestar).\n\nPedir ayuda es una muestra de fortaleza.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "ansiedad.teenImgActividades.adolescente",
+  "modulo": "Ansiedad",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/ansiedad/7-actividades.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "¿Qué puedes hacer por tu cuenta?",
+  "texto": "Estas actividades pueden ayudarte a sentirte mejor.\n\n1. RESPIRA LENTO: inhala 4 segundos, sostén 4 segundos, exhala 6 segundos. Repite varias veces.\n2. RELAJA TU CUERPO: tensa tus músculos 5 segundos y luego suéltalos (brazos, hombros y piernas).\n3. ATENCIÓN PLENA: dedica 3 minutos al presente (mira, escucha, siente, acepta). Aumenta el tiempo poco a poco.\n4. HABLA CON ALGUIEN: compartir lo que sientes puede aliviarte. Busca a alguien que te escuche sin juzgar.\n\nLas pequeñas acciones hacen la diferencia. Sé amable contigo.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "ansiedad.teenImgMedicamentos.adolescente",
+  "modulo": "Ansiedad",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/ansiedad/8-medicamentos.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Sobre los medicamentos",
+  "texto": "Si un profesional los recomienda, pregunta tus dudas y sigue sus indicaciones.\n\n1. PUEDEN AYUDAR: pueden reducir síntomas y mejorar tu bienestar. Cada persona responde diferente.\n2. PREGUNTA TUS DUDAS: ¿Para qué sirve? ¿Cómo debo tomarlo? ¿Qué efectos puede tener?\n3. SIGUE LAS INDICACIONES: tómalo en la dosis, hora y tiempo indicados.\n4. NO LO SUSPENDAS POR TU CUENTA: los síntomas pueden regresar o empeorar. Consulta antes de hacer cambios.\n5. CUENTA CÓMO TE SIENTES: habla de mejoras, cambios o efectos secundarios.\n6. EL TRATAMIENTO ES INTEGRAL: terapia, relajación, actividad física, apoyo.\n\nLos medicamentos son un apoyo, no te definen.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "ansiedad.teenImgAyuda.adolescente",
+  "modulo": "Ansiedad",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/ansiedad/9-ayuda.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Hay ayuda disponible",
+  "texto": "Tener ansiedad no significa que seas débil ni que haya algo malo contigo. Si el miedo o la preocupación afectan tu vida, pedir ayuda es una señal de valentía.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ },
+ {
+  "id": "autolesiones.teenImgQueEs.adolescente",
+  "modulo": "Autolesión no suicida",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/autolesiones/1-que_es.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "¿Qué es y qué no es?",
+  "texto": "Hablemos de las autolesiones para entenderlas mejor y con respeto.\n\n- Es hacerse daño a propósito, sin querer morir. La persona se lastima para aliviar un dolor emocional muy fuerte.\n- Suele aparecer cuando las emociones se sienten demasiado intensas, como tristeza, enojo, ansiedad, vacío o sentirse abrumado.\n- No es una forma segura de manejar el dolor. Puede traer más dolor físico y emocional a largo plazo.\n\nSi tú o alguien que conoces se está haciendo daño, no estás solo. Pedir ayuda es un acto de valentía.",
+  "bloqueada": true,
+  "nivel_actual": null,
+  "avisos": [
+   {
+    "corto": "La imagen muestra el acto",
+    "detalle": "La tarjeta ilustrada correspondiente representa a un personaje con un objeto cortante y marcas en el antebrazo. Las guías de comunicación segura desaconsejan esa representación, incluso estilizada. ¿Se retira o se rediseña?"
+   }
+  ]
+ },
+ {
+  "id": "autolesiones.teenImgAdvertencia.adolescente",
+  "modulo": "Autolesión no suicida",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/autolesiones/2-advertencia.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Dato importante",
+  "texto": "Aunque no es para morir, hacerlo mucho sí aumenta el riesgo de tener pensamientos o conductas mucho más peligrosas. Tu vida importa.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "autolesiones.teenImgPorQue.adolescente",
+  "modulo": "Autolesión no suicida",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/autolesiones/3-por_que.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "¿Por qué lo hacen?",
+  "texto": "Las autolesiones no son por llamar la atención. Suelen tener razones profundas.\n\nPUEDE PASAR POR:\n- Calmar tristeza, enojo o ansiedad. El dolor físico puede distraer o apagar el dolor emocional por un momento.\n- Castigarse por culpa o vergüenza. Se sienten responsables de lo que pasa y creen que merecen el dolor.\n- Sentir control cuando hay vacío. El dolor físico da una sensación de control.\n- Mostrar dolor cuando faltan palabras. El cuerpo habla lo que las palabras no pueden.\n\nLas autolesiones no definen quién eres.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "autolesiones.teenImgSituacionesRiesgo.adolescente",
+  "modulo": "Autolesión no suicida",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/autolesiones/4-situaciones_de_riesgo.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Situaciones de riesgo",
+  "texto": "Hay situaciones que pueden hacer que las autolesiones aumenten o aparezcan.\n\nPUEDE AUMENTAR CON:\n- Tristeza o ansiedad intensa.\n- Bullying o conflictos familiares.\n- Experiencias traumáticas.\n- Alcohol o drogas: pueden alterar nuestras emociones y aumentar la impulsividad, haciendo más difícil pedir ayuda.\n\nNada de esto define a una persona; solo indica que necesita apoyo.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "autolesiones.teenImgQueHacer.adolescente",
+  "modulo": "Autolesión no suicida",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/autolesiones/5-que_hacer.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "¿Qué más puedo hacer?",
+  "texto": "Existen muchas formas más seguras de cuidar lo que sientes.\n\n- Habla con alguien de confianza.\n- Escribe o dibuja lo que sientes.\n- Muévete, respira o escucha música.\n- Pide ayuda profesional si vuelve a pasar.\n\nTú vales mucho y mereces sentirte bien.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "autolesiones.teenImgAyuda.adolescente",
+  "modulo": "Autolesión no suicida",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/autolesiones/6-ayuda.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Hay ayuda disponible",
+  "texto": "¡No estás solo/a! Pedir ayuda es el acto más grande de valentía. Hablar con alguien de confianza puede cambiarlo todo.",
+  "bloqueada": true,
+  "nivel_actual": null,
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.teenImgBloque1.adolescente",
+  "modulo": "Riesgo de suicidio",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/suicidio/1-bloque_1.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Bloque 1: Depresión (PHQ-9)",
+  "texto": "Revisa señales recientes como:\n1. Tristeza fuerte: sentirte muy triste, vacío o con ganas de llorar por varios días.\n2. Pocas ganas de hacer cosas: perder interés en actividades que antes te gustaban.\n3. Cambios de sueño o apetito.\n4. Cansancio: sentirte sin energía casi todo el tiempo.\n5. Culpa o sentirte mal contigo: pensar que no vales o que todo es tu culpa.\n\nSi notas varias de estas señales, hablar con alguien de confianza o pedir ayuda profesional puede hacer una gran diferencia.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "suicidio.teenImgBloque2.adolescente",
+  "modulo": "Riesgo de suicidio",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/suicidio/2-bloque_2.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Bloque 2: Pensamientos sobre morir (C-SSRS)",
+  "texto": "Ayuda a ubicar pensamientos como:\n1. Querer desaparecer.\n2. Sentir que no quieres existir.\n3. Pensar en hacerte daño.\n\nResponder con honestidad ayuda a pedir apoyo adecuado. Hablarlo a tiempo puede hacer una gran diferencia.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "suicidio.teenImgDesarrolloCerebro.adolescente",
+  "modulo": "Riesgo de suicidio",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/suicidio/3-desarrollo_cerebro.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Desarrollo del cerebro",
+  "texto": "Tu cerebro aún está aprendiendo a decidir y frenar impulsos. Por eso algunas emociones pueden sentirse enormes.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.teenImgQuimicaCerebro.adolescente",
+  "modulo": "Riesgo de suicidio",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/suicidio/4-quimica_cerebro.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Química del cerebro",
+  "texto": "Sustancias como serotonina y dopamina influyen en tu ánimo. Si se desbalancean, el dolor emocional puede sentirse más fuerte.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Simplificación química",
+    "detalle": "Explica el ánimo solo por serotonina o dopamina. El modelo de «desbalance químico» se considera hoy insuficiente como explicación única."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.teenImgEstres.adolescente",
+  "modulo": "Riesgo de suicidio",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/suicidio/5-estrés.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Estrés y sobrecarga",
+  "texto": "Mucho estrés por mucho tiempo cansa al cuerpo y vuelve más difícil manejar lo que sientes.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "suicidio.teenImgAyuda.adolescente",
+  "modulo": "Riesgo de suicidio",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/suicidio/6-carga.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Hay ayuda disponible",
+  "texto": "No tienes que cargar esto solo. Habla con alguien de confianza o con un profesional. Pedir ayuda cuenta.",
+  "bloqueada": true,
+  "nivel_actual": null,
+  "avisos": [
+   {
+    "corto": "Texto muy breve",
+    "detalle": "Menos de 120 caracteres. Funciona como aviso en pantalla, pero no alcanza como respuesta del asistente. Si puede, amplíelo en el recuadro de corrección."
+   }
+  ]
+ },
+ {
+  "id": "sustancias.teenImgCerebro.adolescente",
+  "modulo": "Consumo de sustancias",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/sustancias/1-cerebro.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Tu cerebro en desarrollo",
+  "texto": "1. Hasta aprox. los 25 años tu cerebro aprende a decidir, frenar impulsos y manejar emociones.\n2. Las drogas cambian la comunicación entre neuronas.\n3. La dopamina puede dar placer al inicio; después, el cerebro puede pedir más para sentir lo mismo.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno",
+  "avisos": [
+   {
+    "corto": "Simplificación química",
+    "detalle": "Explica el ánimo solo por serotonina o dopamina. El modelo de «desbalance químico» se considera hoy insuficiente como explicación única."
+   }
+  ]
+ },
+ {
+  "id": "sustancias.teenImgMarihuana.adolescente",
+  "modulo": "Consumo de sustancias",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/sustancias/3-marihuana.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Marihuana",
+  "texto": "Principal componente: THC.\n\nPUEDE CAUSAR: problemas de memoria y concentración, cambios en la percepción y el tiempo, menor coordinación, cambios de humor, paranoia o alucinaciones en dosis altas.\n\nA LARGO PLAZO EN ADOLESCENTES: puede afectar el aprendizaje y la resolución de problemas.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "sustancias.teenImgNicotina.adolescente",
+  "modulo": "Consumo de sustancias",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/sustancias/4-nicotina.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Nicotina y vapeo",
+  "texto": "La nicotina engancha rápido. Está en cigarros y muchos vapeadores.\n\nEl efecto de placer dura poco: después puede aparecer ansiedad, irritabilidad o ganas fuertes de repetir.\n\nA largo plazo: vapear también puede dañar los pulmones y generar dependencia.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "sustancias.teenImgInhalantes.adolescente",
+  "modulo": "Consumo de sustancias",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/sustancias/5-inhalantes.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Inhalantes",
+  "texto": "Productos comunes: pegamentos, pinturas, aerosoles, gasolina o solventes.\n\nPueden provocar: mareos, euforia, pérdida de equilibrio, dificultad para hablar, alucinaciones.\n\nRiesgo importante: pueden causar daño permanente o una emergencia grave incluso desde el primer consumo.",
+  "bloqueada": true,
+  "nivel_actual": null
+ },
+ {
+  "id": "sustancias.teenImgInfo.adolescente",
+  "modulo": "Consumo de sustancias",
+  "publico": "adolescente",
+  "origen": "assets/imagenes/sustancias/7-info.png",
+  "fuente_tipo": "tarjeta (imagen)",
+  "titulo": "Hay ayuda disponible",
+  "texto": "No se trata de asustarte: se trata de decidir con información. Cuidar tu cerebro hoy protege tu memoria, emociones, relaciones y metas.",
+  "bloqueada": false,
+  "nivel_actual": "ninguno"
+ }
+]

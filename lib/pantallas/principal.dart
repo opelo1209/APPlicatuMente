@@ -7,6 +7,10 @@ import 'theme_provider.dart';
 import 'login.dart';
 import 'monitoreo_admin.dart';
 import 'admin/editor_cuestionarios_admin.dart';
+import 'admin/alertas_riesgo_admin.dart';
+import 'diario/diario_flujo.dart';
+import 'vinculacion/vinculacion_estudiante.dart';
+import 'vinculacion/vinculacion_tutor.dart';
 import 'juegos/tcg_flame_screen.dart';
 import 'modulos/selector_modulo_crisis.dart';
 import 'modulos/chatbot_serena.dart';
@@ -728,9 +732,58 @@ class _PrincipalState extends State<Principal>
     );
   }
 
+  // PROTOTIPO Semana 2: «Platicar con Serena» desde el diario cierra las
+  // pantallas abiertas y cambia a la pestaña de Serena.
+  void _abrirSerena() {
+    Navigator.of(context).popUntil((ruta) => ruta.isFirst);
+    _onItemTapped(0);
+  }
+
   List<Widget> _homeCardsForRole(BuildContext context) {
     final cards = <Widget>[];
     final studentPalette = AppPersonalizacion.palette(_studentAccentColor);
+
+    // PROTOTIPO Semana 2: diario emocional con semáforo.
+    if (_can('can_use_diario')) {
+      cards.add(
+        _buildOptionCard(
+          context,
+          imagePath: 'assets/imagenes/quetzal_6.png',
+          title: "Mi diario",
+          subtitle: "¿Cómo estuvo tu día? Califícalo con el semáforo",
+          color: _studentAccentColor,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DiarioFlujo(
+                  onAbrirSerena: _abrirSerena,
+                  acento: _studentAccentColor,
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    if (_can('can_review_risk_alerts')) {
+      cards.add(
+        _buildOptionCard(
+          context,
+          imagePath: 'assets/imagenes/quetzal_4.png',
+          title: "Alertas de riesgo",
+          subtitle: "Diario y chat: reglas, frase y prueba de cada alerta",
+          color: const Color(0xFFC62828),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AlertasRiesgoAdmin()),
+            );
+          },
+        ),
+      );
+    }
 
     if (_can('can_monitor_responses')) {
       cards.add(
@@ -812,6 +865,43 @@ class _PrincipalState extends State<Principal>
           color: const Color(0xFF42A5F5),
           badgeCount: _unreadAlerts,
           onTap: _showMailbox,
+        ),
+      );
+    }
+
+    // PROTOTIPO Semana 2: vinculación en dos sentidos.
+    if (_can('can_link_tutor')) {
+      cards.add(
+        _buildOptionCard(
+          context,
+          imagePath: 'assets/imagenes/quetzal_1.png',
+          title: "Mi tutor",
+          subtitle: "Vincula a tu mamá, papá o tutor",
+          color: const Color(0xFFFB8C00),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const VinculacionEstudianteFlujo()),
+            );
+          },
+        ),
+      );
+    }
+
+    if (_can('can_manage_linked_students')) {
+      cards.add(
+        _buildOptionCard(
+          context,
+          imagePath: 'assets/imagenes/quetzal_6.png',
+          title: "Vincular a mi hijo",
+          subtitle: "Confirma o solicita la vinculación",
+          color: const Color(0xFF1565C0),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const VinculacionTutorFlujo()),
+            ).then((_) => _loadCurrentUser());
+          },
         ),
       );
     }

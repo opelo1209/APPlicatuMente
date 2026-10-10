@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import threading
 import re
 import secrets
 import time
@@ -18,6 +19,9 @@ from google.oauth2 import id_token as google_id_token
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
+from .prototipo_api import ANALIZADOR, GENERADOR, MEMORIA, crear_router, crear_tablas_prototipo
+from .serena_pipeline import mantener_caliente, precalentar
+
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
@@ -25,6 +29,54 @@ DATABASE_URL = os.getenv(
 )
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 TOKEN_PREFIX = "local_access_"
+
+# Acceso rápido de la demo: permite abrir la aplicación con un clic sobre
+# cuentas de prueba ya sembradas, sin escribir usuario ni contrasena. Solo se
+# activa si el despliegue pone DEMO_ENABLED=true y DEMO_ACCESS_CODE con una
+# clave, y queda apagado por omision para que un despliegue normal nunca lo
+# exponga por accidente.
+def _leer_env_opcional(ruta: str) -> None:
+    """Carga un archivo KEY=VALOR en os.environ sin pisar lo que ya existe.
+
+    Existe para el prototipo: el archivo de entorno de systemd
+    (/etc/aptm/aptm-prototipo.env) es de root y no se puede editar sin sudo,
+    que es justo el punto que hoy bloquea a GOOGLE_CLIENT_ID. Este archivo lo
+    escribe el propio usuario, asi que la clave de la demo se puede activar
+    sin pedirle la contrasena de root a nadie. Lo que ya venga del entorno
+    tiene prioridad, que es lo que dicta systemd.
+    """
+    try:
+        with open(ruta, "r", encoding="utf-8") as fh:
+            for linea in fh:
+                linea = linea.strip()
+                if not linea or linea.startswith("#") or "=" not in linea:
+                    continue
+                clave, valor = linea.split("=", 1)
+                clave = clave.strip()
+                if clave and clave not in os.environ:
+                    os.environ[clave] = valor.strip()
+    except FileNotFoundError:
+        pass
+    except OSError:
+        pass
+
+
+_leer_env_opcional(
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "demo.env")
+)
+
+DEMO_ENABLED = os.getenv("DEMO_ENABLED", "false").strip().lower() in {"1", "true", "si", "yes"}
+DEMO_ACCESS_CODE = os.getenv("DEMO_ACCESS_CODE", "")
+# Demo de un clic (pedido para la revision del asesor): con DEMO_SIN_CLAVE los
+# botones de la demo entran sin teclear clave. Solo tiene efecto si ademas
+# DEMO_ENABLED esta activo, y las cuentas solo existen en la base del prototipo.
+DEMO_SIN_CLAVE = os.getenv("DEMO_SIN_CLAVE", "false").strip().lower() in {"1", "true", "si", "yes"}
+DEMO_USERS = {
+    "estudiante": "ana_demo",
+    "padre": "luis_demo",
+    "madre": "maria_demo",
+    "administrador": "admin_demo",
+}
 
 # In-memory password reset tokens: {token: {id_usuario, perfil_tipo, expira}}
 RESET_TOKENS: dict[str, dict[str, Any]] = {}
@@ -60,6 +112,10 @@ ROLE_CAPABILITIES = {
         "can_monitor_responses": False,
         "can_edit_questionnaires": False,
         "can_manage_linked_students": False,
+        # PROTOTIPO Semana 2
+        "can_use_diario": True,
+        "can_link_tutor": True,
+        "can_review_risk_alerts": False,
     },
     "padre": {
         "can_answer_questionnaires": True,
@@ -67,6 +123,9 @@ ROLE_CAPABILITIES = {
         "can_monitor_responses": False,
         "can_edit_questionnaires": False,
         "can_manage_linked_students": True,
+        "can_use_diario": False,
+        "can_link_tutor": False,
+        "can_review_risk_alerts": False,
     },
     "administrador": {
         "can_answer_questionnaires": False,
@@ -74,6 +133,9 @@ ROLE_CAPABILITIES = {
         "can_monitor_responses": True,
         "can_edit_questionnaires": True,
         "can_manage_linked_students": False,
+        "can_use_diario": False,
+        "can_link_tutor": False,
+        "can_review_risk_alerts": True,
     },
 }
 
@@ -110,6 +172,11 @@ class UserLogin(BaseModel):
 
 class GoogleLogin(BaseModel):
     token: str
+
+
+class DemoLogin(BaseModel):
+    perfil: str
+    clave: str = ""
 
 
 class CuestionarioUpdate(BaseModel):
@@ -358,12 +425,25 @@ def init_db() -> None:
                 """
             )
             seed_question_configs(cur)
+            crear_tablas_prototipo(cur)
         conn.commit()
 
 
 @app.on_event("startup")
 def startup() -> None:
     init_db()
+    # PROTOTIPO Semana 3: con modelo configurado, se cargan pysentimiento y
+    # el LLM de Serena en segundo plano para que el primer mensaje no tarde
+    # el doble. Sin SERENA_MODELO (produccion, pruebas) no hace nada.
+    # Cierre S3: despues sigue calentandolo si pasa SERENA_CALENTAR_CADA
+    # segundos sin usarse (por omision 300; 0 lo apaga).
+    if os.getenv("SERENA_MODELO"):
+        threading.Thread(target=_calentar_serena, daemon=True).start()
+
+
+def _calentar_serena() -> None:
+    precalentar(ANALIZADOR, GENERADOR)
+    mantener_caliente(ANALIZADOR, GENERADOR, float(os.getenv("SERENA_CALENTAR_CADA", "300")), threading.Event())
 
 
 def hash_password(password: str) -> str:
@@ -1141,14 +1221,10 @@ def register(user: UserRegister) -> dict[str, Any]:
                         detail="El CURP es obligatorio para estudiantes",
                     )
                 ensure_curp_is_unique(cur, normalized_curp)
-            if profile == "padre":
-                if normalized_student_curps:
-                    ensure_students_curps_exist(cur, normalized_student_curps)
-                else:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="El CURP del estudiante es obligatorio para padres",
-                    )
+            # PROTOTIPO Semana 2: el registro de un padre ya no lo vincula
+            # con un estudiante solo por su CURP (cualquiera que la conozca
+            # podia hacerlo). La vinculacion se hace despues, en dos
+            # sentidos (prototipo_api.py). Los CURP que lleguen se ignoran.
 
             if profile == "estudiante":
                 cur.execute(
@@ -1195,17 +1271,7 @@ def register(user: UserRegister) -> dict[str, Any]:
                 )
             created = user_to_dict(cur.fetchone(), profile)
 
-            linked = []
-            if profile == "padre":
-                for curp_estudiante in normalized_student_curps:
-                    linked.append(
-                        link_parent_to_student_by_curp(
-                            cur,
-                            created["id_usuario"],
-                            curp_estudiante,
-                            user.parentesco,
-                        )
-                    )
+            linked: list[dict[str, Any]] = []
         conn.commit()
 
     return {
@@ -1246,6 +1312,75 @@ def login(credentials: UserLogin) -> dict[str, Any]:
         "access_token": f"{TOKEN_PREFIX}{token}",
         "token_type": "bearer",
         "perfil_tipo": profile,
+        "user": logged_user,
+    }
+
+
+@app.get("/auth/demo")
+def demo_disponible() -> dict[str, Any]:
+    """Si el acceso rapido esta activo, para que el boton no aparezca en una
+    compilacion normal."""
+    return {
+        "activo": DEMO_ENABLED,
+        "requiere_clave": not DEMO_SIN_CLAVE,
+        "personajes": list(DEMO_USERS),
+    }
+
+
+@app.post("/auth/demo")
+def demo_login(payload: DemoLogin) -> dict[str, Any]:
+    if not DEMO_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="El acceso rapido no esta activo en este despliegue",
+        )
+
+    # Comparacion en tiempo constante para no filtrar la clave midiendo el
+    # tiempo de respuesta.
+    if not DEMO_SIN_CLAVE and (
+        not DEMO_ACCESS_CODE
+        or not secrets.compare_digest(payload.clave.strip(), DEMO_ACCESS_CODE)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Clave incorrecta"
+        )
+
+    # "madre" y "padre" comparten perfil y tabla en este esquema, asi que el
+    # personaje se busca con el nombre pedido y no con el perfil normalizado:
+    # si no, los dos caerian en el mismo usuario.
+    requested = payload.perfil.strip().lower()
+    if requested not in DEMO_USERS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Personaje desconocido"
+        )
+    username = DEMO_USERS[requested]
+
+    with db_conn() as conn:
+        with conn.cursor() as cur:
+            found = find_user(cur, username)
+            if not found:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"El personaje {username} no esta sembrado",
+                )
+            found_profile, table, row = found
+            if not row["activo"]:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"El personaje {username} esta desactivado",
+                )
+            token = secrets.token_urlsafe(32)
+            cur.execute(
+                "INSERT INTO sesiones_locales (token, perfil_tipo, id_usuario) VALUES (%s, %s, %s)",
+                (token, found_profile, row["id_usuario"]),
+            )
+            logged_user = user_to_dict(row, found_profile)
+        conn.commit()
+
+    return {
+        "access_token": f"{TOKEN_PREFIX}{token}",
+        "token_type": "bearer",
+        "perfil_tipo": found_profile,
         "user": logged_user,
     }
 
@@ -1646,28 +1781,12 @@ def link_student(
     if user["perfil_tipo"] != "padre":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo padres pueden vincular estudiantes")
 
-    with db_conn() as conn:
-        with conn.cursor() as cur:
-            if payload.curp_estudiante.strip():
-                relation = link_parent_to_student_by_curp(
-                    cur,
-                    user["id_usuario"],
-                    payload.curp_estudiante,
-                    payload.parentesco,
-                )
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="El CURP del estudiante es obligatorio",
-                )
-            linked = list_parent_students(cur, user["id_usuario"])
-        conn.commit()
-
-    return {
-        "message": "Estudiante vinculado exitosamente",
-        "relacion": relation,
-        "estudiantes_vinculados": linked,
-    }
+    # PROTOTIPO Semana 2: la vinculacion directa por CURP queda cerrada; se
+    # usa la vinculacion en dos sentidos (POST /vinculacion/tutor/solicitudes).
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="La vinculación ahora requiere la confirmación del estudiante. Usa «Vincular a mi hijo».",
+    )
 
 
 @app.get("/users/padres/estudiantes")
@@ -1813,27 +1932,31 @@ def chat_session_id(user: dict[str, Any]) -> str:
     return f"{user['perfil_tipo']}_{user['id_usuario']}"
 
 
-@app.post("/chat")
-def chat_stub(
-    payload: ChatRequest,
-    user: dict[str, Any] = Depends(current_user),
-) -> dict[str, Any]:
-    # La identidad de la sesion la determina el usuario autenticado, no un
-    # valor mandado por el cliente (antes era un timestamp adivinable).
-    return {
-        "respuesta": "Backend temporal activo. El chat real se conectara despues.",
-        "sesion_id": chat_session_id(user),
-    }
+# PROTOTIPO Semana 2: POST /chat vive en prototipo_api.py (compuerta de
+# riesgo y polaridad antes del futuro LLM).
 
 
+# PROTOTIPO Semana 3, fase 2: el historial es la memoria en RAM de Serena
+# (memoria_sesion.py). No se guarda en la base de datos.
 @app.get("/chat/historial")
-def chat_history_stub(user: dict[str, Any] = Depends(current_user)) -> dict[str, list[Any]]:
-    return {"historial": []}
+def chat_history(user: dict[str, Any] = Depends(current_user)) -> dict[str, list[Any]]:
+    turnos = MEMORIA.turnos(chat_session_id(user))
+    return {"historial": [{"mensaje": t.texto, "respuesta": t.respuesta, "tipo": t.tipo} for t in turnos]}
 
 
 @app.delete("/chat/historial")
 def chat_history_delete(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
-    # No hay historial persistido todavia (el chat sigue sin conectarse a un
-    # LLM real), pero la ruta debe existir y estar autenticada porque el
-    # frontend ya la llama al limpiar la conversacion.
+    # El frontend la llama al limpiar la conversacion: Serena la olvida.
+    MEMORIA.borrar(chat_session_id(user))
     return {"success": True, "sesion_id": chat_session_id(user)}
+
+
+# PROTOTIPO Semana 2: diario, compuerta de Serena, alertas y vinculacion.
+app.include_router(
+    crear_router(
+        db_conn=db_conn,
+        current_user=current_user,
+        vincular=link_parent_to_student,
+        chat_session_id=chat_session_id,
+    )
+)

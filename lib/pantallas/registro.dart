@@ -29,11 +29,6 @@ class _RegistroState extends State<Registro> {
       TextEditingController();
   final TextEditingController _apellidoMaternoController =
       TextEditingController();
-  final TextEditingController _estudiantesCurpsController =
-      TextEditingController();
-  final TextEditingController _parentescoController = TextEditingController(
-    text: 'padre/madre/tutor',
-  );
   final TextEditingController _curpController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -49,8 +44,6 @@ class _RegistroState extends State<Registro> {
     _nombresController.dispose();
     _apellidoPaternoController.dispose();
     _apellidoMaternoController.dispose();
-    _estudiantesCurpsController.dispose();
-    _parentescoController.dispose();
     _curpController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -275,13 +268,6 @@ class _RegistroState extends State<Registro> {
     });
 
     try {
-      final estudiantesCurps = _parseEstudiantesCurps();
-      if (estudiantesCurps == null) {
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
 
       // Usar _auth (NO _authService)
       final result = await _auth.register(
@@ -292,10 +278,10 @@ class _RegistroState extends State<Registro> {
         apellidoPaterno: _apellidoPaternoController.text.trim(),
         apellidoMaterno: _apellidoMaternoController.text.trim(),
         perfilTipo: _perfilTipo,
-        estudiantesCurps: estudiantesCurps,
-        parentesco: _parentescoController.text.trim().isEmpty
-            ? 'padre/madre/tutor'
-            : _parentescoController.text.trim(),
+        // PROTOTIPO Semana 2: el padre ya no se vincula al registrarse; lo
+        // hace después, con confirmación del estudiante.
+        estudiantesCurps: const [],
+        parentesco: 'padre/madre/tutor',
         curp: curpNormalizado,
         fechaNacimiento: _fechaNacimiento,
       );
@@ -330,33 +316,6 @@ class _RegistroState extends State<Registro> {
         _isLoading = false;
       });
     }
-  }
-
-  List<String>? _parseEstudiantesCurps() {
-    if (_perfilTipo != 'padre') return const [];
-
-    final rawValue = _estudiantesCurpsController.text.trim().toUpperCase();
-    if (rawValue.isEmpty) {
-      _showMessage(
-        'El CURP del estudiante es obligatorio para padres',
-        isError: true,
-      );
-      return null;
-    }
-
-    final curps = <String>[];
-    for (final part in rawValue.split(',')) {
-      final curp = part.trim().toUpperCase();
-      if (!_isValidCurp(curp)) {
-        _showMessage(
-          'El CURP del estudiante no tiene un formato válido',
-          isError: true,
-        );
-        return null;
-      }
-      curps.add(curp);
-    }
-    return curps;
   }
 
   @override
@@ -504,30 +463,18 @@ class _RegistroState extends State<Registro> {
                           ],
 
                           if (_perfilTipo == 'padre') ...[
-                            _buildInput(
-                              theme,
-                              isDarkMode,
-                              label: "CURP del estudiante vinculado *",
-                              icon: Icons.group_add_outlined,
-                              accentColor: primaryGreen,
-                              controller: _estudiantesCurpsController,
-                              keyboardType: TextInputType.text,
-                              textCapitalization: TextCapitalization.characters,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'[a-zA-Z0-9,]'),
-                                ),
-                                _UpperCaseTextFormatter(),
-                              ],
-                            ),
-                            const SizedBox(height: 15),
-                            _buildInput(
-                              theme,
-                              isDarkMode,
-                              label: "Parentesco",
-                              icon: Icons.diversity_1_outlined,
-                              accentColor: primaryGreen,
-                              controller: _parentescoController,
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: primaryGreen.withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Text(
+                                'Después de registrarte podrás vincular a tu hijo desde '
+                                '«Vincular a mi hijo». Por seguridad, la vinculación la '
+                                'confirma también el estudiante.',
+                                style: TextStyle(height: 1.35),
+                              ),
                             ),
                             const SizedBox(height: 15),
                           ],

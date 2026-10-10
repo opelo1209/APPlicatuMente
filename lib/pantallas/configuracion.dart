@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'servicios/auth.dart';
 import 'servicios/user.dart';
 import 'theme_provider.dart';
+import 'vinculacion/vinculacion_tutor.dart';
 
 class Configuracion extends StatefulWidget {
   const Configuracion({super.key});
@@ -17,7 +17,6 @@ class _ConfiguracionState extends State<Configuracion> {
   final _currentPwCtrl = TextEditingController();
   final _newPwCtrl = TextEditingController();
   final _confirmPwCtrl = TextEditingController();
-  final _curpVinculoCtrl = TextEditingController();
 
   bool _cargandoPerfil = true;
   bool _guardandoPass = false;
@@ -33,19 +32,9 @@ class _ConfiguracionState extends State<Configuracion> {
   List<String> _coloresSeleccionados = [];
   String _mascotaSeleccionada = '';
 
-  String _parentescoSeleccionado = 'Padre/Madre';
   List<Map<String, dynamic>> _vinculados = [];
   bool _cargandoVinculados = true;
-  bool _vinculando = false;
   final Set<String> _desvinculandoCurps = {};
-
-  static const List<String> _opcionesParentesco = [
-    'Padre/Madre',
-    'Tutor(a)',
-    'Abuelo(a)',
-    'Hermano(a)',
-    'Otro',
-  ];
 
   static const List<Map<String, dynamic>> _opcionesColor = [
     {'valor': 'Rojo', 'color': Color(0xFFE53935)},
@@ -82,7 +71,6 @@ class _ConfiguracionState extends State<Configuracion> {
     _currentPwCtrl.dispose();
     _newPwCtrl.dispose();
     _confirmPwCtrl.dispose();
-    _curpVinculoCtrl.dispose();
     super.dispose();
   }
 
@@ -222,30 +210,6 @@ class _ConfiguracionState extends State<Configuracion> {
     });
   }
 
-  Future<void> _vincular() async {
-    final curp = _curpVinculoCtrl.text.trim().toUpperCase();
-    if (!_isValidCurp(curp)) {
-      _mostrarMensaje('El CURP no tiene un formato válido.', esError: true);
-      return;
-    }
-
-    setState(() => _vinculando = true);
-    final res = await User().vincularEstudiante(
-      curpEstudiante: curp,
-      parentesco: _parentescoSeleccionado,
-    );
-    if (!mounted) return;
-    setState(() => _vinculando = false);
-
-    if (res['success'] == true) {
-      _curpVinculoCtrl.clear();
-      _mostrarMensaje('Estudiante vinculado correctamente.');
-      await _cargarVinculados();
-    } else {
-      _mostrarMensaje(res['message']?.toString() ?? 'No se pudo vincular el estudiante.', esError: true);
-    }
-  }
-
   Future<void> _desvincular(Map<String, dynamic> estudiante) async {
     final curp = estudiante['curp']?.toString() ?? '';
     final nombre = estudiante['nombre_completo']?.toString() ??
@@ -353,13 +317,6 @@ class _ConfiguracionState extends State<Configuracion> {
   }
 
   bool get _isPadre => _perfilTipo == 'padre';
-
-  bool _isValidCurp(String curp) {
-    final curpRegex = RegExp(
-      r'^[A-Z][AEIOU][A-Z]{2}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$',
-    );
-    return curpRegex.hasMatch(curp.toUpperCase());
-  }
 
   bool _huboCambios() {
     return _coloresSeleccionados.isNotEmpty || _mascotaSeleccionada.isNotEmpty;
@@ -596,6 +553,8 @@ class _ConfiguracionState extends State<Configuracion> {
     );
   }
 
+  // PROTOTIPO Semana 2: la vinculación directa por CURP se reemplazó por la
+  // vinculación en dos sentidos (el estudiante tiene que confirmar).
   Widget _buildVincularEstudiante(bool isDark) {
     return Container(
       width: double.infinity,
@@ -610,82 +569,23 @@ class _ConfiguracionState extends State<Configuracion> {
           _buildSeccionTitulo('Vincular estudiante', Icons.group_add_outlined, isDark),
           const SizedBox(height: 6),
           Text(
-            'Vinculá a un estudiante usando su CURP para recibir sus alertas y seguir su progreso.',
+            'La vinculación ahora se confirma en dos sentidos: con el código que te da tu hijo, '
+            'o con una solicitud que él acepta en su app.',
             style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[400] : Colors.grey[600]),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _curpVinculoCtrl,
-            textCapitalization: TextCapitalization.characters,
-            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 14),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-              LengthLimitingTextInputFormatter(18),
-            ],
-            decoration: InputDecoration(
-              labelText: 'CURP del estudiante',
-              hintText: 'Ej. GABC010101HDFRRLA5',
-              labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
-              hintStyle: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey[400], fontSize: 13),
-              filled: true,
-              fillColor: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFF0F2F5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF1976D2), width: 1.5),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            ),
-            onSubmitted: (_) => _vincular(),
-          ),
-          const SizedBox(height: 14),
-          DropdownButtonFormField<String>(
-            initialValue: _parentescoSeleccionado,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: 'Parentesco',
-              labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
-              filled: true,
-              fillColor: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFF0F2F5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            ),
-            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 14),
-            dropdownColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
-            items: _opcionesParentesco
-                .map((opcion) => DropdownMenuItem(value: opcion, child: Text(opcion)))
-                .toList(),
-            onChanged: (valor) {
-              if (valor != null) setState(() => _parentescoSeleccionado = valor);
-            },
           ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1976D2),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
-              ),
-              onPressed: _vinculando ? null : _vincular,
-              child: _vinculando
-                  ? const SizedBox(
-                      width: 22, height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                    )
-                  : const Text(
-                      'Vincular estudiante',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                    ),
+            child: FilledButton.icon(
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const VinculacionTutorFlujo()),
+                );
+                await _cargarVinculados();
+              },
+              icon: const Icon(Icons.group_add_outlined),
+              label: const Text('Vincular a mi hijo'),
             ),
           ),
         ],

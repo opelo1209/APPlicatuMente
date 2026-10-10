@@ -124,6 +124,57 @@ class Auth {
     }
   }
 
+  // ACCESO RAPIDO DE LA DEMO (solo en el despliegue del prototipo)
+  // Entra con un clic a una cuenta de prueba ya sembrada, sin escribir
+  // usuario ni contrasena. Pide una clave que se teclea una sola vez.
+  /// Si la demo está activa y si pide clave. Un backend sin demo responde
+  /// (activo: false); uno con DEMO_SIN_CLAVE entra con un clic.
+  Future<({bool activo, bool requiereClave})> demoActivo() async {
+    try {
+      final response = await http.get(
+        Uri.parse(Peticiones.demoDisponibilidad),
+        headers: Peticiones.headers,
+      );
+      if (response.statusCode != 200) {
+        return (activo: false, requiereClave: true);
+      }
+      final data = jsonDecode(response.body);
+      return (
+        activo: data['activo'] == true,
+        requiereClave: data['requiere_clave'] != false,
+      );
+    } catch (e) {
+      debugPrint('No se pudo consultar el acceso demo: $e');
+      return (activo: false, requiereClave: true);
+    }
+  }
+
+  Future<Map<String, dynamic>> entrarDemo({
+    required String perfil,
+    required String clave,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(Peticiones.demoLogin),
+        headers: Peticiones.headers,
+        body: jsonEncode({'perfil': perfil, 'clave': clave}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        await _saveSessionData(data);
+        return {'success': true, 'data': data, 'message': 'Sesión iniciada'};
+      }
+      final detalle = response.statusCode == 403
+          ? 'Clave incorrecta'
+          : 'No se pudo entrar a la demo';
+      return {'success': false, 'message': detalle, 'error': response.body};
+    } catch (e) {
+      debugPrint('Error en el acceso demo: $e');
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
   // REGISTER
   Future<Map<String, dynamic>> register({
     required String nombreUsuario,
@@ -205,7 +256,10 @@ class Auth {
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message'] ?? 'Correo enviado'};
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Correo enviado',
+        };
       }
       return {
         'success': false,
@@ -229,7 +283,10 @@ class Auth {
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message'] ?? 'Contraseña actualizada'};
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Contraseña actualizada',
+        };
       }
       return {
         'success': false,
@@ -260,7 +317,10 @@ class Auth {
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message'] ?? 'Contraseña cambiada'};
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Contraseña cambiada',
+        };
       }
       return {
         'success': false,

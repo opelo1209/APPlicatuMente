@@ -81,3 +81,5 @@ mock_backend/__pycache__/
 mock_backend/app/__pycache__/
 mock_backend/.pytest_cache/
 **/__pycache__/
+# Revision clinica con el nombre de la revisora: no se publica (repo publico)
+mock_backend/app/datos/revision_clinica.json

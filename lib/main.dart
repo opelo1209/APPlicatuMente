@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'pantallas/login.dart';
+import 'pantallas/servicios/prototipo.dart';
 import 'pantallas/theme_provider.dart';
 
 void main() async {
@@ -27,7 +28,15 @@ class MyApp extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'APTM',
+      title: kEsPrototipo ? 'APTM · PROTOTIPO' : 'APTM',
+      builder: kEsPrototipo
+          ? (context, child) => Banner(
+              message: 'PROTOTIPO',
+              location: BannerLocation.topStart,
+              color: const Color(0xFF6A4FB3),
+              child: child ?? const SizedBox.shrink(),
+            )
+          : null,
       theme: _buildLightTheme(),
       darkTheme: _buildDarkTheme(),
       themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,

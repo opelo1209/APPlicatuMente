@@ -12,6 +12,7 @@ import 'cuestionarios/cuestionario_wrapper.dart';
 import 'recuperar_contrasena.dart';
 // Importar con los nombres CORRECTOS
 import 'servicios/auth.dart';
+import 'servicios/prototipo.dart';
 import 'servicios/boton_instalar_app.dart';
 import 'servicios/google_web_button.dart';
 import 'servicios/user.dart';
@@ -38,12 +39,99 @@ class _LoginState extends State<Login> {
   StreamSubscription<GoogleSignInAuthenticationEvent>? _googleAuthSub;
   Widget? _googleWebButton;
 
+  // Acceso rapido de la demo. Se consulta si el backend lo tiene activo: si
+  // devuelve 404 (un despliegue normal), el boton no se dibuja nunca.
+  final TextEditingController _demoClaveController = TextEditingController();
+  // En la compilación del prototipo el panel se dibuja desde el primer
+  // cuadro: si apareciera cuando responde el servidor, empujaría los campos
+  // mientras la persona escribe (pasó al probarlo). Si el servidor dice que
+  // no hay demo, se oculta.
+  bool _demoActivo = kEsPrototipo;
+  bool _demoRequiereClave = !kEsPrototipo;
+  bool _demoOculto = true;
+  bool _entrandoEnDemo = false;
+  String? _errorDemo;
+
   @override
   void initState() {
     super.initState();
     if (kIsWeb && _auth.isGoogleConfigured) {
       unawaited(_initGoogleWebButton());
     }
+    unawaited(_consultarDemo());
+  }
+
+  Future<void> _consultarDemo() async {
+    final demo = await _auth.demoActivo();
+    if (!mounted) return;
+    setState(() {
+      _demoActivo = demo.activo;
+      _demoRequiereClave = demo.requiereClave;
+      _demoOculto = false;
+    });
+  }
+
+  Future<void> _entrarComoDemo(String perfil) async {
+    if (_entrandoEnDemo) return;
+    setState(() {
+      _entrandoEnDemo = true;
+      _errorDemo = null;
+    });
+
+    final resultado = await _auth.entrarDemo(
+      perfil: perfil,
+      clave: _demoClaveController.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (resultado['success'] == true) {
+      // Mismo criterio de navegación que el login normal: si el estudiante no
+      // ha terminado el cuestionario se le manda a CuestionarioWrapper, y no a
+      // Principal. Sin esto, entrar por la demo lo dejaría en una pantalla
+      // donde no puede escribir en el diario.
+      try {
+        final sessionResult = await _user.getSessionContext();
+        if (!mounted) return;
+        if (sessionResult['success'] != true) {
+          setState(() {
+            _entrandoEnDemo = false;
+            _errorDemo = 'Error al obtener información del usuario';
+          });
+          return;
+        }
+
+        final sessionData = sessionResult['data'];
+        final String perfilTipo = sessionData is Map
+            ? sessionData['perfil_tipo']?.toString() ?? 'estudiante'
+            : 'estudiante';
+        final progress = sessionData is Map ? sessionData['progress'] : null;
+        final bool cuestionarioCompletado =
+            progress is Map && progress['cuestionario_completado'] == true;
+
+        if (perfilTipo != 'estudiante' || cuestionarioCompletado) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const Principal()),
+            (Route<dynamic> route) => false,
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CuestionarioWrapper(),
+            ),
+          );
+        }
+        return;
+      } catch (e) {
+        debugPrint('Error al navegar tras el acceso demo: $e');
+      }
+    }
+
+    setState(() {
+      _entrandoEnDemo = false;
+      _errorDemo = resultado['message']?.toString() ?? 'No se pudo entrar';
+    });
   }
 
   // El botón nativo de Google solo se puede crear DESPUÉS de que el SDK de
@@ -74,6 +162,7 @@ class _LoginState extends State<Login> {
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _demoClaveController.dispose();
     _googleAuthSub?.cancel();
     super.dispose();
   }
@@ -242,7 +331,8 @@ class _LoginState extends State<Login> {
   Future<void> _completeSessionAndNavigate() async {
     final sessionResult = await _user.getSessionContext();
     final sessionData = sessionResult['data'];
-    final String perfilTipo = sessionResult['success'] == true && sessionData is Map
+    final String perfilTipo =
+        sessionResult['success'] == true && sessionData is Map
         ? sessionData['perfil_tipo']?.toString() ?? 'estudiante'
         : 'estudiante';
     final progress = sessionData is Map ? sessionData['progress'] : null;
@@ -351,8 +441,8 @@ class _LoginState extends State<Login> {
                               "¡Bienvenido de nuevo!",
                               style: TextStyle(
                                 fontSize: 18,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 
-                                  0.6,
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.6,
                                 ),
                               ),
                             ),
@@ -475,8 +565,8 @@ class _LoginState extends State<Login> {
                           child: Text(
                             "o inicia con",
                             style: TextStyle(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 
-                                0.55,
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.55,
                               ),
                               fontSize: 12,
                             ),
@@ -515,6 +605,110 @@ class _LoginState extends State<Login> {
                     ),
 
                     const Spacer(flex: 2),
+
+                    // Acceso rapido de la demo. Solo aparece si el backend
+                    // responde que lo tiene activo; en un despliegue normal
+                    // esta seccion no se dibuja.
+                    if (_demoActivo) ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: primaryGreen.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.science_outlined,
+                                  size: 18,
+                                  color: primaryGreen,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Prueba la demo',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Es una demostración con datos de prueba. '
+                              'Elige un perfil y entra sin registrarte, o usa '
+                              'arriba ana_demo, luis_demo, maria_demo o admin_demo '
+                              'con la contraseña Demo1234!',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.7,
+                                ),
+                              ),
+                            ),
+                            if (_demoRequiereClave) ...[
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _demoClaveController,
+                                obscureText: true,
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  labelText: 'Clave de la demo',
+                                  prefixIcon: const Icon(Icons.key, size: 18),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  errorText: _errorDemo,
+                                ),
+                                onSubmitted: (_) =>
+                                    _entrarComoDemo('estudiante'),
+                              ),
+                            ] else if (_errorDemo != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                _errorDemo!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _botonDemo(
+                                  'Estudiante',
+                                  'estudiante',
+                                  Icons.person,
+                                ),
+                                _botonDemo(
+                                  'Padre',
+                                  'padre',
+                                  Icons.family_restroom,
+                                ),
+                                _botonDemo('Madre', 'madre', Icons.female),
+                                _botonDemo(
+                                  'Admin',
+                                  'administrador',
+                                  Icons.shield,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ] else if (!_demoOculto) ...[
+                      const SizedBox(height: 20),
+                    ],
 
                     // Registro
                     Row(
@@ -584,7 +778,9 @@ class _LoginState extends State<Login> {
         fillColor: fillColor,
         labelText: label,
         labelStyle: TextStyle(
-          color: isDarkMode ? Colors.white70 : accentColor.withValues(alpha: 0.8),
+          color: isDarkMode
+              ? Colors.white70
+              : accentColor.withValues(alpha: 0.8),
           fontSize: 14,
         ),
         prefixIcon: Icon(icon, color: accentColor, size: 20),
@@ -613,6 +809,32 @@ class _LoginState extends State<Login> {
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
           vertical: 15,
+        ),
+      ),
+    );
+  }
+
+  // Boton de un personaje de la demo.
+  Widget _botonDemo(String etiqueta, String perfil, IconData icono) {
+    const verde = Color(0xFF43A047);
+    return SizedBox(
+      height: 40,
+      child: OutlinedButton.icon(
+        onPressed: _entrandoEnDemo ? null : () => _entrarComoDemo(perfil),
+        icon: _entrandoEnDemo
+            ? const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(icono, size: 16),
+        label: Text(etiqueta, style: const TextStyle(fontSize: 13)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: verde,
+          side: BorderSide(color: verde.withValues(alpha: 0.5)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
         ),
       ),
     );
