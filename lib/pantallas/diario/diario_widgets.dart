@@ -137,9 +137,16 @@ class _Luz extends StatelessWidget {
 
 /// Tarjeta con las líneas de ayuda y un botón para llamar a cada una.
 class TarjetaLineasAyuda extends StatelessWidget {
-  const TarjetaLineasAyuda({super.key, required this.titulo, this.onLlamar});
+  const TarjetaLineasAyuda({
+    super.key,
+    required this.titulo,
+    this.onLlamar,
+    this.lineas = kLineasAyuda,
+  });
 
   final String titulo;
+  // Semana 4: el chat manda sus propias líneas (p. ej. CIJ en sustancias).
+  final List<LineaAyuda> lineas;
   final ValueChanged<LineaAyuda>? onLlamar;
 
   @override
@@ -173,7 +180,7 @@ class TarjetaLineasAyuda extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          for (final linea in kLineasAyuda)
+          for (final linea in lineas)
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Row(

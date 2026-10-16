@@ -55,7 +55,8 @@ def test_breve_despues_de_una_senal_ambigua_agrega_lineas():
     g = GeneradorFalso("Gracias por seguir contándome.")
     primera = responder("ya no le veo sentido a nada", AF, g, modo="breve")
     r = responder("me pongo nervioso en la escuela", AF, g, modo="breve", historial=(primera.turno,))
-    assert "800 911 2000" in r.texto
+    # Semana 4: las lineas van en la tarjeta, aparte del texto.
+    assert "800 911 2000" in [l["telefono"] for l in r.lineas]
 
 
 def test_el_modo_completo_conserva_el_comportamiento_anterior():

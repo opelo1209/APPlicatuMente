@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../diario/diario_catalogo.dart' show LineaAyuda;
 import '../diario/diario_flujo.dart' show mostrarNumero;
 import '../diario/diario_widgets.dart' show TarjetaLineasAyuda;
 import '../modelos/mensaje_serena.dart';
@@ -26,8 +27,9 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
   bool _cargando = false;
   // PROTOTIPO Semana 3, fase 5: texto que ya llego mientras Serena termina.
   String? _parcial;
-  // PROTOTIPO Semana 2: el backend detuvo la conversación por riesgo.
-  bool _pausada = false;
+  // PROTOTIPO Semana 4 (reunión con el asesor): el chat nunca se corta. Tras
+  // una crisis, una franja fija deja las líneas de ayuda a la vista.
+  bool _huboCrisis = false;
   bool _conectado = false;
 
   static const Color _verde = Color(0xFF43A047);
@@ -99,7 +101,7 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
 
   Future<void> _enviar(String texto) async {
     final limpio = texto.trim();
-    if (limpio.isEmpty || _cargando || _pausada) return;
+    if (limpio.isEmpty || _cargando) return;
 
     setState(() {
       _mensajes.add(MensajeSerena(texto: limpio, esUsuario: true));
@@ -136,10 +138,22 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
       }
     }
 
+    // Semana 4: las líneas de ayuda llegan aparte del texto.
+    final lineasRaw = resultado['lineas'];
+    final lineas = <LineaAyuda>[
+      if (lineasRaw is List)
+        for (final item in lineasRaw)
+          if (item is Map)
+            LineaAyuda(
+              item['nombre']?.toString() ?? '',
+              item['telefono']?.toString() ?? '',
+              item['horario']?.toString() ?? '',
+            ),
+    ];
+
     if (!mounted) return;
 
     final tipo = resultado['tipo']?.toString() ?? 'normal';
-    final detener = resultado['detener'] == true;
     final respuesta =
         resultado['respuesta']?.toString() ?? 'Sin respuesta por ahora.';
 
@@ -150,11 +164,12 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
           esUsuario: false,
           tipo: tipo,
           fuentes: fuentes,
+          lineas: lineas,
         ),
       );
       _cargando = false;
       _parcial = null;
-      _pausada = _pausada || detener;
+      _huboCrisis = _huboCrisis || tipo == 'crisis';
     });
     _irAlFinal();
 
@@ -183,6 +198,7 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
               if (!mounted) return;
               setState(() {
                 _mensajes.clear();
+                _huboCrisis = false;
                 _mensajes.add(
                   MensajeSerena(texto: _mensajeBienvenida, esUsuario: false),
                 );
@@ -258,9 +274,7 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
             // PROTOTIPO Semana 2: antes decía «Llamar al 800 290 0024» con la
             // etiqueta SAPTEL, que no corresponde. Mismas líneas que el diario.
             TarjetaLineasAyuda(
-              titulo: _pausada
-                  ? 'La conversación se pausó. Habla ahora con alguien preparado'
-                  : 'Habla ahora con alguien preparado',
+              titulo: 'Habla ahora con alguien preparado',
               onLlamar: (linea) => mostrarNumero(ctx, linea),
             ),
           ],
@@ -310,6 +324,7 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
         Expanded(
           child: Container(color: bg, child: _listaMensajes(isDark)),
         ),
+        if (_huboCrisis) _franjaLineas(isDark),
         _campoEntrada(isDark),
       ],
     );
@@ -603,6 +618,18 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                       ),
                     ),
                   ],
+                  // Semana 4: tarjeta de líneas aparte del texto, como en
+                  // los asistentes comerciales. En crisis ya las muestra el
+                  // aviso que se abre encima del chat.
+                  if (msg.lineas.isNotEmpty && !msg.esCrisis)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                      child: TarjetaLineasAyuda(
+                        titulo: 'Si lo necesitas, puedes llamar',
+                        lineas: msg.lineas,
+                        onLlamar: (linea) => mostrarNumero(context, linea),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -618,7 +645,9 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
     final (icono, texto, color) = switch (fuente['revision']) {
       'aprobado' => (
         Icons.verified,
-        revisor.isEmpty ? 'Revisado por psicología' : 'Revisado por psicología ($revisor)',
+        revisor.isEmpty
+            ? 'Revisado por psicología'
+            : 'Revisado por psicología ($revisor)',
         const Color(0xFF2E7D32),
       ),
       'corregido' => (
@@ -745,6 +774,47 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
     );
   }
 
+  // Semana 4: como la tarjeta fija de Gemini después de una crisis. No tapa
+  // la conversación ni impide escribir; abre las líneas con un toque.
+  Widget _franjaLineas(bool isDark) {
+    final fondo = isDark ? const Color(0xFF1F2A3A) : const Color(0xFFE8F1FB);
+    final texto = isDark ? const Color(0xFFBBD6F5) : const Color(0xFF0D47A1);
+    return Material(
+      color: fondo,
+      child: InkWell(
+        onTap: _mostrarBannerCrisis,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Icon(Icons.support_agent_rounded, color: texto, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Línea de la Vida 800 911 2000 · 24 horas, gratuita',
+                  style: TextStyle(
+                    color: texto,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              Text(
+                'Ver líneas',
+                style: TextStyle(
+                  color: texto,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _campoEntrada(bool isDark) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
@@ -780,7 +850,7 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
             Expanded(
               child: TextField(
                 controller: _ctrl,
-                enabled: !_cargando && !_pausada,
+                enabled: !_cargando,
                 maxLines: 4,
                 minLines: 1,
                 textInputAction: TextInputAction.send,
@@ -790,9 +860,7 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                   fontSize: 14,
                 ),
                 decoration: InputDecoration(
-                  hintText: _pausada
-                      ? 'La conversación está en pausa'
-                      : 'Cuéntame cómo te sientes...',
+                  hintText: 'Cuéntame cómo te sientes...',
                   hintStyle: TextStyle(
                     color: isDark ? Colors.grey[600] : Colors.grey[400],
                     fontSize: 14,
@@ -818,16 +886,14 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
             ),
             const SizedBox(width: 8),
             GestureDetector(
-              onTap: _cargando || _pausada ? null : () => _enviar(_ctrl.text),
+              onTap: _cargando ? null : () => _enviar(_ctrl.text),
               child: Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: _cargando || _pausada
-                      ? Colors.grey[300]
-                      : _accentColor,
+                  color: _cargando ? Colors.grey[300] : _accentColor,
                   shape: BoxShape.circle,
-                  boxShadow: _cargando || _pausada
+                  boxShadow: _cargando
                       ? const []
                       : [
                           BoxShadow(
@@ -839,9 +905,7 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                 ),
                 child: Icon(
                   Icons.send_rounded,
-                  color: _cargando || _pausada
-                      ? Colors.grey[500]
-                      : Colors.white,
+                  color: _cargando ? Colors.grey[500] : Colors.white,
                   size: 18,
                 ),
               ),

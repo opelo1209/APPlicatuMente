@@ -19,6 +19,7 @@ from app.revision_clinica import (  # noqa: E402
     ESTADO_CAMBIOS,
     ESTADO_CORREGIDO,
     ESTADO_PENDIENTE,
+    ESTADO_RECHAZADO,
     RUTA_REVISION,
     revision_de,
 )
@@ -27,7 +28,27 @@ from app.revision_clinica import (  # noqa: E402
 def test_estados_tomados_de_la_revision():
     assert revision_de("ansiedad.teenImgQueEs.adolescente").estado == ESTADO_APROBADO
     assert revision_de("ansiedad.teenImgAdvertencia.adolescente").estado == ESTADO_CAMBIOS
-    assert revision_de("sustancias.brainContent.adolescente").estado == ESTADO_PENDIENTE
+    assert revision_de("sustancias.brainContent.adolescente").estado == ESTADO_APROBADO
+    assert revision_de("ansiedad.teenImgDiagnostico.adolescente").estado == ESTADO_PENDIENTE
+    assert revision_de("suicidio.quimicaDesc.adolescente").estado == ESTADO_RECHAZADO
+
+
+def test_un_texto_rechazado_no_lleva_texto_corregido():
+    assert revision_de("autolesiones.teenImgQueHacer.adolescente").texto_corregido is None
+
+
+def test_serena_nunca_cita_un_texto_rechazado(monkeypatch):
+    # Hoy los modulos de suicidio y autolesion no se usan en el chat; aunque
+    # se incluyeran, un texto que psicologia rechazo no se puede citar.
+    from app import recuperador_corpus
+
+    recuperador_corpus._indice.cache_clear()
+    try:
+        ids = {d["id"] for d in recuperador_corpus._indice().documentos}
+    finally:
+        recuperador_corpus._indice.cache_clear()
+    rechazados = {"suicidio.quimicaDesc.adolescente", "autolesiones.actionContent.adolescente"}
+    assert not ids & rechazados
 
 
 def test_un_texto_que_no_esta_en_la_revision_queda_pendiente():
@@ -76,8 +97,9 @@ def test_una_correccion_pendiente_de_aclarar_no_cambia_el_texto():
 
 
 def test_cada_fragmento_trae_su_estado():
+    # Segunda entrega (13 oct): Sustancias quedo aprobado completo.
     for f in recuperar("mis amigos vapean en la escuela", k=3):
-        assert f.revision == ESTADO_PENDIENTE
+        assert f.revision == revision_de(f.id).estado == ESTADO_APROBADO
 
 
 def test_con_la_misma_relevancia_gana_el_aprobado():

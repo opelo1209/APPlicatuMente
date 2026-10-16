@@ -29,6 +29,8 @@ DATABASE_URL = os.getenv(
 )
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 TOKEN_PREFIX = "local_access_"
+# Semana 4 (H2): una sesion vence a las SESION_HORAS de creada.
+SESION_HORAS_POR_OMISION = 24
 
 # Acceso rápido de la demo: permite abrir la aplicación con un clic sobre
 # cuentas de prueba ya sembradas, sin escribir usuario ni contrasena. Solo se
@@ -1139,19 +1141,70 @@ def link_parent_to_student_by_curp(cur: Any, id_padre: int, curp: str, parentesc
     return link_parent_to_student(cur, id_padre, student["id_usuario"], parentesco)
 
 
+def sesion_horas() -> int:
+    """Vigencia de una sesion. Se lee al usarse (demo.env se carga despues
+    de importar los modulos) y un valor invalido no deja sesiones eternas."""
+    try:
+        horas = int(os.getenv("SESION_HORAS", ""))
+    except ValueError:
+        return SESION_HORAS_POR_OMISION
+    return horas if horas > 0 else SESION_HORAS_POR_OMISION
+
+
+def token_de(credentials: HTTPAuthorizationCredentials | None) -> str | None:
+    if not credentials or not credentials.credentials.startswith(TOKEN_PREFIX):
+        return None
+    return credentials.credentials.replace(TOKEN_PREFIX, "", 1)
+
+
+def sesion_vencida(creada: datetime, horas: int, ahora: datetime) -> bool:
+    # La columna es TIMESTAMPTZ; si un entorno la tuviera sin zona, se toma
+    # como UTC en lugar de fallar en cada peticion.
+    if creada.tzinfo is None:
+        creada = creada.replace(tzinfo=timezone.utc)
+    return ahora >= creada + timedelta(hours=horas)
+
+
+def crear_sesion(cur: Any, perfil_tipo: str, id_usuario: int) -> str:
+    """Crea la sesion y, de paso, borra las vencidas de todos los usuarios
+    (solo se borraban al usarse y la tabla crecia sin limite)."""
+    cur.execute(
+        "DELETE FROM sesiones_locales WHERE fecha_creacion < NOW() - make_interval(hours => %s)",
+        (sesion_horas(),),
+    )
+    token = secrets.token_urlsafe(32)
+    cur.execute(
+        "INSERT INTO sesiones_locales (token, perfil_tipo, id_usuario) VALUES (%s, %s, %s)",
+        (token, perfil_tipo, id_usuario),
+    )
+    return token
+
+
+def invalidar_sesiones(cur: Any, perfil_tipo: str, id_usuario: int, excepto: str | None = None) -> None:
+    """Cierra todas las sesiones de un usuario (menos `excepto`, si se da)."""
+    cur.execute(
+        "DELETE FROM sesiones_locales WHERE perfil_tipo = %s AND id_usuario = %s AND token IS DISTINCT FROM %s",
+        (perfil_tipo, id_usuario, excepto),
+    )
+
+
 def current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> dict[str, Any]:
-    if not credentials or not credentials.credentials.startswith(TOKEN_PREFIX):
+    token = token_de(credentials)
+    if token is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token requerido")
 
-    token = credentials.credentials.replace(TOKEN_PREFIX, "", 1)
     with db_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT * FROM sesiones_locales WHERE token = %s", (token,))
             session = cur.fetchone()
             if not session:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalido")
+            if sesion_vencida(session["fecha_creacion"], sesion_horas(), datetime.now(timezone.utc)):
+                cur.execute("DELETE FROM sesiones_locales WHERE token = %s", (token,))
+                conn.commit()
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sesion vencida")
 
             profile = session["perfil_tipo"]
             table = PROFILE_TABLES.get(profile)
@@ -1296,11 +1349,7 @@ def login(credentials: UserLogin) -> dict[str, Any]:
             if not row["activo"] or not verify_password(credentials.password, row["password_hash"]):
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales incorrectas")
 
-            token = secrets.token_urlsafe(32)
-            cur.execute(
-                "INSERT INTO sesiones_locales (token, perfil_tipo, id_usuario) VALUES (%s, %s, %s)",
-                (token, profile, row["id_usuario"]),
-            )
+            token = crear_sesion(cur, profile, row["id_usuario"])
             cur.execute(
                 f"UPDATE {table} SET ultima_conexion = NOW() WHERE id_usuario = %s RETURNING *",
                 (row["id_usuario"],),
@@ -1314,6 +1363,19 @@ def login(credentials: UserLogin) -> dict[str, Any]:
         "perfil_tipo": profile,
         "user": logged_user,
     }
+
+
+@app.post("/auth/logout")
+def logout(credentials: HTTPAuthorizationCredentials | None = Depends(security)) -> dict[str, Any]:
+    """Cierra esta sesion en el servidor. Responde igual si el token ya no
+    existia: la app siempre puede salir y no se revela nada del token."""
+    token = token_de(credentials)
+    if token is not None:
+        with db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM sesiones_locales WHERE token = %s", (token,))
+            conn.commit()
+    return {"success": True}
 
 
 @app.get("/auth/demo")
@@ -1369,11 +1431,7 @@ def demo_login(payload: DemoLogin) -> dict[str, Any]:
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"El personaje {username} esta desactivado",
                 )
-            token = secrets.token_urlsafe(32)
-            cur.execute(
-                "INSERT INTO sesiones_locales (token, perfil_tipo, id_usuario) VALUES (%s, %s, %s)",
-                (token, found_profile, row["id_usuario"]),
-            )
+            token = crear_sesion(cur, found_profile, row["id_usuario"])
             logged_user = user_to_dict(row, found_profile)
         conn.commit()
 
@@ -1449,11 +1507,7 @@ def google_login(payload: GoogleLogin) -> dict[str, Any]:
                 )
                 row = cur.fetchone()
 
-            token = secrets.token_urlsafe(32)
-            cur.execute(
-                "INSERT INTO sesiones_locales (token, perfil_tipo, id_usuario) VALUES (%s, %s, %s)",
-                (token, profile, row["id_usuario"]),
-            )
+            token = crear_sesion(cur, profile, row["id_usuario"])
             cur.execute(
                 f"UPDATE {table} SET ultima_conexion = NOW() WHERE id_usuario = %s RETURNING *",
                 (row["id_usuario"],),
@@ -1527,6 +1581,8 @@ def password_reset_confirm(payload: PasswordResetConfirm) -> dict[str, Any]:
                 f"UPDATE {table} SET password_hash = %s WHERE id_usuario = %s",
                 (hash_password(payload.new_password), user_id),
             )
+            # Semana 4 (H2): quien tenia la cuenta abierta queda fuera.
+            invalidar_sesiones(cur, profile, user_id)
         conn.commit()
     RESET_TOKENS.pop(payload.token, None)
     return {"success": True, "message": "Contrasena actualizada correctamente."}
@@ -1536,6 +1592,7 @@ def password_reset_confirm(payload: PasswordResetConfirm) -> dict[str, Any]:
 def change_password(
     payload: ChangePassword,
     user: dict[str, Any] = Depends(current_user),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> dict[str, Any]:
     table = PROFILE_TABLES[user["perfil_tipo"]]
     with db_conn() as conn:
@@ -1554,6 +1611,8 @@ def change_password(
                 f"UPDATE {table} SET password_hash = %s WHERE id_usuario = %s",
                 (hash_password(payload.new_password), user["id_usuario"]),
             )
+            # Semana 4 (H2): se cierran las demas sesiones; esta sigue abierta.
+            invalidar_sesiones(cur, user["perfil_tipo"], user["id_usuario"], excepto=token_de(credentials))
         conn.commit()
     return {"success": True, "message": "Contrasena cambiada exitosamente."}
 

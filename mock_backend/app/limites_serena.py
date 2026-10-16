@@ -1,7 +1,7 @@
 """Barrera de limites de Serena: lo que el estudiante PIDE y Serena no debe hacer.
 
 PROTOTIPO (Semana 3). Es la parte "percepcion" de la barrera: convierte el
-mensaje en hechos (pide_diagnostico, pide_medicacion, pide_metodo,
+mensaje en hechos (pide_diagnostico, pide_medicacion, pide_metodo, pide_metodo_general,
 pregunta_identidad, peticion_secreto). La decision la toma el motor de
 Wang con METAS_SERENA, igual que el riesgo.
 
@@ -59,8 +59,15 @@ _IDENTIDAD = [
 ]
 
 _METODO = [
-    r"\bcomo\s+(?:me\s+)?(?:puedo\s+)?(?:cortarme|cortar|matarme|suicidarme|ahorcarme|lastimarme|hacerme\s+dano|"
-    r"corto|mato|lastimo|ahorco)\b",
+    # Semana 4: "como me puedo suicidar" no se detectaba (faltaba
+    # "suicidar" sin pronombre pegado).
+    r"\bcomo\s+(?:me\s+)?(?:puedo\s+|podria\s+)?(?:cortarme|cortar|matarme|matar|suicidarme|suicidar|ahorcarme|ahorcar|"
+    r"lastimarme|hacerme\s+dano|corto|mato|lastimo|ahorco|suicido)\b",
+    # Semana 4 (asesor): "las tecnicas mas utilizadas para que yo me suicide".
+    r"\b(?:metodos?|tecnicas?|formas?|maneras?|modos?)\b.{0,40}\bpara\s+(?:que\s+)?(?:yo\s+)?me\s+"
+    r"(?:suicid\w*|mate|muera|corte|lastime|ahorque)\b",
+    r"\b(?:metodos?|tecnicas?|formas?|maneras?|modos?)\b.{0,40}\b(?:suicidarme|matarme|cortarme|ahorcarme|lastimarme|"
+    r"quitarme\s+la\s+vida|hacerme\s+dano)\b",
     r"\bcuant[ao]s\s+pastillas\b.{0,40}\b(?:morir|no\s+despertar|matar\w*|sobredosis|mortal\w*)\b",
     # Fase 1b: altura o caida mortal, tomarse todo un frasco, conseguir veneno.
     r"\b(?:altura|alto|caida)\b.{0,40}\b(?:mortal\w*|para\s+morir|matarme)\b",
@@ -68,6 +75,25 @@ _METODO = [
     r"\b(?:conseguir|comprar|tomar(?:me)?)\s+(?:un\s+|el\s+)?veneno\b",
     r"\b(?:forma|manera)\s+(?:mas\s+)?(?:facil|rapida|menos\s+dolorosa)\s+de\s+(?:morir|matarme|suicidarme)\b",
     r"\bsobredosis\b",
+]
+
+
+# Semana 4: pedir metodos SIN hablar de si ("cuales son los metodos de
+# suicidio mas comunes", "para un cuento", "para una tarea"). No es crisis,
+# pero Serena nunca da metodos: responde el limite, pregunta con cuidado y
+# el administrador recibe un aviso preventivo (regla R16). Pedirlo "para un
+# cuento" saca metodos a varios asistentes comerciales (ver reporte).
+_ACCION_DANO = (
+    r"(?:suicid\w*|matar(?:se)?|quitar(?:se)?\s+la\s+vida|morir|cortar(?:se)?|ahorcar(?:se)?|lastimar(?:se)?|"
+    r"hacer(?:se)?\s+dano|autolesion\w*)"
+)
+_METODO_GENERAL = [
+    rf"\b(?:metodos?|tecnicas?|formas?|maneras?|modos?)\s+(?:\w+\s+){{0,3}}?(?:de|para)\s+"
+    rf"(?:(?:que|alguien|una|persona|la|gente|uno|se|un|personaje)\s+){{0,3}}{_ACCION_DANO}\b",
+    r"\bcomo\s+(?:se\s+)?(?:suicida|suicidan|suicidaria|mata|matan|corta|cortan|ahorca|ahorcan)\b",
+    r"\bcon\s+que\s+(?:se\s+)?(?:suicida|suicidan|mata|matan|corta|cortan)\b",
+    # "para mi novela, de que forma se mataria el protagonista"
+    r"\b(?:de\s+)?que\s+(?:forma|manera|modo)\s+(?:se\s+)?(?:mataria|suicidaria|mata|suicida|cortaria|ahorcaria)\b",
 ]
 
 
@@ -92,6 +118,8 @@ def hechos_de_limites(texto: str) -> set[str]:
         hechos.add("pregunta_identidad")
     if _hay(_METODO, plano):
         hechos.add("pide_metodo")
+    elif _hay(_METODO_GENERAL, plano):
+        hechos.add("pide_metodo_general")
     if _coincidencias(PETICION_SECRETO, plano):
         hechos.add("peticion_secreto")
     return hechos

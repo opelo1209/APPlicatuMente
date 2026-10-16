@@ -13,10 +13,15 @@ class DiarioHistorialPantalla extends StatelessWidget {
     required this.dias,
     required this.onAbrirSerena,
     this.onLlamar,
+    this.periodo = 7,
+    this.onCambiarPeriodo,
   });
 
   final String rango;
   final List<DiaHistorial> dias;
+  // Semana 4: 7 o 30 días.
+  final int periodo;
+  final ValueChanged<int>? onCambiarPeriodo;
   final VoidCallback onAbrirSerena;
   final ValueChanged<LineaAyuda>? onLlamar;
 
@@ -47,8 +52,8 @@ class DiarioHistorialPantalla extends StatelessWidget {
     return Scaffold(
       backgroundColor: c.fondo,
       appBar: AppBar(
-        title: const Text(
-          'Mi semana',
+        title: Text(
+          periodo <= 7 ? 'Mi semana' : 'Mi mes',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
         backgroundColor: Colors.transparent,
@@ -66,8 +71,23 @@ class DiarioHistorialPantalla extends StatelessWidget {
               fontSize: DiarioTexto.apoyo,
             ),
           ),
+          if (onCambiarPeriodo != null) ...[
+            const SizedBox(height: 10),
+            SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 7, label: Text('7 días')),
+                ButtonSegment(value: 30, label: Text('30 días')),
+              ],
+              selected: {periodo},
+              onSelectionChanged: (s) => onCambiarPeriodo!(s.first),
+              showSelectedIcon: false,
+            ),
+          ],
           const SizedBox(height: 12),
-          _TiraSemana(dias: dias),
+          if (periodo <= 7)
+            _TiraSemana(dias: dias)
+          else
+            _Cuadricula(dias: dias),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -105,6 +125,8 @@ class DiarioHistorialPantalla extends StatelessWidget {
                 ),
             ],
           ),
+          const SizedBox(height: 18),
+          EvolucionAnalizador(dias: dias),
           if (_racha) ...[
             const SizedBox(height: 18),
             TarjetaSerena(
@@ -199,6 +221,167 @@ class _TiraSemana extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 30 días en una cuadrícula de luces pequeñas.
+class _Cuadricula extends StatelessWidget {
+  const _Cuadricula({required this.dias});
+  final List<DiaHistorial> dias;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: DiarioColores.carcasa,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 10,
+        alignment: WrapAlignment.center,
+        children: [
+          for (final d in dias)
+            SizedBox(
+              width: 32,
+              child: Column(
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: d.polaridad == null
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : kPolaridades[d.polaridad]!.color,
+                      border: d.polaridad == null
+                          ? Border.all(color: Colors.white24)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    d.etiqueta,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Semana 4 (asesor): la evolución de lo que encontró el analizador de
+/// sentimientos en lo que escribió el estudiante, al lado de lo que marcó.
+/// El registro del día siempre es lo que marcó el estudiante.
+class EvolucionAnalizador extends StatelessWidget {
+  const EvolucionAnalizador({super.key, required this.dias});
+  final List<DiaHistorial> dias;
+
+  static const _diasSemana = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+  List<DiaHistorial> get _conTexto =>
+      dias.where((d) => d.polaridadAnalizador != null).toList();
+
+  String _resumen(List<DiaHistorial> conTexto) {
+    if (conTexto.isEmpty) {
+      return 'Cuando escribas algo en tu diario, aquí verás lo que encontró el '
+          'analizador en tus palabras.';
+    }
+    final coinciden = conTexto
+        .where((d) => d.concordancia == 'coincide')
+        .length;
+    final n = conTexto.length;
+    final dia = n == 1 ? 'día' : 'días';
+    return 'Escribiste $n $dia. En $coinciden, lo que escribiste coincidió con '
+        'cómo marcaste tu día.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = DiarioColores.de(context);
+    final conTexto = _conTexto;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Lo que encontró el analizador',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: DiarioTexto.titulo,
+            color: c.texto,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          _resumen(conTexto),
+          style: TextStyle(color: c.textoSuave, fontSize: DiarioTexto.apoyo),
+        ),
+        const SizedBox(height: 10),
+        for (final d in conTexto.reversed) _fila(d, c),
+      ],
+    );
+  }
+
+  Widget _fila(DiaHistorial d, DiarioColores c) {
+    final fecha = d.fecha;
+    final cuando = fecha == null
+        ? d.etiqueta
+        : '${_diasSemana[fecha.weekday - 1]} ${fecha.day}';
+    final pct = d.confianza == null
+        ? ''
+        : ' (${(d.confianza! * 100).round()} %)';
+    final emocion = d.emocionAnalizador == null
+        ? ''
+        : ' · ${kClasesAnalizador[d.emocionAnalizador] ?? d.emocionAnalizador}';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: c.superficie,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: c.borde),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 56,
+            child: Text(
+              cuando,
+              style: TextStyle(fontWeight: FontWeight.w800, color: c.texto),
+            ),
+          ),
+          _luz(d.polaridad),
+          const SizedBox(width: 6),
+          Icon(Icons.arrow_forward_rounded, size: 14, color: c.textoSuave),
+          const SizedBox(width: 6),
+          _luz(d.polaridadAnalizador),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '${kPolaridades[d.polaridadAnalizador]!.nombre}$pct$emocion',
+              style: TextStyle(color: c.texto, fontSize: DiarioTexto.apoyo),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _luz(Polaridad? p) => Container(
+    width: 16,
+    height: 16,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: p == null ? Colors.grey : kPolaridades[p]!.color,
+    ),
+  );
 }
 
 class _Conteo extends StatelessWidget {

@@ -19,9 +19,28 @@ import '../servicios/user.dart';
 ///   2. Se intenta enviarlas.
 ///   3. El módulo se marca como completado SOLO si el servidor las recibió.
 ///   4. Si falla, quedan en una cola que se reintenta sola al abrir la app.
+///
+/// Semana 4 (H1): la cola es de cada usuario. Antes era una sola clave para
+/// todo el dispositivo y no se borraba al cerrar sesión: en un equipo
+/// compartido, las respuestas de suicidio del estudiante A se enviaban con la
+/// cuenta de B y la alerta le llegaba al tutor de B. Ahora cada usuario tiene
+/// su propia cola, cada pendiente lleva a su dueño y al cerrar sesión se
+/// borra lo del usuario que sale.
 class EnvioCuestionario {
-  /// Cola de cuestionarios que no se pudieron enviar todavía.
-  static const String _clavePendientes = 'cuestionarios_pendientes';
+  /// Prefijo de la cola de cada usuario: `cuestionarios_pendientes_<dueño>`.
+  static const String _prefijoCola = 'cuestionarios_pendientes_';
+
+  /// Cola global de versiones anteriores: no tiene dueño, nunca se envía.
+  static const String _colaGlobalAntigua = 'cuestionarios_pendientes';
+
+  /// Copias en texto plano que guardaban las versiones anteriores.
+  static const List<String> _copiasAntiguas = [
+    'cuestionario_suicidio',
+    'cuestionario_ansiedad',
+    'cuestionario_autolesion',
+    'cuestionario_sustancias',
+    'cuestionario_relaciones',
+  ];
 
   /// Guarda la respuesta en el dispositivo y trata de enviarla.
   ///
@@ -32,9 +51,6 @@ class EnvioCuestionario {
     required Map<String, dynamic> payload,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    // Copia local: aunque falle el envío y el estudiante cierre la app, su
-    // respuesta sigue aquí.
-    await prefs.setString('cuestionario_$tipo', jsonEncode(payload));
 
     final resultado = await User().updateCuestionario(
       tipoCuestionario: tipo,
@@ -50,7 +66,8 @@ class EnvioCuestionario {
     debugPrint(
       'No se pudo enviar el cuestionario $tipo: ${resultado['message']}',
     );
-    await _agregarALaCola(prefs, tipo, payload);
+    // Sin sesión no hay a quién atribuir la respuesta: no se guarda.
+    if (_dueno(prefs) != null) await _agregarALaCola(prefs, tipo, payload);
     return false;
   }
 
@@ -61,6 +78,7 @@ class EnvioCuestionario {
   /// Devuelve cuántos se enviaron en este intento.
   static Future<int> reintentarPendientes() async {
     final prefs = await SharedPreferences.getInstance();
+    await _borrarAntiguos(prefs);
     final pendientes = _leerCola(prefs);
     if (pendientes.isEmpty) return 0;
 
@@ -83,10 +101,46 @@ class EnvioCuestionario {
     return enviados;
   }
 
-  /// Cuántas respuestas siguen sin llegar al servidor.
+  /// Cuántas respuestas del usuario actual siguen sin llegar al servidor.
   static Future<int> cuantasPendientes() async {
     final prefs = await SharedPreferences.getInstance();
     return _leerCola(prefs).length;
+  }
+
+  /// Al cerrar sesión (antes de borrar el token y `id_usuario`): último
+  /// intento de envío, con tiempo máximo para no trabar la salida.
+  ///
+  /// Lo que no se pudo enviar NO se borra: queda en la cola de quien sale,
+  /// que ningún otro usuario lee, y se envía cuando vuelva a entrar. Borrarlo
+  /// perdería en silencio, por ejemplo, la alerta de un cuestionario de
+  /// suicidio contestado sin red.
+  static Future<void> alCerrarSesion() async {
+    try {
+      await reintentarPendientes().timeout(_tiempoMaximoAlSalir);
+    } catch (e) {
+      debugPrint('No se pudieron enviar los pendientes al salir: $e');
+    }
+    await _borrarAntiguos(await SharedPreferences.getInstance());
+  }
+
+  static const Duration _tiempoMaximoAlSalir = Duration(seconds: 8);
+
+  /// Borra todo lo pendiente del usuario actual (y lo antiguo sin dueño).
+  /// No toca las colas de otros usuarios.
+  static Future<void> borrarDelUsuarioActual() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dueno = _dueno(prefs);
+    if (dueno != null) await prefs.remove('$_prefijoCola$dueno');
+    await _borrarAntiguos(prefs);
+  }
+
+  /// La cola global y las copias en texto plano de versiones anteriores no
+  /// tienen dueño: no se pueden enviar sin arriesgar la cuenta equivocada.
+  static Future<void> _borrarAntiguos(SharedPreferences prefs) async {
+    await prefs.remove(_colaGlobalAntigua);
+    for (final clave in _copiasAntiguas) {
+      await prefs.remove(clave);
+    }
   }
 
   // ------------------------------------------------------------------
@@ -112,13 +166,29 @@ class EnvioCuestionario {
     }
   }
 
+  /// Dueño de la sesión actual (`perfil_id`), o null si no hay sesión.
+  static String? _dueno(SharedPreferences prefs) {
+    final idUsuario = prefs.getInt('id_usuario');
+    if (idUsuario == null) return null;
+    final perfilTipo = prefs.getString('perfil_tipo') ?? 'estudiante';
+    return '${perfilTipo}_$idUsuario';
+  }
+
+  /// Pendientes del usuario actual. Un pendiente con otro dueño se descarta:
+  /// nunca se envía una respuesta con la cuenta de otra persona.
   static List<Map<String, dynamic>> _leerCola(SharedPreferences prefs) {
-    final crudo = prefs.getString(_clavePendientes);
+    final dueno = _dueno(prefs);
+    if (dueno == null) return const [];
+    final crudo = prefs.getString('$_prefijoCola$dueno');
     if (crudo == null || crudo.isEmpty) return const [];
     try {
       final datos = jsonDecode(crudo);
       if (datos is! List) return const [];
-      return datos.whereType<Map>().map(Map<String, dynamic>.from).toList();
+      return datos
+          .whereType<Map>()
+          .map(Map<String, dynamic>.from)
+          .where((p) => p['dueno'] == dueno)
+          .toList();
     } catch (e) {
       // Una cola corrupta no debe impedir que la app funcione.
       debugPrint('Cola de cuestionarios pendientes ilegible: $e');
@@ -130,11 +200,14 @@ class EnvioCuestionario {
     SharedPreferences prefs,
     List<Map<String, dynamic>> cola,
   ) async {
+    final dueno = _dueno(prefs);
+    if (dueno == null) return;
+    final clave = '$_prefijoCola$dueno';
     if (cola.isEmpty) {
-      await prefs.remove(_clavePendientes);
+      await prefs.remove(clave);
       return;
     }
-    await prefs.setString(_clavePendientes, jsonEncode(cola));
+    await prefs.setString(clave, jsonEncode(cola));
   }
 
   static Future<void> _agregarALaCola(
@@ -148,6 +221,7 @@ class EnvioCuestionario {
       ..._leerCola(prefs).where((p) => p['tipo'] != tipo),
       {
         'tipo': tipo,
+        'dueno': _dueno(prefs),
         'payload': payload,
         'fecha': DateTime.now().toUtc().toIso8601String(),
       },

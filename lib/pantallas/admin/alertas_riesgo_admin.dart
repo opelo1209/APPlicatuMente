@@ -70,6 +70,8 @@ String _origen(String? origen) => switch (origen) {
   'chat' => 'Chat con Serena: crisis',
   'chat_salida' => 'Chat con Serena: respuesta bloqueada',
   'chat_acumulado' => 'Chat con Serena: señales repetidas',
+  'chat_autolesion' => 'Chat con Serena: autolesión',
+  'chat_metodo' => 'Chat con Serena: preguntó por métodos',
   'diario' => 'Diario',
   _ => 'Diario',
 };
@@ -123,6 +125,16 @@ class _TarjetaAlerta extends StatelessWidget {
               padding: const EdgeInsets.only(top: 4),
               child: Text('• ${e.toString().replaceFirst(':', ': «')}»'),
             ),
+          if (alerta['perfil_tipo'] == 'estudiante' &&
+              alerta['id_usuario'] is int) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () =>
+                  mostrarResumenRiesgo(context, alerta['id_usuario'] as int),
+              icon: const Icon(Icons.summarize_rounded),
+              label: const Text('Ver resumen de los últimos 30 días'),
+            ),
+          ],
           const SizedBox(height: 10),
           const Text(
             'Prueba del motor de Wang',
@@ -152,4 +164,46 @@ class _TarjetaAlerta extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Semana 4 (asesor): resumen de las alertas del estudiante. La versión para
+/// el tutor es un borrador: no se envía hasta que lo decidan el asesor y
+/// psicología.
+Future<void> mostrarResumenRiesgo(BuildContext context, int idUsuario) async {
+  final r = await ServicioPrototipo.resumenRiesgo(idUsuario);
+  if (!context.mounted) return;
+  final datos = r.datos;
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Resumen de alertas'),
+      content: SingleChildScrollView(
+        child: datos == null
+            ? Text(r.mensaje ?? 'No se pudo cargar el resumen.')
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(datos['administrador'] as String? ?? ''),
+                  if ((datos['tutor_borrador'] as String? ?? '')
+                      .isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Lo que leería el tutor (borrador, no se envía)',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(datos['tutor_borrador'] as String),
+                  ],
+                ],
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cerrar'),
+        ),
+      ],
+    ),
+  );
 }

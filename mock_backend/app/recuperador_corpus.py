@@ -21,7 +21,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from .clasificador_riesgo import _normalizar, normalizar_chat
-from .revision_clinica import ESTADO_APROBADO, ESTADO_PENDIENTE, revision_de, texto_vigente
+from .revision_clinica import ESTADO_APROBADO, ESTADO_PENDIENTE, ESTADO_RECHAZADO, revision_de, texto_vigente
 
 RUTA_CORPUS = Path(__file__).parent / "datos" / "corpus_serena.json"
 UMBRAL = 0.08  # por debajo, el texto no tiene relacion util con la pregunta
@@ -100,10 +100,11 @@ def _vector(tokens: list[str], idf: dict[str, float]) -> dict[str, float]:
 def _indice(ruta: str = str(RUTA_CORPUS)) -> _Indice:
     datos = json.loads(Path(ruta).read_text(encoding="utf-8"))
     # Se indexa el texto vigente: el corregido por psicologia si ya se aplico.
+    # Lo que psicologia rechazo no se indexa (Semana 4).
     docs = tuple(
         {**d, "texto": texto_vigente(d["id"], d["texto"])}
         for d in datos
-        if not d.get("bloqueada") and d.get("texto")
+        if not d.get("bloqueada") and d.get("texto") and revision_de(d["id"]).estado != ESTADO_RECHAZADO
     )
     tokenizados = [_tokens(f"{d.get('titulo') or ''} {d['texto']}") for d in docs]
     df = Counter(t for toks in tokenizados for t in set(toks))

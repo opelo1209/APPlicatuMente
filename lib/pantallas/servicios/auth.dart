@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../cuestionarios/envio_cuestionario.dart';
 import 'peticiones.dart';
 
 class Auth {
@@ -50,6 +51,11 @@ class Auth {
 
   // Eliminar token (logout)
   Future<void> clearToken() async {
+    // Semana 4 (H1): último intento de enviar lo pendiente de quien sale;
+    // lo que no salga queda en SU cola (ver alCerrarSesion). Va antes de
+    // borrar el token y el id_usuario, que lo identifican.
+    await EnvioCuestionario.alCerrarSesion();
+    await _cerrarSesionEnServidor();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
     await prefs.remove('id_token');
@@ -58,6 +64,23 @@ class Auth {
     await prefs.remove('perfil_tipo');
     await prefs.remove('id_usuario');
     await prefs.remove('nombre_usuario');
+  }
+
+  /// Semana 4 (H2): el servidor borra el token. Si no hay red se sale
+  /// igual; el token vence solo (SESION_HORAS en el servidor).
+  Future<void> _cerrarSesionEnServidor() async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) return;
+    try {
+      await http
+          .post(
+            Uri.parse(Peticiones.logout),
+            headers: Peticiones.getAuthHeaders(token),
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint('No se pudo cerrar la sesión en el servidor: $e');
+    }
   }
 
   String _normalizeBase64(String value) {

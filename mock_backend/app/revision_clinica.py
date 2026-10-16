@@ -10,6 +10,8 @@ a cada texto su estado:
   cambios    pidio cambios que todavia se aclaran con ella (el texto sigue
              igual)
   pendiente  no se ha revisado
+  rechazado  la revisora lo rechazo (segunda entrega, 13 oct): Serena no
+             lo cita nunca
 
 Solo se aplican las correcciones de CORRECCIONES_APLICADAS. Las demas (el
 criterio de "6 meses", la lista de sintomas para padres escrita en segunda
@@ -31,6 +33,7 @@ ESTADO_APROBADO = "aprobado"
 ESTADO_CORREGIDO = "corregido"
 ESTADO_CAMBIOS = "cambios"
 ESTADO_PENDIENTE = "pendiente"
+ESTADO_RECHAZADO = "rechazado"
 
 # Correcciones claras: solo desarrollan la sigla TCC.
 CORRECCIONES_APLICADAS = frozenset({

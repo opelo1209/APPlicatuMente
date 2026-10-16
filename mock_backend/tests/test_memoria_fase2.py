@@ -131,7 +131,7 @@ def test_ya_lo_decidi_solo_no_alarma():
 def test_ya_lo_decidi_despues_de_desesperanza_es_crisis():
     r = _conversar(["terminé con mi novia", "ya no le veo sentido a nada", "ya lo decidí"])
     assert r[-1].tipo == "crisis"
-    assert r[-1].detener
+    assert not r[-1].detener  # Semana 4: el chat nunca se corta
     assert "R13" in r[-1].etapas["entrada"]["reglas"]
 
 
@@ -146,7 +146,8 @@ def test_tercera_senal_ambigua_alerta_sin_pausar():
 def test_despues_de_explorar_la_respuesta_normal_lleva_lineas():
     r = _conversar(["ya no le veo sentido a nada", "pues no sé, me fue mal en la escuela"])
     assert r[-1].tipo == "explorar"
-    assert "800 911 2000" in r[-1].texto
+    # Semana 4: las lineas van en la tarjeta, aparte del texto.
+    assert "800 911 2000" in [l["telefono"] for l in r[-1].lineas]
     assert r[-1].etapas["texto_modelo"] is not None  # sí redactó el modelo
 
 
@@ -164,7 +165,8 @@ def test_el_modelo_recibe_el_contexto_de_la_conversacion():
 def test_tres_turnos_negativos_seguidos_sugieren_apoyo():
     r = _conversar(["hoy fue un mal día", "todo salió mal", "y encima me regañaron"], analizador=AnalizadorFalso("negativo", "tristeza"))
     assert r[-1].tipo == "explorar"
-    assert "800 911 2000" in r[-1].texto
+    # Semana 4: las lineas van en la tarjeta, aparte del texto.
+    assert "800 911 2000" in [l["telefono"] for l in r[-1].lineas]
 
 
 # --------------------------------------------------------------------------

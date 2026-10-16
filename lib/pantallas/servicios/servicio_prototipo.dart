@@ -143,4 +143,7 @@ class ServicioPrototipo {
 
   static Future<RespuestaApi> alertasRiesgo() =>
       _llamar('GET', Peticiones.adminAlertasRiesgo);
+
+  static Future<RespuestaApi> resumenRiesgo(int idUsuario, {int dias = 30}) =>
+      _llamar('GET', '${Peticiones.adminResumenRiesgo(idUsuario)}?dias=$dias');
 }

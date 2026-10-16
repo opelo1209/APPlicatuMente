@@ -87,6 +87,9 @@ def hechos_de_sesion(turnos: tuple[Turno, ...]) -> frozenset[str]:
         hechos.add("ambigua_previa")
     if con_senal >= 2:
         hechos.add("ambigua_repetida")
+    # Semana 4: el chat ya no se pausa en crisis; lo que sigue es acompanar.
+    if any(t.senal == SENAL_ALTA for t in turnos):
+        hechos.add("crisis_previa")
     # R10 exige ademas que el mensaje actual sea negativo: aqui se cuentan
     # los TURNOS_RACHA - 1 anteriores.
     previos = turnos[-(TURNOS_RACHA - 1) :]

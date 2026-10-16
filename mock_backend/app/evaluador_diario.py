@@ -34,6 +34,8 @@ from .analizador_sentimiento import (
     ResultadoSentimiento,
 )
 from .clasificador_riesgo import ResultadoClasificacion, clasificar_mensaje, combinar_con_nivel_cssrs
+from .contexto_mensaje import analizar_contexto
+from .limites_serena import hechos_de_limites
 from .emociones_catalogo import (
     CLASE_ALEGRIA,
     CLASE_ASCO,
@@ -178,9 +180,18 @@ def _es_confiable(analisis: ResultadoSentimiento | None) -> bool:
     return analisis is not None and analisis.probabilidad(analisis.polaridad) >= UMBRAL_CONFIANZA
 
 
-def _concordancia(entrada: EntradaDiario, analisis: ResultadoSentimiento | None) -> tuple[str, str]:
+MENSAJE_CONSULTA = (
+    "Lo que escribiste habla de un tema y no de cómo te sentiste, así que tu día queda como lo marcaste."
+)
+
+
+def _concordancia(entrada: EntradaDiario, analisis: ResultadoSentimiento | None, consulta: bool = False) -> tuple[str, str]:
     if analisis is None:
         return "sin_analisis", ""
+    if consulta:
+        # Semana 4: "vimos en clase las senales del suicidio" sale negativo
+        # por la palabra, no por el dia del estudiante.
+        return "incierto", MENSAJE_CONSULTA
     if not _es_confiable(analisis):
         return "incierto", "Gracias por escribir. Tu registro de hoy quedó guardado."
     if analisis.polaridad == entrada.polaridad:
@@ -193,9 +204,21 @@ def _concordancia(entrada: EntradaDiario, analisis: ResultadoSentimiento | None)
     )
 
 
-def _hechos(entrada: EntradaDiario, analisis: ResultadoSentimiento | None, riesgo: ResultadoClasificacion) -> set[str]:
+# Semana 4: el diario tampoco detectaba "busque como me puedo suicidar".
+# De la barrera de limites de Serena solo se toman los metodos; diagnostico,
+# medicacion o identidad no aplican a un diario.
+_HECHOS_METODO = frozenset({"pide_metodo", "pide_metodo_general"})
+
+
+def _hechos(
+    entrada: EntradaDiario,
+    analisis: ResultadoSentimiento | None,
+    riesgo: ResultadoClasificacion,
+    consulta: bool = False,
+) -> set[str]:
     hechos = {f"autoevaluacion_{_SUFIJO[entrada.polaridad]}"}
-    if _es_confiable(analisis):
+    hechos.update(hechos_de_limites(entrada.texto) & _HECHOS_METODO)
+    if _es_confiable(analisis) and not consulta:
         hechos.add(f"polaridad_{_SUFIJO[analisis.polaridad]}")  # type: ignore[union-attr]
     hoy_negativo = entrada.polaridad == POLARIDAD_NEGATIVA or "polaridad_negativa" in hechos
     previas = entrada.polaridades_previas[:DIAS_PREVIOS_PARA_RACHA]
@@ -232,15 +255,23 @@ def _alerta_admin(riesgo: ResultadoClasificacion, decision: Decision) -> Mapping
     )
 
 
+META_AUTOLESION = "apoyo_autolesion"
+META_METODO = "limite_metodo"
+_METAS_CON_AVISO = frozenset({META_AUTOLESION, META_METODO})
+
+
 def evaluar_entrada(entrada: EntradaDiario, analizador: AnalizadorSentimiento) -> ResultadoDiario:
     riesgo = combinar_con_nivel_cssrs(clasificar_mensaje(entrada.texto), entrada.nivel_cssrs)
     analisis, aviso = _analizar(entrada.texto, analizador)
-    decision = decidir(_hechos(entrada, analisis, riesgo))
+    # Semana 4: se lee la frase completa. En una consulta la polaridad del
+    # analizador describe el tema, no el dia.
+    consulta = analizar_contexto(entrada.texto).informativa
+    decision = decidir(_hechos(entrada, analisis, riesgo, consulta))
     accion = decision.accion
 
-    concordancia, mensaje = _concordancia(entrada, analisis)
+    concordancia, mensaje = _concordancia(entrada, analisis, consulta)
     dia_negativo = entrada.polaridad == POLARIDAD_NEGATIVA or (
-        _es_confiable(analisis) and analisis.polaridad == POLARIDAD_NEGATIVA  # type: ignore[union-attr]
+        not consulta and _es_confiable(analisis) and analisis.polaridad == POLARIDAD_NEGATIVA  # type: ignore[union-attr]
     )
     ofrecer_serena = accion != ACCION_CRISIS and (
         dia_negativo or accion in (ACCION_EXPLORAR, ACCION_SUGERIR_APOYO)
@@ -266,7 +297,8 @@ def evaluar_entrada(entrada: EntradaDiario, analizador: AnalizadorSentimiento) -
         mensaje_serena=mensaje_serena,
         mostrar_lineas_ayuda=accion in (ACCION_CRISIS, ACCION_EXPLORAR, ACCION_SUGERIR_APOYO),
         lineas_ayuda=tuple(MappingProxyType(l) for l in LINEAS_AYUDA),
-        alerta_admin=_alerta_admin(riesgo, decision) if accion == ACCION_CRISIS else None,
+        # Semana 4: la autolesion ya no es crisis, pero el administrador la ve.
+        alerta_admin=_alerta_admin(riesgo, decision) if accion == ACCION_CRISIS or decision.meta in _METAS_CON_AVISO else None,
     )
 
 

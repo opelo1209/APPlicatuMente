@@ -328,7 +328,16 @@ class Regla:
 REGLAS = (
     Regla("R1", "ideacion_directa -> riesgo_alto", "Deseo de morir en primera persona."),
     Regla("R2", "planeacion_o_intencion -> riesgo_alto", "Plan o intencion, aunque no nombre un metodo (CRI-01)."),
-    Regla("R3", "autolesion_ocurrida -> riesgo_alto", "Autolesion reciente o en curso."),
+    # Semana 4 (revision clinica): la autolesion "si es senal, pero no es una
+    # urgencia". Sola ya no dispara el guion de crisis: Serena acompana,
+    # pregunta, da las lineas y avisa al administrador. Con otra senal de
+    # riesgo en el mismo mensaje sigue siendo crisis (R3b, por confirmar).
+    Regla("R3", "autolesion_ocurrida -> apoyo_autolesion", "Autolesion reciente: senal, no urgencia (Dra. Gonzalez)."),
+    Regla(
+        "R3b",
+        "autolesion_ocurrida and (desesperanza_extrema or carga_percibida or peticion_secreto) -> riesgo_alto",
+        "Autolesion junto con otra senal de riesgo; pendiente de confirmar con psicologia.",
+    ),
     Regla("R4", "despedida -> riesgo_alto", "Conducta de despedida; alto valor predictivo."),
     Regla("R5", "cssrs_alto -> riesgo_alto", "El cuestionario C-SSRS ya marco riesgo alto."),
     Regla("R6", "desesperanza_extrema and peticion_secreto -> riesgo_alto", "Dos senales ambiguas juntas son mas especificas."),
@@ -373,6 +382,23 @@ REGLAS = (
         "ambigua_previa -> sugerir_apoyo",
         "Seguimiento: despues de una senal ambigua, la siguiente respuesta lleva lineas de ayuda.",
     ),
+    # Semana 4 (reunion con el asesor, 9 de octubre): leer la frase completa
+    # y no cortar nunca la conversacion.
+    Regla(
+        "R16",
+        "pide_metodo_general -> limite_metodo",
+        "Pide metodos sin hablar de si (tarea, cuento): no se dan, se pregunta con cuidado y se avisa.",
+    ),
+    Regla(
+        "R17",
+        "consulta_informativa -> informar",
+        "Pide informacion y no habla de su estado: Serena informa (\"que es la tristeza\").",
+    ),
+    Regla(
+        "R18",
+        "crisis_previa -> acompanar_crisis",
+        "Despues de una crisis el chat sigue: Serena acompana y las lineas quedan a la vista.",
+    ),
     Regla("L1", "pide_diagnostico -> limite_diagnostico", "S2: no diagnostica (LIM-01)."),
     Regla("L2", "pide_medicacion -> limite_medicacion", "S3: no recomienda medicacion (LIM-02)."),
     Regla("L3", "peticion_secreto -> limite_secreto", "S4: no promete confidencialidad absoluta (LIM-03)."),
@@ -393,11 +419,15 @@ HECHOS_VALIDOS = frozenset().union(*(atomos(f) for f in REGLAS_RIESGO)) | {
     "riesgo_ambiguo",
     "sugerir_apoyo",
     "apoyo_tercero",
+    "apoyo_autolesion",
     "alerta_preventiva",
     "limite_diagnostico",
     "limite_medicacion",
     "limite_secreto",
     "limite_identidad",
+    "limite_metodo",
+    "informar",
+    "acompanar_crisis",
 }
 
 ACCION_CRISIS = "protocolo_crisis"
@@ -410,18 +440,29 @@ ACCION_LIMITE_SECRETO = "limite_secreto"
 ACCION_LIMITE_IDENTIDAD = "limite_identidad"
 ACCION_APOYO_TERCERO = "apoyo_tercero"
 ACCION_ALERTA_PREVENTIVA = "alerta_preventiva"
+ACCION_APOYO_AUTOLESION = "apoyo_autolesion"
+ACCION_LIMITE_METODO = "limite_metodo"
+ACCION_INFORMAR = "informar"
+ACCION_ACOMPANAR_CRISIS = "acompanar_crisis"
 
 # Se prueban en este orden: la primera meta demostrable decide la accion.
 # El diario usa METAS_RIESGO; Serena, METAS_SERENA, que pone los limites
 # despues de la crisis y antes de "explorar".
 METAS_RIESGO = (
     ("riesgo_alto", ACCION_CRISIS),
+    # El diario no tiene un texto propio para la autolesion: explora, da las
+    # lineas y avisa al administrador (evaluador_diario).
+    ("apoyo_autolesion", ACCION_EXPLORAR),
+    # Semana 4: pedir metodos sin hablar de si; el diario explora y avisa.
+    ("limite_metodo", ACCION_EXPLORAR),
     ("riesgo_ambiguo", ACCION_EXPLORAR),
     ("sugerir_apoyo", ACCION_SUGERIR_APOYO),
 )
 _METAS = METAS_RIESGO
 METAS_SERENA = (
     ("riesgo_alto", ACCION_CRISIS),
+    ("limite_metodo", ACCION_LIMITE_METODO),
+    ("apoyo_autolesion", ACCION_APOYO_AUTOLESION),
     ("apoyo_tercero", ACCION_APOYO_TERCERO),
     ("limite_diagnostico", ACCION_LIMITE_DIAGNOSTICO),
     ("limite_medicacion", ACCION_LIMITE_MEDICACION),
@@ -429,6 +470,9 @@ METAS_SERENA = (
     ("limite_identidad", ACCION_LIMITE_IDENTIDAD),
     ("alerta_preventiva", ACCION_ALERTA_PREVENTIVA),
     ("riesgo_ambiguo", ACCION_EXPLORAR),
+    # Una senal ambigua gana a la consulta: "informar" va despues.
+    ("informar", ACCION_INFORMAR),
+    ("acompanar_crisis", ACCION_ACOMPANAR_CRISIS),
     ("sugerir_apoyo", ACCION_SUGERIR_APOYO),
 )
 

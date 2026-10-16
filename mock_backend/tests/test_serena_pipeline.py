@@ -44,7 +44,7 @@ class GeneradorRoto:
 def test_crisis_no_llama_al_modelo():
     g = GeneradorFalso()
     r = responder("ya pensé en cómo hacerlo y creo que sí lo voy a hacer", AnalizadorFalso("negativo"), g)
-    assert r.tipo == "crisis" and r.detener
+    assert r.tipo == "crisis" and not r.detener  # Semana 4: sin pausa
     assert g.llamadas == 0
     assert r.alerta is not None
 
@@ -98,7 +98,8 @@ def test_senal_ambigua_siempre_lleva_lineas():
     g = GeneradorFalso("Gracias por decírmelo. ¿Me cuentas un poco más?")
     r = responder("ya no le veo mucho sentido a nada la verdad", AnalizadorFalso("negativo", "tristeza"), g)
     assert r.tipo == "explorar"
-    assert "800 911 2000" in r.texto
+    # Semana 4: las lineas van en la tarjeta, aparte del texto.
+    assert "800 911 2000" in [l["telefono"] for l in r.lineas]
     # Con Qwen 1.5B en el servidor, el modelo no exploraba (AMB-02: "haz
     # pausas y respira") o normalizaba (AMB-03): la señal ambigua se responde
     # con texto fijo, sin modelo, igual que crisis y limites.

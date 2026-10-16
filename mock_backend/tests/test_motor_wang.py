@@ -115,7 +115,8 @@ def test_las_formulas_son_inmutables():
     [
         {"ideacion_directa"},
         {"planeacion_o_intencion"},
-        {"autolesion_ocurrida"},
+        {"autolesion_ocurrida", "desesperanza_extrema"},
+        {"autolesion_ocurrida", "peticion_secreto"},
         {"despedida"},
         {"cssrs_alto"},
         {"desesperanza_extrema", "peticion_secreto"},

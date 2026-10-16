@@ -23,6 +23,7 @@ ETIQUETA = {
     "protocolo_crisis": "crisis",
     "explorar_con_cuidado": "explorar",
     "apoyo_tercero": "explorar",
+    "apoyo_autolesion": "autolesion",
     "limite_diagnostico": "limite_diagnostico",
     "limite_medicacion": "limite_medicacion",
     "limite_secreto": "limite_secreto",
@@ -30,7 +31,7 @@ ETIQUETA = {
     "sugerir_apoyo": "normal",
     "normal": "normal",
 }
-NIVEL = {"normal": 0, "explorar": 1, "crisis": 2}
+NIVEL = {"normal": 0, "explorar": 1, "autolesion": 1, "crisis": 2}
 
 _V1 = json.loads((Path(__file__).parent / "datos" / "conjunto_v1.json").read_text(encoding="utf-8"))
 
@@ -102,8 +103,10 @@ def test_riesgo_de_un_tercero_no_trata_al_estudiante_como_en_crisis():
     assert decidir(hechos, METAS_SERENA).accion == "apoyo_tercero"
 
 
-def test_crisis_propia_gana_sobre_riesgo_de_tercero():
-    assert decision("mi amiga se corta y yo también me corto") == "crisis"
+def test_riesgo_propio_gana_sobre_riesgo_de_tercero():
+    # Semana 4: la autolesion propia ya no es crisis, pero sigue ganando
+    # sobre el riesgo de la amiga (se atiende al estudiante primero).
+    assert decision("mi amiga se corta y yo también me corto") == "autolesion"
 
 
 def test_ortografia_de_chat_se_normaliza():

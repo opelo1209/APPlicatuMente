@@ -167,3 +167,15 @@ def test_si_el_proceso_se_cae_a_media_respuesta_se_reporta():
             list(g.generar_partes(MENSAJES, max_tokens=60))
     finally:
         g.cerrar()
+
+
+# Semana 4: servidor con GPU (SERENA_CAPAS_GPU).
+def test_capas_gpu_por_omision_es_solo_cpu(monkeypatch):
+    from app.generador_llm import capas_gpu_de_entorno
+
+    monkeypatch.delenv("SERENA_CAPAS_GPU", raising=False)
+    assert capas_gpu_de_entorno() == 0
+    monkeypatch.setenv("SERENA_CAPAS_GPU", "-1")
+    assert capas_gpu_de_entorno() == -1
+    monkeypatch.setenv("SERENA_CAPAS_GPU", "todas")
+    assert capas_gpu_de_entorno() == 0

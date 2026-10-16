@@ -83,8 +83,23 @@ class ResultadoDiario {
 }
 
 class DiaHistorial {
-  const DiaHistorial(this.etiqueta, this.polaridad, this.emocion);
+  const DiaHistorial(
+    this.etiqueta,
+    this.polaridad,
+    this.emocion, {
+    this.fecha,
+    this.polaridadAnalizador,
+    this.confianza,
+    this.emocionAnalizador,
+    this.concordancia,
+  });
   final String etiqueta; // "L", "M", ...
   final Polaridad? polaridad; // null: no escribió ese día
   final String? emocion;
+  // Semana 4 (asesor): lo que encontró el analizador en el texto de ese día.
+  final DateTime? fecha;
+  final Polaridad? polaridadAnalizador; // null: no escribió texto
+  final double? confianza;
+  final String? emocionAnalizador; // clase del analizador ("tristeza")
+  final String? concordancia; // coincide | difiere | incierto
 }

@@ -1,8 +1,12 @@
+import '../diario/diario_catalogo.dart' show LineaAyuda;
+
 class MensajeSerena {
   final String texto;
   final bool esUsuario;
   final String tipo;
   final List<Map<String, String>> fuentes;
+  // Semana 4: líneas de ayuda que se muestran en una tarjeta aparte.
+  final List<LineaAyuda> lineas;
   final DateTime hora;
 
   MensajeSerena({
@@ -10,6 +14,7 @@ class MensajeSerena {
     required this.esUsuario,
     this.tipo = 'normal',
     this.fuentes = const [],
+    this.lineas = const [],
     DateTime? hora,
   }) : hora = hora ?? DateTime.now();
 

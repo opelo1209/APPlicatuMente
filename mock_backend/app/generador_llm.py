@@ -32,12 +32,25 @@ class GeneradorRespuesta(Protocol):
     def generar(self, mensajes: tuple[Mapping[str, str], ...], max_tokens: int | None = None) -> str: ...
 
 
+def capas_gpu_de_entorno() -> int:
+    """SERENA_CAPAS_GPU; un valor que no sea entero cae a 0 (solo CPU)."""
+    try:
+        return int(os.getenv("SERENA_CAPAS_GPU", "0"))
+    except ValueError:
+        log.warning("SERENA_CAPAS_GPU no es un entero; se usa solo CPU")
+        return 0
+
+
 class GeneradorLlama:
     MAX_TOKENS = 170
 
     def __init__(self, ruta: str | None = None, hilos: int | None = None) -> None:
         self.ruta = ruta or os.getenv("SERENA_MODELO", "")
         self.hilos = hilos or int(os.getenv("SERENA_HILOS", "2"))
+        # Semana 4 (servidor con GPU): capas del modelo que van a la tarjeta.
+        # 0 = solo CPU (servidor actual); -1 = todas. Requiere llama-cpp-python
+        # compilado con CUDA (CMAKE_ARGS="-DGGML_CUDA=on").
+        self.capas_gpu = capas_gpu_de_entorno()
         self.nombre = os.path.basename(self.ruta) or "sin modelo"
         self._llm = None
         # llama.cpp no es seguro para dos generaciones a la vez en el mismo
@@ -63,13 +76,14 @@ class GeneradorLlama:
                 n_ctx=2048,
                 n_threads=self.hilos,
                 n_threads_batch=self.hilos,
+                n_gpu_layers=self.capas_gpu,
                 verbose=False,
             )
         except (ValueError, OSError) as exc:
             # Archivo danado o incompleto (paso con una descarga cortada):
             # Serena sigue respondiendo con el contenido aprobado.
             raise GeneradorNoDisponible(f"no se pudo cargar {self.nombre}: {exc}") from exc
-        log.info("modelo de Serena cargado: %s (%s hilos)", self.nombre, self.hilos)
+        log.info("modelo de Serena cargado: %s (%s hilos, %s capas en GPU)", self.nombre, self.hilos, self.capas_gpu)
 
     def generar(self, mensajes: tuple[Mapping[str, str], ...], max_tokens: int | None = None) -> str:
         with self._candado:

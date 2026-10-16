@@ -27,6 +27,8 @@ from .emociones_catalogo import buscar
 from .evaluador_diario import EntradaDiario, evaluar_entrada, resultado_a_dict
 from .generador_llm import GeneradorAislado
 from .memoria_sesion import MemoriaSesiones
+from .respuesta_chat import respuesta_estudiante, traza_decision
+from .resumen_riesgo import alerta_de_fila, resumir
 from .serena_pipeline import responder
 from .vinculacion_bidireccional import (
     ESTADO_PENDIENTE_ESTUDIANTE,
@@ -280,6 +282,17 @@ def crear_router(
             conn.commit()
         return cuerpo
 
+    def _analizador_de(resultado: dict[str, Any] | None) -> dict[str, Any] | None:
+        analisis = (resultado or {}).get("analisis")
+        if not analisis:
+            return None
+        emociones = analisis.get("emociones") or []
+        return {
+            "polaridad": analisis.get("polaridad"),
+            "confianza": round(float(analisis.get("confianza") or 0.0), 2),
+            "emocion": emociones[0][0] if emociones else None,
+        }
+
     @router.get("/diario/entradas")
     def listar_entradas(
         dias: int = Query(default=7, ge=1, le=90), user: dict[str, Any] = Depends(current_user)
@@ -289,7 +302,7 @@ def crear_router(
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT fecha, polaridad, emociones, accion FROM diario_entradas
+                    SELECT fecha, polaridad, emociones, accion, resultado FROM diario_entradas
                     WHERE id_estudiante = %s AND fecha > CURRENT_DATE - %s
                     ORDER BY fecha
                     """,
@@ -303,6 +316,11 @@ def crear_router(
                     "polaridad": f["polaridad"],
                     "emociones": [buscar(c).nombre for c in f["emociones"]],
                     "accion": f["accion"],
+                    # Semana 4 (asesor): la evolucion de lo que encontro el
+                    # analizador, junto a lo que marco el estudiante. Sin el
+                    # texto: solo lo ve el propio estudiante en su semana.
+                    "analizador": _analizador_de(f["resultado"]),
+                    "concordancia": (f["resultado"] or {}).get("concordancia"),
                 }
                 for f in filas
             ]
@@ -320,29 +338,18 @@ def crear_router(
             # Crisis, respuesta bloqueada o senales repetidas: el
             # administrador lo ve en «Alertas de riesgo».
             origen = {"crisis": "chat", "bloqueada": "chat_salida"}.get(r.tipo, "chat_acumulado")
+            if r.alerta.get("tipo") == "autolesion_en_chat":
+                origen = "chat_autolesion"
+            elif r.alerta.get("tipo") == "metodo_en_chat":
+                origen = "chat_metodo"
             with db_conn() as conn:
                 with conn.cursor() as cur:
                     _registrar_alerta(cur, user, origen, r.alerta)
                 conn.commit()
-        entrada = r.etapas["entrada"]
-        salida = r.etapas.get("salida") or {}
-        return {
-            "respuesta": r.texto,
-            "tipo": r.tipo,
-            "detener": r.detener,
-            "fuentes": [dict(f) for f in r.fuentes],
-            "reglas": list(entrada["reglas"]),
-            # Para el prototipo: cómo se decidió (en producción no se mandaría).
-            "decision": {
-                "entrada": entrada["accion"],
-                "reglas_entrada": entrada["reglas"],
-                "salida": salida.get("accion"),
-                "reglas_salida": salida.get("reglas", []),
-                "modelo": r.etapas.get("modelo"),
-                "milisegundos": r.etapas.get("milisegundos"),
-            },
-            "sesion_id": sesion,
-        }
+        # Semana 4, T3: como se decidio se queda en el registro del servidor;
+        # al estudiante solo le llega la respuesta (ver respuesta_chat).
+        log.info("chat usuario=%s traza=%s", user["id_usuario"], traza_decision(r))
+        return respuesta_estudiante(r, sesion)
 
     @router.post("/chat")
     def chat(payload: MensajeChatIn, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
@@ -406,9 +413,45 @@ def crear_router(
                     "prueba": f["prueba"],
                     "atendida": f["atendida"],
                     "fecha": f["fecha_creacion"].isoformat(),
+                    "id_usuario": f["id_usuario"],
+                    "perfil_tipo": f["perfil_tipo"],
                 }
                 for f in filas
             ]
+        }
+
+    @router.get("/admin/resumen-riesgo/{id_usuario}")
+    def resumen_de_riesgo(
+        id_usuario: int,
+        dias: int = Query(default=30, ge=1, le=180),
+        user: dict[str, Any] = Depends(current_user),
+    ) -> dict[str, Any]:
+        """Semana 4 (asesor): resumen de las alertas de un estudiante. La
+        version del tutor es un BORRADOR: no se envia a nadie todavia."""
+        _solo(user, "administrador")
+        with db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT origen, nivel, reglas, atendida, fecha_creacion FROM alertas_riesgo
+                    WHERE perfil_tipo = 'estudiante' AND id_usuario = %s
+                      AND fecha_creacion > NOW() - make_interval(days => %s)
+                    ORDER BY fecha_creacion
+                    """,
+                    (id_usuario, dias),
+                )
+                filas = cur.fetchall()
+                cur.execute("SELECT nombres FROM usuarios_estudiantes WHERE id_usuario = %s", (id_usuario,))
+                estudiante = cur.fetchone()
+        nombre = (estudiante or {}).get("nombres") or "el estudiante"
+        r = resumir([alerta_de_fila(f) for f in filas], nombre)
+        return {
+            "administrador": r.administrador,
+            "tutor_borrador": r.tutor,
+            "crisis": r.crisis,
+            "preventivas": r.preventivas,
+            "pendientes": r.pendientes,
+            "dias": dias,
         }
 
     # ----------------------- Vinculacion: estudiante ------------------------

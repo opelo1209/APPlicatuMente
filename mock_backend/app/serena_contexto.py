@@ -32,6 +32,7 @@ from typing import Mapping
 
 from .analizador_sentimiento import AnalizadorNoDisponible, AnalizadorSentimiento, ResultadoSentimiento
 from .clasificador_riesgo import clasificar_mensaje, combinar_con_nivel_cssrs
+from .contexto_mensaje import analizar_contexto
 from .evaluador_diario import LINEAS_AYUDA, UMBRAL_CONFIANZA
 from .motor_wang import ACCION_CRISIS, ACCION_EXPLORAR, Decision, decidir
 
@@ -108,7 +109,8 @@ def detectar_intencion(mensaje: str) -> str:
     plano = _plano(mensaje)
     if _CONSEJO.search(plano):
         return INTENCION_CONSEJO
-    if _INFORMATIVA.search(plano):
+    # Semana 4: tambien "quiero informacion sobre...", "material de...".
+    if _INFORMATIVA.search(plano) or analizar_contexto(mensaje).informativa:
         return INTENCION_INFORMATIVA
     return INTENCION_DESAHOGO
 

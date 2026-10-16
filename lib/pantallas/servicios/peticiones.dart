@@ -12,6 +12,7 @@ class Peticiones {
   // Endpoints
   static const String login = '$baseUrl/auth/login';
   static const String loginGoogle = '$baseUrl/auth/google';
+  static const String logout = '$baseUrl/auth/logout';
   static const String register = '$baseUrl/auth/register';
   // Acceso rapido de la demo: 404 en un despliegue normal, por lo que el
   // boton de la pantalla de acceso se oculta solo.
@@ -53,6 +54,8 @@ class Peticiones {
   static String vinculacionConfirmar(int id) =>
       '$baseUrl/vinculacion/solicitudes/$id/confirmar';
   static const String adminAlertasRiesgo = '$baseUrl/admin/alertas-riesgo';
+  static String adminResumenRiesgo(int idUsuario) =>
+      '$baseUrl/admin/resumen-riesgo/$idUsuario';
 
   // Password recovery
   static const String passwordResetRequest =

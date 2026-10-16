@@ -83,13 +83,7 @@ class DiarioFlujo extends StatefulWidget {
 class _DiarioFlujoState extends State<DiarioFlujo> {
   bool _guardando = false;
 
-  void _abrirHistorial() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => HistorialFlujo(onAbrirSerena: widget.onAbrirSerena),
-      ),
-    );
-  }
+  void _abrirHistorial() => abrirHistorial(context, widget.onAbrirSerena);
 
   Future<void> _guardar(EntradaDiarioDatos datos) async {
     setState(() => _guardando = true);
@@ -122,7 +116,7 @@ class _DiarioFlujoState extends State<DiarioFlujo> {
               resultado: resultado,
               onAbrirSerena: widget.onAbrirSerena,
               onLlamar: (l) => mostrarNumero(ctx, l),
-              onVerHistorial: _abrirHistorial,
+              onVerHistorial: () => abrirHistorial(ctx, widget.onAbrirSerena),
             ),
           );
     await Navigator.of(
@@ -146,35 +140,78 @@ class _DiarioFlujoState extends State<DiarioFlujo> {
   }
 }
 
-class HistorialFlujo extends StatelessWidget {
+/// Abre «Mi semana» desde cualquier pantalla del diario.
+///
+/// Semana 4: «Ver mi semana» en la pantalla de resultado no hacía nada. Usaba
+/// el `context` del diario, que ya se había cerrado con `pushReplacement`;
+/// ahora cada pantalla abre el historial con su propio `context`.
+void abrirHistorial(BuildContext context, VoidCallback onAbrirSerena) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => HistorialFlujo(onAbrirSerena: onAbrirSerena),
+    ),
+  );
+}
+
+class HistorialFlujo extends StatefulWidget {
   const HistorialFlujo({super.key, required this.onAbrirSerena});
   final VoidCallback onAbrirSerena;
 
+  @override
+  State<HistorialFlujo> createState() => _HistorialFlujoState();
+}
+
+class _HistorialFlujoState extends State<HistorialFlujo> {
   static const _letras = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
-  List<DiaHistorial> _semana(List<dynamic> entradas, DateTime hoy) {
+  // Semana 4: 7 o 30 días, para ver la evolución del analizador.
+  int _periodo = 7;
+  late Future<RespuestaApi> _carga = ServicioPrototipo.listarEntradas(
+    dias: _periodo,
+  );
+
+  void _cambiarPeriodo(int dias) {
+    if (dias == _periodo) return;
+    setState(() {
+      _periodo = dias;
+      _carga = ServicioPrototipo.listarEntradas(dias: dias);
+    });
+  }
+
+  static String _clave(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  static DiaHistorial _dia(DateTime d, Map? e, String etiqueta) {
+    final emociones = e == null
+        ? const []
+        : (e['emociones'] as List? ?? const []);
+    final analizador = e?['analizador'];
+    final a = analizador is Map ? analizador : null;
+    return DiaHistorial(
+      etiqueta,
+      e == null ? null : polaridadDesdeTexto(e['polaridad'] as String),
+      emociones.isEmpty ? null : emociones.first as String,
+      fecha: d,
+      polaridadAnalizador: a?['polaridad'] is String
+          ? polaridadDesdeTexto(a!['polaridad'] as String)
+          : null,
+      confianza: (a?['confianza'] as num?)?.toDouble(),
+      emocionAnalizador: a?['emocion'] as String?,
+      concordancia: e?['concordancia'] as String?,
+    );
+  }
+
+  List<DiaHistorial> _dias(List<dynamic> entradas, DateTime hoy) {
     final porFecha = {
       for (final e in entradas.whereType<Map>()) e['fecha'] as String: e,
     };
+    final base = DateTime(hoy.year, hoy.month, hoy.day);
     return [
-      for (var i = 6; i >= 0; i--)
+      for (var i = _periodo - 1; i >= 0; i--)
         () {
-          final d = DateTime(
-            hoy.year,
-            hoy.month,
-            hoy.day,
-          ).subtract(Duration(days: i));
-          final clave =
-              '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-          final e = porFecha[clave];
-          final emociones = e == null
-              ? const []
-              : (e['emociones'] as List? ?? const []);
-          return DiaHistorial(
-            _letras[d.weekday - 1],
-            e == null ? null : polaridadDesdeTexto(e['polaridad'] as String),
-            emociones.isEmpty ? null : emociones.first as String,
-          );
+          final d = base.subtract(Duration(days: i));
+          final etiqueta = _periodo <= 7 ? _letras[d.weekday - 1] : '${d.day}';
+          return _dia(d, porFecha[_clave(d)], etiqueta);
         }(),
     ];
   }
@@ -182,11 +219,11 @@ class HistorialFlujo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hoy = DateTime.now();
-    final inicio = hoy.subtract(const Duration(days: 6));
+    final inicio = hoy.subtract(Duration(days: _periodo - 1));
     return FutureBuilder<RespuestaApi>(
-      future: ServicioPrototipo.listarEntradas(dias: 7),
+      future: _carga,
       builder: (context, snap) {
-        if (!snap.hasData) {
+        if (snap.connectionState != ConnectionState.done || !snap.hasData) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
@@ -203,8 +240,10 @@ class HistorialFlujo extends StatelessWidget {
         return DiarioHistorialPantalla(
           rango:
               '${inicio.day} de ${_meses[inicio.month - 1]} al ${hoy.day} de ${_meses[hoy.month - 1]}',
-          dias: _semana(r.datos!['entradas'] as List, hoy),
-          onAbrirSerena: onAbrirSerena,
+          dias: _dias(r.datos!['entradas'] as List, hoy),
+          periodo: _periodo,
+          onCambiarPeriodo: _cambiarPeriodo,
+          onAbrirSerena: widget.onAbrirSerena,
           onLlamar: (l) => mostrarNumero(context, l),
         );
       },
