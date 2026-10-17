@@ -28,6 +28,7 @@ class _CuestionarioState extends State<Cuestionario> {
   int _currentIndex = 0;
   final Map<String, Map<String, dynamic>> _respuestas = {};
   bool _enviando = false;
+  bool _binariasRespondidas = false;
   bool _cargandoPreguntas = true;
   late List<Map<String, dynamic>> _preguntas = List<Map<String, dynamic>>.from(
     _defaultPreguntas,
@@ -554,6 +555,7 @@ class _CuestionarioState extends State<Cuestionario> {
       ),
       body: PasoIdentificacion(
         questions: binaryQuestions,
+        mostrarInstrucciones: !_binariasRespondidas,
         headerTitle: '',
         instructionTitle: 'Preguntas de Sí o No',
         instructionDescription:
@@ -566,6 +568,7 @@ class _CuestionarioState extends State<Cuestionario> {
         accentColor: const Color(0xFF5C6BC0),
         completionMessage: 'Procesando resultados...',
         onCompleted: (resultados) {
+          _binariasRespondidas = true;
           // Llenar _respuestas con los resultados del swipe
           for (int i = 9; i < _preguntas.length; i++) {
             final p = _preguntas[i];

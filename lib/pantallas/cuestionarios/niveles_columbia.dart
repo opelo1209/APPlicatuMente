@@ -47,7 +47,7 @@ extension NivelColumbiaUi on NivelColumbia {
       'Gracias por contestar. No identificamos señales de riesgo.',
     NivelColumbia.seguimiento =>
       'Gracias por contestar con sinceridad. Seguiremos acompañándote en la '
-          'app, y orientación de tu escuela también está para apoyarte.',
+          'app, y la orientación de tu escuela también está para apoyarte.',
     NivelColumbia.comunitario =>
       'Lo que contestaste nos importa. Te recomendamos platicar pronto con '
           'alguien de un centro comunitario de salud mental; tu escuela y tu '
