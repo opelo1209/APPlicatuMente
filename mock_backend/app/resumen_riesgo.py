@@ -108,6 +108,10 @@ def _frases(alerta: Alerta) -> tuple[str, ...]:
     return tuple(REGLA_EN_PALABRAS[r] for r in alerta.reglas if r in REGLA_EN_PALABRAS) or ("mostró señales de riesgo",)
 
 
+def _cuenta(n: int, singular: str, plural: str) -> str:
+    return f"{n} {singular if n == 1 else plural}"
+
+
 def _lista(frases: Iterable[str]) -> str:
     unicas = list(dict.fromkeys(frases))
     if len(unicas) <= 1:
@@ -137,8 +141,8 @@ def resumir(alertas: Sequence[Alerta], nombre: str = "el estudiante") -> Resumen
     lo_mas = _lista(f for f, _ in conteo.most_common(2))
     administrador = "\n".join(
         [
-            f"Resumen de {nombre}, {periodo}: {crisis} crisis y {preventivas} avisos preventivos; "
-            f"{pendientes} sin atender.",
+            f"Resumen de {nombre}, {periodo}: {_cuenta(crisis, 'crisis', 'crisis')} y "
+            f"{_cuenta(preventivas, 'aviso preventivo', 'avisos preventivos')}; {pendientes} sin atender.",
             f"Lo más frecuente: {lo_mas}.",
             *(_renglon(a) for a in ordenadas),
             "Este resumen se arma con las reglas que se activaron; no incluye lo que escribió el estudiante.",

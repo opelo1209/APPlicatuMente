@@ -16,7 +16,15 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.evaluador_diario import evaluar_entrada  # noqa: E402
-from app.exploracion import LINEA_CIJ, PREGUNTAS_SEGUIMIENTO, pregunta_seguimiento  # noqa: E402
+from app.exploracion import (  # noqa: E402
+    ANTECEDENTE_ANTES,
+    ANTECEDENTE_SUSTANCIAS,
+    FUNCIONAMIENTO,
+    LINEA_CIJ,
+    PREGUNTAS_SEGUIMIENTO,
+    pregunta_seguimiento,
+    secuencia_seguimiento,
+)
 from app.guardia_salida import LINEAS_TEXTO  # noqa: E402
 from app.motor_wang import (  # noqa: E402
     ACCION_APOYO_AUTOLESION,
@@ -122,8 +130,28 @@ def test_la_pregunta_no_se_repite_en_mensajes_seguidos():
 
 
 def test_si_ya_se_dijeron_todas_usa_la_ultima():
-    opciones = PREGUNTAS_SEGUIMIENTO["desesperanza_extrema"]
+    opciones = secuencia_seguimiento({"desesperanza_extrema"})
     assert pregunta_seguimiento({"desesperanza_extrema"}, opciones) == opciones[-1]
+
+
+# Semana 4 (asesor, 16 oct): vida diaria y antecedentes.
+def test_despues_de_la_senal_pregunta_por_la_vida_diaria_y_antecedentes():
+    seq = secuencia_seguimiento({"carga_percibida"})
+    assert seq[:2] == PREGUNTAS_SEGUIMIENTO["carga_percibida"]
+    assert seq[2] == FUNCIONAMIENTO[0]
+    assert ANTECEDENTE_ANTES in seq and seq[-1] == ANTECEDENTE_SUSTANCIAS
+
+
+def test_con_autolesion_no_pregunta_si_se_ha_lastimado():
+    assert ANTECEDENTE_ANTES not in secuencia_seguimiento({"autolesion_ocurrida"})
+
+
+def test_la_conversacion_avanza_sin_repetir_preguntas():
+    r = _conversar(["ya no le veo sentido a nada", "nada tiene sentido la verdad", "ya no le veo sentido a nada",
+                    "nada tiene sentido la verdad"])
+    textos = [x.texto for x in r if x.tipo == "explorar"]
+    assert len(textos) == len(set(textos)), "ninguna pregunta se repite"
+    assert any(FUNCIONAMIENTO[0] in t for t in textos)
 
 
 def test_la_autolesion_tiene_prioridad_sobre_otras_preguntas():

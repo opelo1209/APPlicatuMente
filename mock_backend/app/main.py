@@ -19,6 +19,10 @@ from google.oauth2 import id_token as google_id_token
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
+from .niveles_columbia import COMUNITARIO as NIVEL_COMUNITARIO
+from .niveles_columbia import RECURSO_COMUNITARIO, RECURSO_URGENTE, nivel_columbia
+from .niveles_columbia import SEGUIMIENTO as NIVEL_SEGUIMIENTO
+from .niveles_columbia import URGENTE as NIVEL_URGENTE
 from .prototipo_api import ANALIZADOR, GENERADOR, MEMORIA, crear_router, crear_tablas_prototipo
 from .serena_pipeline import mantener_caliente, precalentar
 
@@ -825,25 +829,45 @@ def build_parent_alert(session: dict[str, Any], student: dict[str, Any]) -> dict
     if tipo_cuestionario == "suicidio":
         phq9_score = _response_int(respuestas.get("phq9_score")) or _block_score(respuestas, "PHQ9")
         cssrs_score = _response_int(respuestas.get("cssrs_score")) or _block_score(respuestas, "CSSRS")
-        riesgo_alto = cssrs_score > 0 or phq9_score >= 10
-        if riesgo_alto:
+        # Semana 4 (asesor, 16 oct): niveles de Columbia. Antes era «riesgo
+        # alto» con cualquier «sí» o PHQ-9 >= 10 (cerca del 19 % de los
+        # estudiantes). Ahora solo el plan es urgente; la intención va a lo
+        # comunitario; lo demás se sigue en la app y en la escuela.
+        nivel = nivel_columbia(respuestas)
+        if nivel == NIVEL_URGENTE:
             return {
                 "tipo": "riesgo_alto",
-                "titulo": "Alerta de riesgo emocional",
+                "titulo": "Se detectó alto riesgo: busque evaluación hoy",
                 "mensaje": (
-                    f"{nombre} respondió el cuestionario de depresión/riesgo. "
-                    f"PHQ-9: {phq9_score}; C-SSRS: {cssrs_score}. Hay señales que requieren acompañamiento cercano."
+                    f"{nombre} respondió el cuestionario de riesgo y sus respuestas indican un plan para hacerse daño. "
+                    "Se ha detectado alto riesgo: por favor contacte a un especialista para una evaluación más detallada."
                 ),
                 "recomendacion": (
-                    "Como padre/madre/tutor: hable con calma y sin regaños, pregunte directamente cómo se siente, "
-                    "no le deje solo/a si percibe riesgo inmediato, retire medios con los que pudiera hacerse daño "
-                    "y contacte a un profesional de salud mental. Si hay peligro inmediato, acuda a urgencias o llame a emergencias."
+                    f"Busque hoy la evaluación con un especialista ({RECURSO_URGENTE} en el piloto). "
+                    "No le deje solo/a, retire medios con los que pudiera hacerse daño y hable con calma y sin regaños. "
+                    "Si hay peligro inmediato, llame al 911 o a la Línea de la Vida (800 911 2000, 24 horas)."
                 ),
             }
+        if nivel == NIVEL_COMUNITARIO:
+            return {
+                "tipo": "riesgo_comunitario",
+                "titulo": "Señales de riesgo: busque apoyo en su comunidad",
+                "mensaje": (
+                    f"{nombre} respondió el cuestionario de riesgo y sus respuestas indican que ha tenido la intención "
+                    "de hacerse daño. Es importante que reciba apoyo profesional pronto."
+                ),
+                "recomendacion": (
+                    f"Acérquese con su hijo/a a {RECURSO_COMUNITARIO} cercano; la escuela puede ayudarle a encontrarlo. "
+                    "Pregúntele directamente cómo está, escuche sin juzgar y no minimice lo que siente. "
+                    "Si cree que su seguridad está en peligro, llame al 911 o a la Línea de la Vida (800 911 2000)."
+                ),
+            }
+        seguimiento = nivel == NIVEL_SEGUIMIENTO or phq9_score >= 10
         return {
             "tipo": "cuestionario_completado",
             "titulo": "Cuestionario de riesgo completado",
-            "mensaje": f"{nombre} completó el cuestionario de depresión/riesgo. PHQ-9: {phq9_score}; C-SSRS: {cssrs_score}.",
+            "mensaje": f"{nombre} completó el cuestionario de depresión/riesgo. PHQ-9: {phq9_score}; C-SSRS: {cssrs_score}."
+            + (" La app y la escuela le darán seguimiento." if seguimiento else ""),
             "recomendacion": (
                 "Como padre/madre/tutor: reconozca el esfuerzo de responder, mantenga una conversación abierta, "
                 "observe cambios de ánimo, sueño, apetito o aislamiento, y ofrezca apoyo sin minimizar lo que siente."

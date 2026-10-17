@@ -190,8 +190,10 @@ def _concordancia(entrada: EntradaDiario, analisis: ResultadoSentimiento | None,
         return "sin_analisis", ""
     if consulta:
         # Semana 4: "vimos en clase las senales del suicidio" sale negativo
-        # por la palabra, no por el dia del estudiante.
-        return "incierto", MENSAJE_CONSULTA
+        # por la palabra, no por el dia del estudiante. Si de todos modos
+        # coincide con lo que marco, cuenta como coincidencia en «Mi semana».
+        coincide = _es_confiable(analisis) and analisis.polaridad == entrada.polaridad  # type: ignore[union-attr]
+        return ("coincide" if coincide else "incierto"), MENSAJE_CONSULTA
     if not _es_confiable(analisis):
         return "incierto", "Gracias por escribir. Tu registro de hoy quedó guardado."
     if analisis.polaridad == entrada.polaridad:

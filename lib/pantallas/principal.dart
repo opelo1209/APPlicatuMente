@@ -24,6 +24,9 @@ import 'servicios/boton_instalar_app.dart';
 import 'servicios/personalizacion.dart';
 import 'servicios/user.dart';
 
+// Semana 4: alertas a padres que se resaltan (niveles de Columbia).
+const _tiposDeRiesgo = {'riesgo_alto', 'riesgo_comunitario'};
+
 class Principal extends StatefulWidget {
   const Principal({super.key});
 
@@ -255,7 +258,8 @@ class _PrincipalState extends State<Principal>
         .whereType<Map>()
         .where(
           (alerta) =>
-              alerta['leida'] != true && alerta['tipo']?.toString() == 'riesgo_alto',
+              alerta['leida'] != true &&
+              _tiposDeRiesgo.contains(alerta['tipo']?.toString()),
         )
         .toList();
     if (highRiskAlerts.isEmpty) return;
@@ -1168,6 +1172,11 @@ class _PrincipalState extends State<Principal>
                               tipoIcon = Icons.warning_amber_rounded;
                               tipoColor = const Color(0xFFE53935);
                               break;
+                            // Semana 4: intención (Columbia) -> comunitario.
+                            case 'riesgo_comunitario':
+                              tipoIcon = Icons.warning_amber_rounded;
+                              tipoColor = const Color(0xFFEF6C00);
+                              break;
                             case 'mensaje':
                               tipoIcon = Icons.chat_bubble_outline_rounded;
                               tipoColor = const Color(0xFF42A5F5);
@@ -1295,7 +1304,7 @@ class _PrincipalState extends State<Principal>
     final mensaje = alerta['mensaje']?.toString() ?? '';
     final recomendacion = alerta['recomendacion']?.toString() ?? '';
     final tipo = alerta['tipo']?.toString() ?? '';
-    final isRisk = tipo == 'riesgo_alto';
+    final isRisk = _tiposDeRiesgo.contains(tipo);
 
     showDialog(
       context: context,

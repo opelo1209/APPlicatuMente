@@ -143,3 +143,38 @@ def test_modo_completo_con_error_de_estilo_usa_la_respuesta_sin_modelo():
     r = responder("me pongo muy nervioso cuando expongo", AF, GeneradorFalso("Estoy con usted."), modo="completo")
     assert "usted" not in r.texto.lower()
     assert r.texto.startswith("Gracias por contármelo")
+
+
+# --------------------------------------------------------------------------
+# Semana 4: vocativos en cualquier posición (S13) y género supuesto (S16)
+# --------------------------------------------------------------------------
+
+import pytest as _pytest  # noqa: E402
+
+from app.guardia_salida import aplicar_guardia as _guardia  # noqa: E402
+
+
+@_pytest.mark.parametrize(
+    "oracion",
+    ["Lo siento mucho, jefe.", "Jefa, entiendo lo que dices.", "Gracias por contarme, Serena.", "Te entiendo, mamá."],
+)
+def test_s13_vocativo_en_cualquier_posicion(oracion):
+    assert _guardia(oracion, requiere_lineas=False, breve=True).reemplazada
+
+
+@_pytest.mark.parametrize(
+    "oracion",
+    ["¿Te sientes cómoda con esa idea?", "Se nota que estás muy cansado.", "Entiendo que te sientas sola.",
+     "¿Estás segura de eso?"],
+)
+def test_s16_supone_genero(oracion):
+    assert _guardia(oracion, requiere_lineas=False, breve=True).reemplazada
+
+
+@_pytest.mark.parametrize(
+    "oracion",
+    ["Gracias por contarme cómo te sientes.", "Qué difícil lo que cuentas.", "Tu mamá también puede ayudarte.",
+     "¿Cómo te sientes con eso?", "Suena a que estás pasando por algo difícil."],
+)
+def test_s13_y_s16_no_reemplazan_oraciones_neutras(oracion):
+    assert not _guardia(oracion, requiere_lineas=False, breve=True).reemplazada

@@ -115,16 +115,20 @@ class _TarjetaAlerta extends StatelessWidget {
             spacing: 6,
             children: [for (final r in reglas) Chip(label: Text('Regla $r'))],
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Frases que coincidieron',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-          for (final e in evidencia)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text('• ${e.toString().replaceFirst(':', ': «')}»'),
+          // Semana 4: R16 (método en general) no trae frases; sin ellas no
+          // se muestra el título vacío.
+          if (evidencia.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'Frases que coincidieron',
+              style: TextStyle(fontWeight: FontWeight.w700),
             ),
+            for (final e in evidencia)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text('• ${e.toString().replaceFirst(':', ': «')}»'),
+              ),
+          ],
           if (alerta['perfil_tipo'] == 'estudiante' &&
               alerta['id_usuario'] is int) ...[
             const SizedBox(height: 8),

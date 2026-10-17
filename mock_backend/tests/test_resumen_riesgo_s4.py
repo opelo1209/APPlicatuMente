@@ -58,3 +58,8 @@ def test_fila_de_la_base():
             "fecha_creacion": datetime(2026, 10, 16, tzinfo=timezone.utc)}
     a = alerta_de_fila(fila)
     assert a.es_crisis and "en su diario" in resumir([a]).administrador
+
+
+def test_singular_y_plural():
+    r = resumir([ALERTAS[0], ALERTAS[1]], "Ana")
+    assert "1 crisis y 1 aviso preventivo;" in r.administrador

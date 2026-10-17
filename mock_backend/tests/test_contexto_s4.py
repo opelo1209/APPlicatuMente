@@ -253,3 +253,9 @@ def test_consulta_no_manda_mensajes_anteriores_al_modelo():
     r = responder("qué es la ansiedad", AF, g, historial=(primero.turno,))
     assert g.vistos and "tristeza" not in g.vistos[-1]
     assert "tristeza" not in r.texto.lower()
+
+
+def test_diario_consulta_que_coincide_cuenta_como_coincidencia():
+    neutro = AnalizadorFalso("neutro", "otra")
+    r = evaluar_entrada(entrada("neutro", ["tranquilidad"], "vimos en clase las señales de alerta del suicidio"), neutro)
+    assert r.concordancia == "coincide" and r.mensaje_concordancia == MENSAJE_CONSULTA

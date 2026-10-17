@@ -100,10 +100,24 @@ _PATRONES = {
         # Se dirige a mama/papa o a la propia Serena, como si fuera el estudiante.
         r"\b(?:como\s+estas|hola|gracias),?\s+(?:mama|papa|jefa|jefe|serena)\b",
         r"\bconfieso\s+que\b",
+        # Semana 4 (PsychoCounsel y Qwen dentro de Serena): el vocativo en
+        # cualquier posición, no solo después de un saludo («Lo siento
+        # mucho, jefe.», «Jefa, ...»). El glosario del prompt es para
+        # ENTENDER al estudiante, no para llamarlo así.
+        r",\s*(?:mama|papa|jefa|jefe|serena)\s*[.!?]",
+        r"^\W*(?:mama|papa|jefa|jefe|serena)\s*,",
         # Le pide consejo al estudiante (NO-13 v1), en cualquier orden.
         r"\b(?:puedas|podrias|puedes)\s+(?:compartirme|darme)\b.{0,20}\bconsejo",
         r"\bconsejo\b.{0,30}\b(?:puedas|podrias|puedes)\s+(?:compartirme|darme)\b",
         r"\bnecesito\s+(?:tu\s+)?consejo\b",
+    ],
+    # Semana 4 (captura de prototipo11: «¿Te sientes cómoda con esa idea?»):
+    # el prompt pide lenguaje neutro y el modelo supone el género.
+    "supone_genero": [
+        r"\b(?:te\s+sientes|te\s+sientas|te\s+sentiste|estas|estes|estuviste|eres|seas|te\s+notas|andas|te\s+ves)\s+"
+        r"(?:muy\s+|un\s+poco\s+|algo\s+|tan\s+|bastante\s+)?"
+        r"(?:comod|incomod|tranquil|cansad|preocupad|enojad|agobiad|estresad|asustad|frustrad|confundid|"
+        r"aburrid|emocionad|nervios|sol|abrumad|desanimad|deprimid|ansios|segur|content|agotad|aislad)[ao]s?\b",
     ],
     "impone": [
         r"(?<!no\s)\btienes\s+que\b",

@@ -510,6 +510,11 @@ REGLAS_SALIDA = (
         "aconseja and solo_acompanar -> reemplazar_apertura",
         "En modo breve el modelo solo acompana; los consejos vienen del material aprobado (NO-20 invento \"5 segundos\").",
     ),
+    Regla(
+        "S16",
+        "supone_genero -> reemplazar_apertura",
+        "Semana 4: lenguaje neutro; el modelo supuso el genero (\"¿Te sientes comoda...?\").",
+    ),
 )
 ACCION_BLOQUEAR = "bloquear"
 ACCION_REEMPLAZAR_APERTURA = "reemplazar_apertura"

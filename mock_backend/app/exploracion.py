@@ -35,8 +35,6 @@ LINEA_CIJ: Mapping[str, str] = MappingProxyType(
     {"nombre": "CIJ Contigo", "telefono": "55 5212 1212", "horario": "orientación sobre consumo de sustancias"}
 )
 
-# Cuantas respuestas anteriores se revisan para no repetir la misma pregunta.
-SIN_REPETIR_TURNOS = 2
 
 PREGUNTAS_SEGUIMIENTO: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
@@ -63,6 +61,21 @@ PREGUNTAS_SEGUIMIENTO: Mapping[str, tuple[str, ...]] = MappingProxyType(
         ),
     }
 )
+# Semana 4 (asesor, 16 oct): "la aproximación de los problemas de salud
+# mental tiene que ver mucho con el funcionamiento de la vida diaria", y
+# preguntar por antecedentes (sugirió OxMIS). OxMIS se validó en Suecia para
+# esquizofrenia y trastorno bipolar y da un puntaje de riesgo; aquí NO se
+# calcula ningún puntaje: solo se toman, como preguntas, los antecedentes que
+# también aplican a adolescentes (que ya haya pasado antes, autolesión previa
+# y consumo de sustancias). Los antecedentes familiares los decide psicología.
+FUNCIONAMIENTO = (
+    "¿Cómo has estado durmiendo y comiendo estos días? ¿Has podido ir a la escuela y hacer tus cosas como siempre?",
+)
+ANTECEDENTE_ANTES = "¿Te había pasado antes sentirte así? ¿Alguna vez te has lastimado cuando te sientes así?"
+ANTECEDENTE_SUSTANCIAS = (
+    "A veces la gente usa alcohol u otras cosas para sentirse mejor un rato. ¿A ti te ha pasado?"
+)
+
 PREGUNTAS_GENERALES = (
     "Gracias por decírmelo; me importa cómo estás. ¿Quieres contarme un poco más de lo que te está pasando?",
     "Aquí sigo contigo. ¿Qué es lo que más te pesa ahorita?",
@@ -71,13 +84,24 @@ PREGUNTAS_GENERALES = (
 _PRIORIDAD = ("autolesion_ocurrida", "hiperbole_muerte", "carga_percibida", "desesperanza_extrema")
 
 
-def pregunta_seguimiento(categorias: Iterable[str], respuestas_previas: Iterable[str] = ()) -> str:
-    """La pregunta que corresponde a la senal, sin repetir la que Serena
-    acaba de decir. Si ya se dijeron todas, se usa la ultima."""
+def secuencia_seguimiento(categorias: Iterable[str]) -> tuple[str, ...]:
+    """Las preguntas en el orden en que se hacen: primero las de la señal,
+    después cómo funciona en su vida diaria y al final los antecedentes."""
     presentes = set(categorias)
-    opciones = next((PREGUNTAS_SEGUIMIENTO[c] for c in _PRIORIDAD if c in presentes), PREGUNTAS_GENERALES)
-    recientes = set(list(respuestas_previas)[-SIN_REPETIR_TURNOS:])
-    return next((o for o in opciones if o not in recientes), opciones[-1])
+    categoria = next((c for c in _PRIORIDAD if c in presentes), None)
+    propias = PREGUNTAS_SEGUIMIENTO[categoria] if categoria else PREGUNTAS_GENERALES
+    # Con autolesion ya se sabe que se lastimo: no se pregunta otra vez.
+    antes = () if categoria == "autolesion_ocurrida" else (ANTECEDENTE_ANTES,)
+    return (*propias, *FUNCIONAMIENTO, *antes, ANTECEDENTE_SUSTANCIAS)
+
+
+def pregunta_seguimiento(categorias: Iterable[str], respuestas_previas: Iterable[str] = ()) -> str:
+    """La siguiente pregunta que Serena no ha hecho en esta conversación
+    (Semana 4: antes solo se evitaba repetir las dos últimas). Si ya se
+    hicieron todas, se repite la última."""
+    opciones = secuencia_seguimiento(categorias)
+    dichas = set(respuestas_previas)
+    return next((o for o in opciones if o not in dichas), opciones[-1])
 
 
 def lineas_para(mensaje: str, con_lineas_crisis: bool) -> tuple[Mapping[str, str], ...]:
