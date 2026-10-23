@@ -58,6 +58,12 @@ class Peticiones {
       '$baseUrl/admin/alertas-riesgo/$idAlerta/atendida';
   static String adminResumenRiesgo(int idUsuario) =>
       '$baseUrl/admin/resumen-riesgo/$idUsuario';
+  // Semana 5: cuentas (lista, reactivar y borrado completo).
+  static const String adminUsuarios = '$baseUrl/admin/usuarios';
+  static String adminUsuarioActivo(String perfil, int id) =>
+      '$baseUrl/admin/usuarios/$perfil/$id/activo';
+  static String adminBorrarUsuario(String perfil, int id) =>
+      '$baseUrl/admin/usuarios/$perfil/$id/borrar';
 
   // Password recovery
   static const String passwordResetRequest =

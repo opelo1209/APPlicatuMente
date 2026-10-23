@@ -41,6 +41,7 @@ class ServicioPrototipo {
       final uri = Uri.parse(url);
       final respuesta = await switch (metodo) {
         'GET' => http.get(uri, headers: headers),
+        'PUT' => http.put(uri, headers: headers, body: jsonEncode(cuerpo ?? {})),
         _ => http.post(uri, headers: headers, body: jsonEncode(cuerpo ?? {})),
       }.timeout(_espera);
       final texto = utf8.decode(respuesta.bodyBytes);
@@ -161,4 +162,32 @@ class ServicioPrototipo {
 
   static Future<RespuestaApi> resumenRiesgo(int idUsuario, {int dias = 30}) =>
       _llamar('GET', '${Peticiones.adminResumenRiesgo(idUsuario)}?dias=$dias');
+
+  // ----------------------- Cuentas (Semana 5) ------------------------------
+
+  static Future<RespuestaApi> cuentas({
+    String perfil = 'estudiante',
+    String buscar = '',
+  }) => _llamar(
+    'GET',
+    '${Peticiones.adminUsuarios}?perfil=$perfil'
+        '&buscar=${Uri.encodeQueryComponent(buscar)}',
+  );
+
+  static Future<RespuestaApi> cambiarActivo(
+    String perfil,
+    int id, {
+    required bool activo,
+  }) => _llamar('PUT', Peticiones.adminUsuarioActivo(perfil, id), {
+    'activo': activo,
+  });
+
+  /// Borrado completo: hay que escribir el nombre de usuario para confirmar.
+  static Future<RespuestaApi> borrarCuenta(
+    String perfil,
+    int id,
+    String confirmacion,
+  ) => _llamar('POST', Peticiones.adminBorrarUsuario(perfil, id), {
+    'confirmacion': confirmacion,
+  });
 }
