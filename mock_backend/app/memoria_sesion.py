@@ -13,10 +13,13 @@ servicio.
 
 from __future__ import annotations
 
+import fcntl
+import os
+import tempfile
 import threading
 import time
 from dataclasses import dataclass, replace
-from typing import Callable
+from typing import IO, Callable
 
 MAX_TURNOS = 10
 TTL_SEGUNDOS = 2 * 60 * 60
@@ -73,6 +76,38 @@ class MemoriaSesiones:
 
     def ahora(self) -> float:
         return self._reloj()
+
+
+class VariosProcesos(RuntimeError):
+    """El servicio arranco con mas de un worker y la memoria no lo soporta."""
+
+
+def ruta_candado() -> str:
+    return os.getenv("SERENA_CANDADO") or os.path.join(tempfile.gettempdir(), f"aptm-serena-{os.getuid()}.lock")
+
+
+def reservar_proceso_unico(ruta: str | None = None) -> IO[str]:
+    """Semana 5 (H7). La memoria vive en la RAM de un proceso: con varios
+    workers, cada mensaje caeria en uno distinto y la regla R14 (senales
+    repetidas en la conversacion) dejaria de cumplirse sin que nadie lo
+    notara. Guardarla en la base cambiaria la decision de privacidad, que
+    corresponde a psicologia y al asesor; mientras tanto, el segundo worker
+    se niega a arrancar.
+
+    Devuelve el archivo con el candado; hay que mantenerlo abierto mientras
+    viva el proceso (el sistema lo suelta solo al terminar)."""
+    archivo = open(ruta or ruta_candado(), "w", encoding="utf-8")  # noqa: SIM115
+    try:
+        fcntl.flock(archivo, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        archivo.close()
+        raise VariosProcesos(
+            "La memoria de Serena solo funciona con un worker (memoria_sesion.py). "
+            "Arranca uvicorn sin --workers o con --workers 1."
+        ) from None
+    archivo.write(str(os.getpid()))
+    archivo.flush()
+    return archivo
 
 
 def hechos_de_sesion(turnos: tuple[Turno, ...]) -> frozenset[str]:

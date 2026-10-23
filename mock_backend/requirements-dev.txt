@@ -1,2 +1,5 @@
 -r requirements.txt
 pytest==9.1.1
+# TestClient de FastAPI/Starlette (Semana 5: faltaba; sin el, en una
+# maquina nueva no corria ninguna prueba de la API).
+httpx==0.28.1
