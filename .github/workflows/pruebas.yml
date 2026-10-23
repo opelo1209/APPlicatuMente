@@ -1,0 +1,78 @@
+name: Pruebas
+
+# Semana 5: antes la publicación compilaba y publicaba sin correr ninguna
+# prueba. Este flujo corre en cada push y pull request, y publicar.yml lo
+# llama antes de compilar: si una prueba falla, no se publica nada.
+on:
+  push:
+    # En demo ya lo corre publicar.yml; aquí se correría dos veces.
+    branches-ignore: [demo]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (pytest)
+    runs-on: ubuntu-latest
+    # Una base vacía en cada corrida: tests/conftest.py crea las tablas y
+    # los personajes de la demo.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aptm_proto
+        ports:
+          - 55433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: mock_backend
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55433/aptm_proto
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: mock_backend/requirements-dev.txt
+
+      - name: Instalar dependencias
+        run: pip install -r requirements-dev.txt
+
+      - name: Correr las pruebas
+        run: python -m pytest -q
+
+  app:
+    name: App (flutter analyze y flutter test)
+    runs-on: ubuntu-latest
+    container: ghcr.io/cirruslabs/flutter:stable
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar dependencias de Flutter
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          flutter pub get
+
+      # Solo los errores detienen la publicación: el proyecto arrastra avisos
+      # de estilo de antes de la Semana 5 que no impiden compilar.
+      - name: Análisis estático
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Correr las pruebas
+        run: flutter test

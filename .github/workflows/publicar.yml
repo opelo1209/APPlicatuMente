@@ -6,6 +6,10 @@ name: Publicar APTM para ml.izt.uam.mx
 # scripts/actualizar_servidor.sh). Así no hay ninguna llave de acceso al
 # servidor de la universidad guardada en GitHub.
 #
+# Semana 5: antes de compilar corren las pruebas (pruebas.yml). Si alguna
+# falla, `compilar` y `publicar` no se ejecutan y el servidor se queda con la
+# versión anterior.
+#
 # Son dos trabajos a propósito:
 #   - `compilar` corre DENTRO de la imagen oficial de Flutter, que trae el SDK
 #     pero no las herramientas de GitHub (`gh`).
@@ -32,7 +36,11 @@ env:
   ETIQUETA: ultimo-despliegue
 
 jobs:
+  pruebas:
+    uses: ./.github/workflows/pruebas.yml
+
   compilar:
+    needs: pruebas
     runs-on: ubuntu-latest
     container: ghcr.io/cirruslabs/flutter:stable
     outputs:
