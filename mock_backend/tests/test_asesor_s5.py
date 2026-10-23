@@ -170,3 +170,35 @@ def _textos_asignados(modulo):
 def test_los_textos_fijos_no_suponen_el_genero(modulo):
     con_genero = [t for t in _textos_asignados(modulo) if "supone_genero" in hechos_de_salida(t, False, True)]
     assert con_genero == []
+
+
+# --------------------- 3. dias neutros en el diario ------------------------
+# Bateria S5: 8 de 20 dias neutros recibian «notamos tristeza». Provisional
+# hasta la respuesta de psicologia (consulta S5, pregunta 8).
+
+def _diario(polaridad, emociones, analizador):
+    from app.evaluador_diario import EntradaDiario, evaluar_entrada
+
+    return evaluar_entrada(EntradaDiario(polaridad, emociones, "Desayuné cereal y me fui en el camión"), analizador)
+
+
+def test_un_dia_marcado_neutro_no_se_contradice():
+    r = _diario("neutro", ("tranquilidad",), AnalizadorFalso("negativo", "tristeza", 0.95))
+    assert r.concordancia == "incierto"
+    assert "tristeza" not in r.mensaje_concordancia
+
+
+def test_un_dia_marcado_bueno_si_se_sigue_contrastando():
+    r = _diario("positivo", ("alegria",), AnalizadorFalso("negativo", "tristeza", 0.95))
+    assert r.concordancia == "difiere"
+
+
+def test_un_dia_neutro_que_coincide_sigue_coincidiendo():
+    assert _diario("neutro", ("tranquilidad",), AnalizadorFalso("neutro", "otra", 0.9)).concordancia == "coincide"
+
+
+def test_el_riesgo_se_detecta_aunque_el_dia_este_marcado_neutro():
+    from app.evaluador_diario import EntradaDiario, evaluar_entrada
+
+    r = evaluar_entrada(EntradaDiario("neutro", ("tranquilidad",), "ya no quiero vivir"), AnalizadorFalso("negativo", "tristeza", 0.95))
+    assert r.accion != "normal"
