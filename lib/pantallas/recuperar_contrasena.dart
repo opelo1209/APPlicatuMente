@@ -13,6 +13,9 @@ class _RecuperarContrasenaState extends State<RecuperarContrasena> {
   bool _cargando = false;
   bool _enviado = false;
   String? _error;
+  // Semana 5 (H4): lo que responde el servidor. Antes la pantalla decía
+  // «Correo enviado» aunque no se hubiera enviado nada.
+  String _mensajeExito = '';
 
   @override
   void dispose() {
@@ -23,7 +26,7 @@ class _RecuperarContrasenaState extends State<RecuperarContrasena> {
   Future<void> _enviar() async {
     final valor = _ctrl.text.trim();
     if (valor.isEmpty) {
-      setState(() => _error = 'Ingresá tu correo electrónico o nombre de usuario.');
+      setState(() => _error = 'Escribe tu correo electrónico o nombre de usuario.');
       return;
     }
     setState(() {
@@ -36,6 +39,7 @@ class _RecuperarContrasenaState extends State<RecuperarContrasena> {
       _cargando = false;
       if (res['success'] == true) {
         _enviado = true;
+        _mensajeExito = res['message'] as String? ?? '';
       } else {
         _error = res['message'] as String?;
       }
@@ -92,7 +96,7 @@ class _RecuperarContrasenaState extends State<RecuperarContrasena> {
         ),
         const SizedBox(height: 12),
         Text(
-          'Ingresá tu correo electrónico o nombre\nde usuario y te enviaremos un enlace\npara restablecer tu contraseña.',
+          'Escribe tu correo electrónico o nombre\nde usuario y te enviaremos un enlace\npara restablecer tu contraseña.',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14,
@@ -174,7 +178,7 @@ class _RecuperarContrasenaState extends State<RecuperarContrasena> {
         ),
         const SizedBox(height: 24),
         Text(
-          'Correo enviado',
+          'Solicitud recibida',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -183,7 +187,7 @@ class _RecuperarContrasenaState extends State<RecuperarContrasena> {
         ),
         const SizedBox(height: 12),
         Text(
-          'Revisá tu bandeja de entrada.\nTe enviamos un enlace para restablecer\ntu contraseña.',
+          _mensajeExito,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 15,

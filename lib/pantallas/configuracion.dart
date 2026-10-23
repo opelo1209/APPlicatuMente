@@ -161,8 +161,8 @@ class _ConfiguracionState extends State<Configuracion> {
       setState(() => _errorPass = 'Completá todos los campos.');
       return;
     }
-    if (newPw.length < 6) {
-      setState(() => _errorPass = 'La nueva contraseña debe tener al menos 6 caracteres.');
+    if (newPw.length < 8) {
+      setState(() => _errorPass = 'La nueva contraseña debe tener al menos 8 caracteres.');
       return;
     }
     if (newPw != confirm) {

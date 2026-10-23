@@ -1,17 +1,19 @@
 import hashlib
 import json
+import logging
 import os
 import threading
 import re
 import secrets
 import time
 import uuid
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from typing import Any
 
 import psycopg2
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from google.auth.transport import requests as google_requests
@@ -19,10 +21,14 @@ from google.oauth2 import id_token as google_id_token
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
+from . import correo
+from . import limite_intentos as limite
+from . import recuperacion_contrasena as recuperacion
 from .niveles_columbia import COMUNITARIO as NIVEL_COMUNITARIO
 from .niveles_columbia import RECURSO_COMUNITARIO, RECURSO_URGENTE, nivel_columbia
 from .niveles_columbia import SEGUIMIENTO as NIVEL_SEGUIMIENTO
 from .niveles_columbia import URGENTE as NIVEL_URGENTE
+from .memoria_sesion import reservar_proceso_unico
 from .prototipo_api import ANALIZADOR, GENERADOR, MEMORIA, crear_router, crear_tablas_prototipo
 from .serena_pipeline import mantener_caliente, precalentar
 
@@ -84,8 +90,15 @@ DEMO_USERS = {
     "administrador": "admin_demo",
 }
 
-# In-memory password reset tokens: {token: {id_usuario, perfil_tipo, expira}}
-RESET_TOKENS: dict[str, dict[str, Any]] = {}
+log = logging.getLogger("aptm")
+
+# Semana 5 (H11): OWASP recomienda 600 000 iteraciones para PBKDF2-SHA256.
+# Los hashes viejos (120 000) se actualizan solos al iniciar sesion.
+PBKDF2_ITERACIONES = 600_000
+# Semana 5 (H5): longitud de las contrasenas nuevas. El tope evita que una
+# contrasena enorme ocupe el CPU calculando PBKDF2.
+LONGITUD_MINIMA_PASSWORD = 8
+LONGITUD_MAXIMA_PASSWORD = 128
 
 PROFILE_TABLES = {
     "estudiante": "usuarios_estudiantes",
@@ -146,14 +159,41 @@ ROLE_CAPABILITIES = {
 }
 
 security = HTTPBearer(auto_error=False)
-app = FastAPI(title="APTM Front Mock Backend")
+
+# Semana 5 (H10): antes allow_origins=["*"]. En el servidor la app y la API
+# comparten origen (ml.izt.uam.mx), asi que CORS solo hace falta en
+# desarrollo, donde Flutter sirve la app en localhost con un puerto que
+# cambia. CORS_ORIGENES (separados por comas) reemplaza la lista.
+ORIGENES_POR_OMISION = ("https://ml.izt.uam.mx",)
+ORIGEN_LOCAL = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
+
+
+def origenes_cors() -> list[str]:
+    configurados = [o.strip().rstrip("/") for o in os.getenv("CORS_ORIGENES", "").split(",") if o.strip()]
+    return configurados or list(ORIGENES_POR_OMISION)
+
+
+@asynccontextmanager
+async def ciclo_de_vida(_app: FastAPI):
+    """Semana 5 (H10): reemplaza @app.on_event("startup"), obsoleto en
+    FastAPI. Lo que se abre aqui vive hasta que el proceso termina."""
+    candado = reservar_proceso_unico()
+    try:
+        startup()
+        yield
+    finally:
+        candado.close()
+
+
+app = FastAPI(title="APTM Front Mock Backend", lifespan=ciclo_de_vida)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origenes_cors(),
+    allow_origin_regex=ORIGEN_LOCAL,
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 
@@ -432,10 +472,11 @@ def init_db() -> None:
             )
             seed_question_configs(cur)
             crear_tablas_prototipo(cur)
+            limite.crear_tabla(cur)
+            recuperacion.crear_tabla(cur)
         conn.commit()
 
 
-@app.on_event("startup")
 def startup() -> None:
     init_db()
     # PROTOTIPO Semana 3: con modelo configurado, se cargan pysentimiento y
@@ -454,7 +495,7 @@ def _calentar_serena() -> None:
 
 def hash_password(password: str) -> str:
     salt = secrets.token_hex(16)
-    iterations = 120_000
+    iterations = PBKDF2_ITERACIONES
     digest = hashlib.pbkdf2_hmac(
         "sha256",
         password.encode("utf-8"),
@@ -478,6 +519,48 @@ def verify_password(password: str, password_hash: str) -> bool:
         return secrets.compare_digest(digest.hex(), expected)
     except ValueError:
         return False
+
+
+def necesita_rehash(password_hash: str) -> bool:
+    """Semana 5 (H11): un hash con menos iteraciones que las actuales."""
+    try:
+        algorithm, iterations, _, _ = password_hash.split("$", 3)
+        return algorithm != "pbkdf2_sha256" or int(iterations) < PBKDF2_ITERACIONES
+    except ValueError:
+        return True
+
+
+@lru_cache(maxsize=1)
+def _hash_ficticio() -> str:
+    return hash_password(secrets.token_hex(16))
+
+
+def verificar_sin_cuenta(password: str) -> None:
+    """Si el usuario no existe se calcula un hash igual de costoso, para que
+    el tiempo de respuesta no revele que cuentas existen."""
+    verify_password(password, _hash_ficticio())
+
+
+def validar_password(password: str) -> None:
+    """Semana 5 (H5): reglas para cualquier contrasena NUEVA (registro,
+    cambio y recuperacion). Las cuentas existentes siguen entrando con la
+    que ya tienen."""
+    if len(password) < LONGITUD_MINIMA_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"La contraseña debe tener al menos {LONGITUD_MINIMA_PASSWORD} caracteres.",
+        )
+    if len(password) > LONGITUD_MAXIMA_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"La contraseña no puede pasar de {LONGITUD_MAXIMA_PASSWORD} caracteres.",
+        )
+
+
+def ip_de(request: Request) -> str:
+    # uvicorn corre con --proxy-headers y solo confia en Apache (127.0.0.1),
+    # asi que aqui llega la IP real del cliente y no la del proxy.
+    return request.client.host if request.client else "desconocida"
 
 
 def serialize(value: Any) -> Any:
@@ -1267,6 +1350,7 @@ def favicon() -> dict[str, str]:
 @app.post("/auth/register", status_code=status.HTTP_201_CREATED)
 def register(user: UserRegister) -> dict[str, Any]:
     profile = normalize_profile(user.perfil_tipo)
+    validar_password(user.password)
 
     # El registro publico no puede crear administradores. Una cuenta de
     # administrador puede leer las respuestas de TODOS los estudiantes
@@ -1361,17 +1445,42 @@ def register(user: UserRegister) -> dict[str, Any]:
     }
 
 
+def _fallo_de_login(cur: Any, conn: Any, cuenta: str, ip: str) -> HTTPException:
+    """Semana 5 (H5): cuenta el intento fallido y lo guarda aunque la
+    peticion termine en error."""
+    limite.registrar(cur, limite.LOGIN_CUENTA, cuenta)
+    limite.registrar(cur, limite.LOGIN_IP, ip)
+    conn.commit()
+    return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales incorrectas")
+
+
 @app.post("/auth/login")
-def login(credentials: UserLogin) -> dict[str, Any]:
+def login(credentials: UserLogin, request: Request) -> dict[str, Any]:
+    cuenta, ip = credentials.username, ip_de(request)
     with db_conn() as conn:
         with conn.cursor() as cur:
+            limite.exigir(cur, (limite.LOGIN_CUENTA, cuenta), (limite.LOGIN_IP, ip))
             found = find_user(cur, credentials.username)
             if not found:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales incorrectas")
+                verificar_sin_cuenta(credentials.password)
+                raise _fallo_de_login(cur, conn, cuenta, ip)
 
             profile, table, row = found
-            if not row["activo"] or not verify_password(credentials.password, row["password_hash"]):
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales incorrectas")
+            if not verify_password(credentials.password, row["password_hash"]):
+                raise _fallo_de_login(cur, conn, cuenta, ip)
+            # Semana 5 (H6): solo quien sabe la contrasena se entera de que la
+            # cuenta esta desactivada, y sabe a quien pedir ayuda.
+            if not row["activo"]:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Tu cuenta está desactivada. Pide al administrador que la reactive.",
+                )
+            limite.limpiar(cur, limite.LOGIN_CUENTA, cuenta)
+            if necesita_rehash(row["password_hash"]):
+                cur.execute(
+                    f"UPDATE {table} SET password_hash = %s WHERE id_usuario = %s",
+                    (hash_password(credentials.password), row["id_usuario"]),
+                )
 
             token = crear_sesion(cur, profile, row["id_usuario"])
             cur.execute(
@@ -1413,23 +1522,31 @@ def demo_disponible() -> dict[str, Any]:
     }
 
 
+def _exigir_clave_demo(clave: str, ip: str) -> None:
+    """Semana 5 (H5): la clave de la demo tambien tiene limite de intentos
+    por direccion. Sin clave configurada nunca se entra."""
+    if DEMO_SIN_CLAVE:
+        return
+    with db_conn() as conn:
+        with conn.cursor() as cur:
+            limite.exigir(cur, (limite.DEMO_IP, ip))
+            # Comparacion en tiempo constante para no filtrar la clave
+            # midiendo el tiempo de respuesta.
+            if DEMO_ACCESS_CODE and secrets.compare_digest(clave.strip(), DEMO_ACCESS_CODE):
+                return
+            limite.registrar(cur, limite.DEMO_IP, ip)
+        conn.commit()
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Clave incorrecta")
+
+
 @app.post("/auth/demo")
-def demo_login(payload: DemoLogin) -> dict[str, Any]:
+def demo_login(payload: DemoLogin, request: Request) -> dict[str, Any]:
     if not DEMO_ENABLED:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="El acceso rapido no esta activo en este despliegue",
         )
-
-    # Comparacion en tiempo constante para no filtrar la clave midiendo el
-    # tiempo de respuesta.
-    if not DEMO_SIN_CLAVE and (
-        not DEMO_ACCESS_CODE
-        or not secrets.compare_digest(payload.clave.strip(), DEMO_ACCESS_CODE)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Clave incorrecta"
-        )
+    _exigir_clave_demo(payload.clave, ip_de(request))
 
     # "madre" y "padre" comparten perfil y tabla en este esquema, asi que el
     # personaje se busca con el nombre pedido y no con el perfil normalizado:
@@ -1547,69 +1664,76 @@ def google_login(payload: GoogleLogin) -> dict[str, Any]:
     }
 
 
+MENSAJE_RECUPERACION = (
+    "Si existe una cuenta con esos datos, te enviamos un correo con las "
+    "instrucciones. Revisa también la carpeta de correo no deseado."
+)
+MENSAJE_SIN_CORREO = (
+    "La recuperación por correo todavía no está disponible. Pide al "
+    "administrador de tu escuela que te ayude a restablecer tu contraseña."
+)
+
+
 @app.post("/auth/password-reset-request")
-def password_reset_request(payload: PasswordResetRequest) -> dict[str, Any]:
+def password_reset_request(payload: PasswordResetRequest, request: Request) -> dict[str, Any]:
+    """Semana 5 (H4). Antes respondia 404 si la cuenta no existia (revelaba
+    que cuentas existen), imprimia el token en el registro y decia «correo
+    enviado» sin enviarlo. Ahora la respuesta es la misma exista o no la
+    cuenta, el token solo viaja por correo y, si el servidor no tiene correo
+    configurado, lo dice en lugar de fingir el envio."""
+    if not correo.configurado():
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=MENSAJE_SIN_CORREO)
+    cuenta, ip = payload.email_or_username, ip_de(request)
+    destinatario: tuple[str, str] | None = None
     with db_conn() as conn:
         with conn.cursor() as cur:
-            found = find_user(cur, payload.email_or_username)
-            if not found:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="No encontramos una cuenta con ese correo o usuario.",
-                )
-            profile, table, row = found
-    token = str(uuid.uuid4())
-    expira = datetime.now(timezone.utc) + timedelta(hours=1)
-    RESET_TOKENS[token] = {
-        "id_usuario": row["id_usuario"],
-        "perfil_tipo": profile,
-        "expira": expira,
-    }
-    debug_msg = (
-        f"\n{'='*60}\n"
-        f"  📧 CORREO DE RECUPERACION ENVIADO\n"
-        f"  Para: {row.get('correo', '?')}\n"
-        f"  Usuario: {row.get('nombre_usuario', '?')}\n"
-        f"  Token: {token}\n"
-        f"  Expira: {expira.isoformat()}\n"
-        f"  Enlace: http://localhost:8080/reset-password?token={token}\n"
-        f"{'='*60}"
-    )
-    print(debug_msg)
-    return {
-        "success": True,
-        "message": "Correo de recuperacion enviado. Revisa tu bandeja de entrada.",
-    }
+            limite.exigir(cur, (limite.RECUPERACION_CUENTA, cuenta), (limite.RECUPERACION_IP, ip))
+            limite.registrar(cur, limite.RECUPERACION_CUENTA, cuenta)
+            limite.registrar(cur, limite.RECUPERACION_IP, ip)
+            found = find_user(cur, cuenta)
+            if found and found[2]["activo"]:
+                profile, _, row = found
+                token = recuperacion.crear(cur, profile, row["id_usuario"])
+                destinatario = (row["correo"], recuperacion.cuerpo_correo(row["nombres"], token))
+        conn.commit()
+    if destinatario is not None:
+        # En otro hilo: esperar al servidor de correo solo cuando la cuenta
+        # existe haria que el tiempo de respuesta la delatara.
+        threading.Thread(
+            target=correo.enviar,
+            args=(destinatario[0], "Restablecer tu contraseña de APPlicatuMente", destinatario[1]),
+            daemon=True,
+        ).start()
+    log.info("recuperacion de contrasena solicitada")
+    return {"success": True, "message": MENSAJE_RECUPERACION}
 
 
 @app.post("/auth/password-reset-confirm")
 def password_reset_confirm(payload: PasswordResetConfirm) -> dict[str, Any]:
-    token_data = RESET_TOKENS.get(payload.token)
-    if not token_data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Token invalido o ya fue usado.",
-        )
-    if datetime.now(timezone.utc) > token_data["expira"]:
-        RESET_TOKENS.pop(payload.token, None)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El token ha expirado. Solicita uno nuevo.",
-        )
-    profile = token_data["perfil_tipo"]
-    table = PROFILE_TABLES[profile]
-    user_id = token_data["id_usuario"]
+    validar_password(payload.new_password)
     with db_conn() as conn:
         with conn.cursor() as cur:
+            dueno = recuperacion.consumir(cur, payload.token)
+            if dueno is None:
+                conn.commit()  # un token vencido tambien se borra
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="El enlace no es válido o ya venció. Solicita uno nuevo.",
+                )
+            table = PROFILE_TABLES[dueno.perfil_tipo]
             cur.execute(
-                f"UPDATE {table} SET password_hash = %s WHERE id_usuario = %s",
-                (hash_password(payload.new_password), user_id),
+                f"UPDATE {table} SET password_hash = %s WHERE id_usuario = %s RETURNING nombre_usuario, correo",
+                (hash_password(payload.new_password), dueno.id_usuario),
             )
+            cuenta = cur.fetchone()
             # Semana 4 (H2): quien tenia la cuenta abierta queda fuera.
-            invalidar_sesiones(cur, profile, user_id)
+            invalidar_sesiones(cur, dueno.perfil_tipo, dueno.id_usuario)
+            # Con la contrasena nueva ya puede entrar aunque estuviera bloqueada.
+            if cuenta:
+                limite.limpiar(cur, limite.LOGIN_CUENTA, cuenta["nombre_usuario"])
+                limite.limpiar(cur, limite.LOGIN_CUENTA, cuenta["correo"])
         conn.commit()
-    RESET_TOKENS.pop(payload.token, None)
-    return {"success": True, "message": "Contrasena actualizada correctamente."}
+    return {"success": True, "message": "Contraseña actualizada correctamente."}
 
 
 @app.post("/auth/change-password")
@@ -1618,6 +1742,7 @@ def change_password(
     user: dict[str, Any] = Depends(current_user),
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> dict[str, Any]:
+    validar_password(payload.new_password)
     table = PROFILE_TABLES[user["perfil_tipo"]]
     with db_conn() as conn:
         with conn.cursor() as cur:
@@ -1838,6 +1963,28 @@ def deactivate_user(user: dict[str, Any] = Depends(current_user)) -> dict[str, A
     return set_user_active(user, False)
 
 
+class ActivoUpdate(BaseModel):
+    activo: bool
+
+
+@app.put("/admin/usuarios/{perfil_tipo}/{id_usuario}/activo")
+def admin_set_active(
+    perfil_tipo: str, id_usuario: int, payload: ActivoUpdate, user: dict[str, Any] = Depends(current_user)
+) -> dict[str, Any]:
+    """Semana 5 (H6): una cuenta desactivada ya no puede llamar a
+    /users/activar (no puede iniciar sesion), asi que la reactiva el
+    administrador."""
+    if user["perfil_tipo"] != "administrador":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo para administradores")
+    profile = normalize_profile(perfil_tipo)
+    if profile == "administrador" and id_usuario == user["id_usuario"] and not payload.activo:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No puedes desactivar tu propia cuenta.")
+    try:
+        return set_user_active({"perfil_tipo": profile, "id_usuario": id_usuario}, payload.activo)
+    except LookupError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El usuario no existe.") from None
+
+
 def set_user_active(user: dict[str, Any], active: bool) -> dict[str, Any]:
     table = PROFILE_TABLES[user["perfil_tipo"]]
     with db_conn() as conn:
@@ -1851,7 +1998,13 @@ def set_user_active(user: dict[str, Any], active: bool) -> dict[str, Any]:
                 """,
                 (active, user["id_usuario"]),
             )
-            updated = user_to_dict(cur.fetchone(), user["perfil_tipo"])
+            fila = cur.fetchone()
+            if fila is None:
+                raise LookupError(user["id_usuario"])
+            updated = user_to_dict(fila, user["perfil_tipo"])
+            # Semana 5 (H6): desactivar cierra todas las sesiones abiertas.
+            if not active:
+                invalidar_sesiones(cur, user["perfil_tipo"], user["id_usuario"])
         conn.commit()
     return {"message": "Usuario actualizado exitosamente", "user": updated}
 

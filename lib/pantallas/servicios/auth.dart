@@ -125,8 +125,9 @@ class Auth {
         body: jsonEncode({'username': username, 'password': password}),
       );
 
+      // Semana 5: ya no se imprime la respuesta; traia el token de sesion y
+      // en la web debugPrint escribe en la consola del navegador.
       debugPrint('Login Status Code: ${response.statusCode}');
-      debugPrint('Login Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -137,7 +138,7 @@ class Auth {
       } else {
         return {
           'success': false,
-          'message': 'Credenciales incorrectas',
+          'message': mensajeDeLogin(response.statusCode, response.body),
           'error': response.body,
         };
       }
@@ -468,4 +469,21 @@ class Auth {
       };
     }
   }
+}
+
+/// Semana 5 (H5, H6): el servidor explica los bloqueos (429) y las cuentas
+/// desactivadas (403); cualquier otro error sigue siendo «credenciales
+/// incorrectas», que no revela si la cuenta existe.
+String mensajeDeLogin(int codigo, String cuerpo) {
+  if (codigo == 429 || codigo == 403) {
+    try {
+      final detalle = (jsonDecode(cuerpo) as Map<String, dynamic>)['detail'];
+      if (detalle is String && detalle.isNotEmpty) return detalle;
+    } on FormatException {
+      // Respuesta sin JSON: se usa el mensaje general.
+    } on TypeError {
+      // JSON con otra forma: se usa el mensaje general.
+    }
+  }
+  return 'Credenciales incorrectas';
 }

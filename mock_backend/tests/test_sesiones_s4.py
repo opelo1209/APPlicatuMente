@@ -16,6 +16,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import app.main as main_mod
+from app import recuperacion_contrasena as recuperacion
 
 DB = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:55433/aptm_proto")
 CLAVE = "clave-original-123"
@@ -26,6 +27,8 @@ def cliente(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", DB)
     monkeypatch.delenv("SESION_HORAS", raising=False)
     importlib.reload(main_mod)
+    # Semana 5: el costo del hash (H11) no importa aqui y alargaba la bateria.
+    monkeypatch.setattr(main_mod, "PBKDF2_ITERACIONES", 1_000)
     return TestClient(main_mod.app)
 
 
@@ -130,12 +133,9 @@ def test_restablecer_la_contrasena_invalida_todas_las_sesiones(cliente, usuario)
         with conn.cursor() as cur:
             cur.execute("SELECT id_usuario FROM usuarios_padres WHERE nombre_usuario = %s", (usuario,))
             id_usuario = cur.fetchone()["id_usuario"]
-    reinicio = secrets.token_urlsafe(16)
-    main_mod.RESET_TOKENS[reinicio] = {
-        "id_usuario": id_usuario,
-        "perfil_tipo": "padre",
-        "expira": datetime.now(timezone.utc) + timedelta(minutes=5),
-    }
+            # Semana 5 (H7): los tokens de recuperacion ya estan en la base.
+            reinicio = recuperacion.crear(cur, "padre", id_usuario)
+        conn.commit()
     r = cliente.post("/auth/password-reset-confirm", json={"token": reinicio, "new_password": "otra-clave-789"})
     assert r.status_code == 200, r.text
     assert me(cliente, token).status_code == 401

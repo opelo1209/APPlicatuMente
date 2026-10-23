@@ -249,9 +249,9 @@ class _RegistroState extends State<Registro> {
       return;
     }
 
-    if (_passwordController.text.trim().length < 6) {
+    if (_passwordController.text.trim().length < 8) {
       _showMessage(
-        'La contraseña debe tener al menos 6 caracteres',
+        'La contraseña debe tener al menos 8 caracteres',
         isError: true,
       );
       return;
