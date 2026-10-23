@@ -145,9 +145,14 @@ def test_cortar_a_la_mitad_detiene_al_modelo_y_lo_deja_listo():
     g = GeneradorAislado("x.gguf", objetivo=bucle_por_partes, tiempo_max=20)
     try:
         partes = g.generar_partes(MENSAJES, max_tokens=60)
-        inicio = time.perf_counter()
+        # Semana 5 (CI): se cronometra desde la primera palabra. Antes
+        # contaba tambien el arranque del proceso hijo, que en un entorno
+        # nuevo (sin bytecode en cache) pasa de 2 s; lo que importa aqui es
+        # que el corte sea inmediato.
+        inicio = None
         texto = ""
         for p in partes:
+            inicio = inicio or time.perf_counter()
             texto += p
             if "." in texto:
                 partes.close()  # el consumidor ya tiene su oracion
