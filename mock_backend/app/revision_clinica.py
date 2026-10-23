@@ -21,6 +21,7 @@ persona) cambian el sentido clinico y se consultan antes con la doctora.
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -28,6 +29,8 @@ from types import MappingProxyType
 from typing import Mapping
 
 RUTA_REVISION = Path(__file__).parent / "datos" / "revision_clinica.json"
+
+log = logging.getLogger(__name__)
 
 ESTADO_APROBADO = "aprobado"
 ESTADO_CORREGIDO = "corregido"
@@ -59,6 +62,9 @@ def _revisiones(ruta: str = str(RUTA_REVISION)) -> Mapping[str, Revision]:
     try:
         datos = json.loads(Path(ruta).read_text(encoding="utf-8"))
     except FileNotFoundError:
+        # Semana 5: el archivo es privado (no esta en el repositorio). Sin el,
+        # todo queda «pendiente» y no se descarta lo rechazado: que se note.
+        log.warning("sin revision clinica en %s: todos los textos quedan pendientes", ruta)
         return MappingProxyType({})
     revisor, fecha = datos.get("revisor"), datos.get("fecha")
     resultado: dict[str, Revision] = {}
