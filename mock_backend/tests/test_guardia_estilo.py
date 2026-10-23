@@ -122,7 +122,7 @@ def test_en_la_respuesta_breve_se_cambia_solo_la_apertura():
     assert "mamá" not in r.texto
     assert r.texto.startswith("Gracias por contármelo")  # apertura fija para polaridad negativa
     assert "Del material del programa:" in r.texto  # el material aprobado se conserva
-    assert any(inv in r.texto for inv in INVITACIONES_ADULTO)
+    assert not any(inv in r.texto for inv in INVITACIONES_ADULTO)  # Semana 5: va en la bienvenida
     assert r.fuentes
     assert r.etapas["salida"]["reglas"] == ["S13"]
 

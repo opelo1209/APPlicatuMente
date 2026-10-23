@@ -30,9 +30,18 @@ CRISIS_REPETIDA = (
     "¿Hay algún adulto cerca de ti en este momento?",
 )
 
+# Semana 5 (revision clinica, ideacion: «tomar en cuenta el tiempo o la
+# frecuencia de los pensamientos»). Va despues de la pregunta de seguridad:
+# primero si esta a salvo, luego desde cuando y que tan seguido.
+PREGUNTA_FRECUENCIA = (
+    "Gracias por contarme. ¿Desde cuándo tienes estos pensamientos y qué tan seguido te vienen? "
+    "¿Es algo de estos días o lo has sentido desde hace tiempo?"
+)
+
 ACOMPANAR_CRISIS = (
     "Aquí sigo. ¿Cómo estás en este momento? ¿Estás en un lugar seguro?",
-    "Gracias por seguir platicando conmigo. ¿Hay alguien cerca de ti ahorita, alguien con quien te sientas seguro?",
+    PREGUNTA_FRECUENCIA,
+    "Gracias por seguir platicando conmigo. ¿Hay alguien cerca de ti ahorita, alguien de tu confianza?",
     "Si quieres, te ayudo a dar el paso: podemos escribir juntos lo que le dirías a un adulto, "
     "o te cuento qué pasa cuando llamas a la línea. ¿Qué prefieres?",
     "Cuando todo se siente demasiado, puede ayudar respirar despacio: inhala contando cuatro, "

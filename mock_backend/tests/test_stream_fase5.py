@@ -65,8 +65,9 @@ def test_sin_material_avisa_la_primera_oracion_ya_revisada():
     avisos = []
     r = responder("me peleé con mi mejor amiga", AF, g, modo="breve", al_avanzar=avisos.append)
     # Cierre S3: primero la invitacion (ya se conoce) y luego la oracion
-    # revisada, arriba de ella.
-    assert avisos[1].startswith("Qué bueno que me escribes.")
+    # revisada, arriba de ella. Semana 5: sin invitacion, la oracion revisada
+    # es lo primero que se ve.
+    assert avisos[0] == "Qué bueno que me escribes."
     assert "¿Qué pasó con tu amiga?" in r.texto
     assert "sobrante" not in r.texto
 

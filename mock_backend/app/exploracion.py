@@ -41,7 +41,7 @@ PREGUNTAS_SEGUIMIENTO: Mapping[str, tuple[str, ...]] = MappingProxyType(
         "autolesion_ocurrida": (
             "Gracias por confiarme algo así; no estás en problemas por contármelo. A veces lastimarse es "
             "una forma de aguantar algo que duele mucho por dentro. ¿Hace cuánto te pasa y cómo estás ahorita?",
-            "Me importa cómo estás. ¿Hay algún adulto con quien te sientas seguro para contarle lo que te pasa? "
+            "Me importa cómo estás. ¿Hay algún adulto de tu confianza a quien puedas contarle lo que te pasa? "
             "Si quieres, pensamos juntos cómo decírselo.",
         ),
         "hiperbole_muerte": (

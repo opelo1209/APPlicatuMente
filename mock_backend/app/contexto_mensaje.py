@@ -37,12 +37,26 @@ _PIDE_INFORMACION = (
     r"(?:que\s+(?:es|son|significa|causa|provoca)|por\s+que\s+(?:la\s+gente|las\s+personas|alguien|se\s+|existe|hay)|"
     r"cuales?\s+(?:son|es)|como\s+(?:funciona|se\s+(?:siente|manifiesta|detecta|previene|trata|identifica))|"
     r"es\s+normal\s+(?:que|sentir)|existe)\b",
-    r"\b(?:informacion|material(?:es)?|datos|articulos?|lecturas?|recursos?|guia|explica(?:me|rme|cion)?|hablame)\b"
-    r".{0,30}\b(?:de|del|sobre|acerca|respecto)\b",
+    r"\b(?:informacion|material(?:es)?|datos|articulos?|lecturas?|recursos?|guias?|libros?|videos?|explica(?:me|rme|cion)?|hablame)\b"
+    r".{0,30}\b(?:de|del|sobre|acerca|respecto|para\s+(?:entender|saber|aprender|conocer))\b",
     r"\b(?:quiero|quisiera|me\s+gustaria|puedes|podrias|me\s+puedes|me\s+podrias)\s+(?:\w+\s+){0,3}?"
     r"(?:saber|aprender|entender|conocer|consultar|investigar|informar\w*)\b",
     r"\b(?:senales|sintomas|mitos|causas|tipos|factores\s+de\s+riesgo|diferencia\s+entre|estadisticas)\b",
     r"\bcomo\s+(?:puedo\s+)?(?:ayudar|apoyar|acompanar)\s+a\s+(?:alguien|un\s+amig\w*|una\s+amig\w*|una\s+persona|mi\s+\w+)",
+    # Semana 5 (consultas que fallaban en la Semana 4 y en frases nuevas).
+    # Pedir una explicacion: el verbo y luego que/como/cual + lo que se
+    # explica ("me puedes explicar que es...", "me explicas como se trata").
+    # "dime que no estoy loco" no entra: tras "que" se exige es/son/pasa...
+    r"\b(?:explica\w*|dime|decir(?:me)?|cuenta(?:me)?|contar(?:me)?|ensena(?:me|r(?:me)?)?)\b.{0,20}?"
+    r"\b(?:que\s+(?:es|son|significa|causa|provoca|pasa)|como\s+(?:se|funciona)|cual(?:es)?\s+(?:es|son)|por\s+que|en\s+que)\b",
+    r"\b(?:en\s+que\s+se\s+diferencia\w*|diferencias?\s+(?:hay\s+)?entre|(?:cual|cuales|que)\s+(?:es|son)\s+las?\s+diferencias?)\b",
+    r"\bque\s+(?:pasa|sucede|ocurre)\s+(?:en|con)\s+(?:el|la|los|las)\b",
+    # Como ayudar a otra persona: "que puedo hacer para apoyar a un amigo",
+    # "como le hago para ayudar a mi hermano", "que le digo a mi primo".
+    r"\b(?:que|como)\s+(?:\w+\s+){0,3}?(?:ayud\w*|apoy\w*|acompan\w*|decirle|digo|decir)\s+(?:a\s+)?(?:mi|mis|un|una|alguien)\b",
+    # "que hago si mi amiga esta pasando por..." (la otra persona es quien
+    # esta mal; "que hago si mi papa me pega" no entra: lo frena _HABLA_DE_SI).
+    r"\bque\s+(?:hago|puedo\s+hacer|hacer)\s+si\s+(?:mi|un|una)\s+(?:\w+\s+){0,2}?(?:esta|anda|se\s+siente|tiene|pasa|sufre)\b",
     r"\b(?:tarea|trabajo|exposicion|proyecto|investigacion|ensayo)\b.{0,40}\b(?:sobre|de|acerca)\b",
     r"\bsolo\s+(?:quise|quiero|queria)\s+(?:consultar|saber|preguntar|informa\w*|leer)\b",
     r"\b(?:como|maneras?|formas?)\s+(?:de\s+|se\s+puede\s+)?(?:prevenir|evitar|detectar|identificar)\b",
@@ -62,7 +76,13 @@ _HABLA_DE_SI = (
     r"\b(?:suicidarme|matarme|cortarme|lastimarme|ahorcarme|quitarme\s+la\s+vida|hacerme\s+dano)\b",
     r"\bque\s+(?:yo\s+)?me\s+(?:suicide|mate|muera|corte|lastime)\b",
     r"\byo\s+(?:me|tengo|siento|estoy|quiero|pienso)\b",
-    r"\bpara\s+mi\b",
+    # "para mi" sin acento tambien es "para mi tarea": solo cuenta como
+    # "para mi" (yo) al final o antes de es/fue/no/que... (Semana 5).
+    r"\bpara\s+mi\b(?=\s*(?:[,.;:!?]|$|(?:es|fue|era|no|que|tambien|mismo|misma|sola|solo)\b))",
+    r"\b(?:sentirme|me\s+siento)\b",
+    # Lo que otra persona le hace (Semana 5): "que hago, mi papa me pega"
+    # habla de quien escribe aunque pregunte "que hago".
+    r"\bme\s+(?:pega|pegan|golpea|golpean|grita|gritan|insulta\w*|molesta\w*|hace\w*\s+bullying|toca\w*|amenaza\w*|acosa\w*|lastima\w*)\b",
     r"\bme\s+pasa\b",
     r"\blo\s+que\s+(?:me\s+pasa|siento|vivo)\b",
     r"\b(?:creo\s+que\s+)?tengo\s+(?:depresion|ansiedad|ganas\s+de)\b",

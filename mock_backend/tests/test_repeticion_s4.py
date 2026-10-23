@@ -5,6 +5,11 @@ La invitacion se agregaba en cada mensaje del modo breve, sin ver si ya se
 habia dicho. Ahora se agrega solo si no aparecio en las dos respuestas
 anteriores de Serena. Crisis, limites y la sugerencia de apoyo de Wang (R10)
 no cambian: ahi la derivacion siempre va.
+
+Semana 5: la bienvenida del chat ya lo dice; una respuesta normal ya no
+invita (tests/test_bienvenida_s5.py). Estas pruebas usan una conversacion con
+una senal ambigua previa (R15, sugerir apoyo), que es donde la invitacion
+sigue y donde importa que no se repita.
 """
 
 import sys
@@ -12,7 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.memoria_sesion import SENAL_NINGUNA, Turno  # noqa: E402
+from app.memoria_sesion import SENAL_AMBIGUA, SENAL_NINGUNA, Turno  # noqa: E402
 from app.serena_pipeline import INVITACIONES_ADULTO, responder  # noqa: E402
 from tests.test_evaluador_diario import AnalizadorFalso  # noqa: E402
 
@@ -30,12 +35,16 @@ def turno(respuesta):
     return Turno("mensaje anterior", respuesta, "normal", SENAL_NINGUNA, "neutro", 0.0)
 
 
+# Un mensaje ambiguo al inicio de la conversacion activa R15 en los siguientes.
+AMBIGUO = Turno("ya no le veo sentido a nada", "¿Desde cuándo te sientes así?", "explorar", SENAL_AMBIGUA, "negativo", 0.0)
+
+
 def invita(texto):
     return any(inv in texto for inv in INVITACIONES_ADULTO)
 
 
 def conversar(mensajes):
-    historial, respuestas = [], []
+    historial, respuestas = [AMBIGUO], []
     for m in mensajes:
         r = responder(m, AF, GeneradorFijo(), historial=list(historial), modo="breve")
         respuestas.append(r)
@@ -44,14 +53,14 @@ def conversar(mensajes):
     return respuestas
 
 
-def test_el_primer_mensaje_si_invita_a_un_adulto():
-    r = responder("hoy tuve un día raro en la escuela", AF, GeneradorFijo(), historial=[], modo="breve")
+def test_tras_una_senal_ambigua_si_invita_a_un_adulto():
+    r = responder("hoy tuve un día raro en la escuela", AF, GeneradorFijo(), historial=[AMBIGUO], modo="breve")
     assert invita(r.texto)
 
 
 def test_no_se_repite_si_ya_invito_en_la_respuesta_anterior():
     anterior = turno("Te escucho. Recuerda que puedes buscar a un adulto de confianza para hablar de esto.")
-    r = responder("y luego me fui a mi casa", AF, GeneradorFijo(), historial=[anterior], modo="breve")
+    r = responder("y luego me fui a mi casa", AF, GeneradorFijo(), historial=[AMBIGUO, anterior], modo="breve")
     assert not invita(r.texto)
 
 
@@ -71,7 +80,7 @@ def test_en_una_conversacion_de_seis_mensajes_invita_a_lo_mas_dos_veces():
 
 
 def test_vuelve_a_invitar_despues_de_dos_respuestas_sin_invitacion():
-    sin_invitacion = [turno("Te escucho."), turno("Qué bien que me lo cuentes.")]
+    sin_invitacion = [AMBIGUO, turno("Te escucho."), turno("Qué bien que me lo cuentes.")]
     r = responder("otra vez me siento raro", AF, GeneradorFijo(), historial=sin_invitacion, modo="breve")
     assert invita(r.texto)
 
@@ -79,7 +88,7 @@ def test_vuelve_a_invitar_despues_de_dos_respuestas_sin_invitacion():
 def test_una_invitacion_de_otro_texto_tambien_cuenta():
     # La respuesta segura de explorar ya pidio platicarlo con alguien.
     anterior = turno("Si te sirve, platícalo con un adulto de confianza. Línea de la Vida 800 911 2000.")
-    r = responder("bueno, cambiando de tema", AF, GeneradorFijo(), historial=[anterior], modo="breve")
+    r = responder("bueno, cambiando de tema", AF, GeneradorFijo(), historial=[AMBIGUO, anterior], modo="breve")
     assert not invita(r.texto)
 
 
