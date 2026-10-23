@@ -139,6 +139,9 @@ _PATRONES = {
     # los saludos («bienvenida»).
     "supone_genero": [
         rf"\b{_VERBO_TU}\s+{_GRADO}{_ADJ_GENERO}",
+        # T4 (23 oct): «te sientes muy triste y desesperada». El primer
+        # adjetivo no cambia con el genero y el segundo si.
+        rf"\b{_VERBO_TU}\s+{_GRADO}\w+\s*,?\s+(?:y|e|o|pero|y\s+muy|y\s+algo)\s+{_GRADO}{_ADJ_GENERO}",
         rf"\bque\s+tan\s+{_ADJ_GENERO}\s+(?:te\s+(?:sientes|sentiste|sentirias|ves|notas)|estas|eres)\b",
         rf"\b(?:verte|sentirte|notarte|leerte|encontrarte|saberte|por\s+ser)\s+{_GRADO}{_ADJ_GENERO}",
         # «Bienvenida» como saludo; «te doy la bienvenida» es neutro.

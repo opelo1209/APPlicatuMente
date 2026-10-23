@@ -101,6 +101,9 @@ SUPONEN_GENERO = [
     "Bienvenida, cuéntame.",
     "Hola, amiga, ¿cómo estás?",
     "No te desanimes, amigo.",
+    # T4 (23 oct), respuestas reales del modelo que pasaban:
+    "Entiendo que te sientes muy triste y desesperada.",
+    "Entiendo que te sientas triste y frustrado.",
 ]
 
 NEUTRAS = [
@@ -114,6 +117,7 @@ NEUTRAS = [
     "Te sientes mal y es válido.",
     "Estás haciendo lo correcto al preguntar.",
     "Te doy la bienvenida al chat.",
+    "Te sientes triste y eso está bien.",
 ]
 
 
