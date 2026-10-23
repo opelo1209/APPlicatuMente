@@ -1,0 +1,575 @@
+{
+ "nombre": "bateria_sentimiento_s5",
+ "version": 1,
+ "fecha": "2026-10-23",
+ "descripcion": "Semana 5 (reunion con el asesor): 20 frases negativas, 20 neutras y 20 positivas, como las escribiria un estudiante de secundaria en su diario o en el chat. Cada frase trae su polaridad, su emocion principal (las 7 clases del analizador) y las emociones del catalogo del diario que marcaria el estudiante. Etiquetas puestas ANTES de medir; las revisa psicologia. Sin frases de crisis: la bateria corre en el servidor y no debe generar alertas reales.",
+ "clases_emocion": [
+  "alegria",
+  "tristeza",
+  "enojo",
+  "miedo",
+  "sorpresa",
+  "asco",
+  "otra"
+ ],
+ "frases": [
+  {
+   "id": "N01",
+   "texto": "Hoy reprobé el examen de mate y me siento muy triste",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "tristeza"
+   ]
+  },
+  {
+   "id": "N02",
+   "texto": "Me peleé con mi mejor amiga y ya no me habla, me siento sola",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "soledad",
+    "tristeza"
+   ]
+  },
+  {
+   "id": "N03",
+   "texto": "Estoy harto de que mis papás siempre se peleen en la casa",
+   "polaridad": "negativo",
+   "emocion": "enojo",
+   "emociones_diario": [
+    "ira",
+    "frustracion"
+   ]
+  },
+  {
+   "id": "N04",
+   "texto": "Me da mucho coraje que el profe me regañe enfrente de todos",
+   "polaridad": "negativo",
+   "emocion": "enojo",
+   "emociones_diario": [
+    "ira"
+   ]
+  },
+  {
+   "id": "N05",
+   "texto": "Tengo miedo de que mañana me vuelvan a molestar en la escuela",
+   "polaridad": "negativo",
+   "emocion": "miedo",
+   "emociones_diario": [
+    "miedo"
+   ]
+  },
+  {
+   "id": "N06",
+   "texto": "Mañana es mi exposición y estoy muy nervioso, no puedo dormir",
+   "polaridad": "negativo",
+   "emocion": "miedo",
+   "emociones_diario": [
+    "ansiedad"
+   ]
+  },
+  {
+   "id": "N07",
+   "texto": "Extraño mucho a mi abuelito, hoy se cumplió un año de que murió",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "tristeza"
+   ]
+  },
+  {
+   "id": "N08",
+   "texto": "Me dio mucho asco la comida de la cafetería, tenía un pelo",
+   "polaridad": "negativo",
+   "emocion": "asco",
+   "emociones_diario": [
+    "asco"
+   ]
+  },
+  {
+   "id": "N09",
+   "texto": "Mis compañeros se burlaron de mi ropa y me dio vergüenza",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "verguenza"
+   ]
+  },
+  {
+   "id": "N10",
+   "texto": "Me siento culpable por haberle gritado a mi hermanito",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "culpa"
+   ]
+  },
+  {
+   "id": "N11",
+   "texto": "Nadie me eligió para su equipo en educación física",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "tristeza",
+    "soledad"
+   ]
+  },
+  {
+   "id": "N12",
+   "texto": "Mi papá no vino a mi partido otra vez, como siempre",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "tristeza",
+    "frustracion"
+   ]
+  },
+  {
+   "id": "N13",
+   "texto": "Odio que me comparen con mi prima todo el tiempo",
+   "polaridad": "negativo",
+   "emocion": "enojo",
+   "emociones_diario": [
+    "ira"
+   ]
+  },
+  {
+   "id": "N14",
+   "texto": "Me preocupa que mis papás se vayan a divorciar",
+   "polaridad": "negativo",
+   "emocion": "miedo",
+   "emociones_diario": [
+    "angustia"
+   ]
+  },
+  {
+   "id": "N15",
+   "texto": "Me robaron el celular saliendo de la secundaria y estoy muy asustado",
+   "polaridad": "negativo",
+   "emocion": "miedo",
+   "emociones_diario": [
+    "miedo"
+   ]
+  },
+  {
+   "id": "N16",
+   "texto": "Estudié un montón y aun así saqué cinco, qué frustración",
+   "polaridad": "negativo",
+   "emocion": "enojo",
+   "emociones_diario": [
+    "frustracion"
+   ]
+  },
+  {
+   "id": "N17",
+   "texto": "Me siento muy solo en esta escuela nueva, no conozco a nadie",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "soledad"
+   ]
+  },
+  {
+   "id": "N18",
+   "texto": "Qué asco cómo trata mi tío a mi tía, me da repulsión",
+   "polaridad": "negativo",
+   "emocion": "asco",
+   "emociones_diario": [
+    "asco",
+    "ira"
+   ]
+  },
+  {
+   "id": "N19",
+   "texto": "Tengo un nudo en el estómago desde que vi las calificaciones",
+   "polaridad": "negativo",
+   "emocion": "miedo",
+   "emociones_diario": [
+    "angustia"
+   ]
+  },
+  {
+   "id": "N20",
+   "texto": "Hoy lloré en el baño porque nadie me habla",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "tristeza",
+    "soledad"
+   ]
+  },
+  {
+   "id": "U01",
+   "texto": "Hoy fui a la escuela, tuve clase de mate y luego regresé a mi casa",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "tranquilidad"
+   ]
+  },
+  {
+   "id": "U02",
+   "texto": "Desayuné cereal y me fui en el camión",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "tranquilidad"
+   ]
+  },
+  {
+   "id": "U03",
+   "texto": "Tengo tarea de biología para el jueves",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "tranquilidad"
+   ]
+  },
+  {
+   "id": "U04",
+   "texto": "Estuve todo el día en mi cuarto viendo videos",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "aburrimiento"
+   ]
+  },
+  {
+   "id": "U05",
+   "texto": "Hoy no pasó nada interesante",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "aburrimiento",
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "U06",
+   "texto": "Me dormí tarde y ando un poco cansado",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "cansancio"
+   ]
+  },
+  {
+   "id": "U07",
+   "texto": "Mañana hay junta de padres en la escuela",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "tranquilidad"
+   ]
+  },
+  {
+   "id": "U08",
+   "texto": "Fui al súper con mi mamá a comprar lo de la semana",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "tranquilidad"
+   ]
+  },
+  {
+   "id": "U09",
+   "texto": "La clase de química estuvo normal",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "U10",
+   "texto": "Cambiaron el horario de educación física para los viernes",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "U11",
+   "texto": "Hoy llovió en la tarde y no salí",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "tranquilidad"
+   ]
+  },
+  {
+   "id": "U12",
+   "texto": "No entendí bien qué hay que hacer para el proyecto de español",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "confusion"
+   ]
+  },
+  {
+   "id": "U13",
+   "texto": "Vi una película en la noche con mi familia",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "tranquilidad"
+   ]
+  },
+  {
+   "id": "U14",
+   "texto": "Me tocó lavar los trastes hoy",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "U15",
+   "texto": "Hoy fui a la peluquería con mi papá",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "tranquilidad"
+   ]
+  },
+  {
+   "id": "U16",
+   "texto": "En el recreo comí una torta y platiqué con unos compañeros",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "tranquilidad"
+   ]
+  },
+  {
+   "id": "U17",
+   "texto": "El maestro dijo que el examen va a ser la próxima semana",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "tranquilidad"
+   ]
+  },
+  {
+   "id": "U18",
+   "texto": "Hoy me tocó exponer y fue un día como cualquier otro",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "U19",
+   "texto": "Estuve haciendo la maqueta de geografía toda la tarde",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "cansancio"
+   ]
+  },
+  {
+   "id": "U20",
+   "texto": "Me sorprendió que hoy no hubo clases por la junta de maestros",
+   "polaridad": "neutro",
+   "emocion": "sorpresa",
+   "emociones_diario": [
+    "sorpresa"
+   ]
+  },
+  {
+   "id": "P01",
+   "texto": "Hoy me fue increíble en el partido, metí dos goles",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "alegria",
+    "orgullo"
+   ]
+  },
+  {
+   "id": "P02",
+   "texto": "Saqué diez en el examen de historia y estoy muy feliz",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "felicidad",
+    "orgullo"
+   ]
+  },
+  {
+   "id": "P03",
+   "texto": "Mi mamá me hizo mi comida favorita y comimos todos juntos",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "carino",
+    "gratitud"
+   ]
+  },
+  {
+   "id": "P04",
+   "texto": "Me encantó la salida al museo con mi grupo",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "alegria"
+   ]
+  },
+  {
+   "id": "P05",
+   "texto": "Por fin le hablé a la niña que me gusta y me contestó bien bonito",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "felicidad",
+    "entusiasmo"
+   ]
+  },
+  {
+   "id": "P06",
+   "texto": "No puedo creer que me hayan elegido para la escolta, qué sorpresa",
+   "polaridad": "positivo",
+   "emocion": "sorpresa",
+   "emociones_diario": [
+    "orgullo",
+    "entusiasmo"
+   ]
+  },
+  {
+   "id": "P07",
+   "texto": "Estoy muy agradecido con mi maestra porque me ayudó mucho",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "gratitud"
+   ]
+  },
+  {
+   "id": "P08",
+   "texto": "Hoy jugué videojuegos con mis primos y nos reímos muchísimo",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "alegria"
+   ]
+  },
+  {
+   "id": "P09",
+   "texto": "Me siento tranquila y en paz después de hacer yoga",
+   "polaridad": "positivo",
+   "emocion": "otra",
+   "emociones_diario": [
+    "calma"
+   ]
+  },
+  {
+   "id": "P10",
+   "texto": "Ya terminé todas mis tareas, qué alivio y qué orgullo",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "orgullo",
+    "calma"
+   ]
+  },
+  {
+   "id": "P11",
+   "texto": "Mi perrito aprendió a dar la pata, estoy feliz",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "felicidad"
+   ]
+  },
+  {
+   "id": "P12",
+   "texto": "Me regalaron unos tenis nuevos de cumpleaños, ¡no me lo esperaba!",
+   "polaridad": "positivo",
+   "emocion": "sorpresa",
+   "emociones_diario": [
+    "alegria",
+    "gratitud"
+   ]
+  },
+  {
+   "id": "P13",
+   "texto": "Hice un nuevo amigo en el taller de música",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "alegria",
+    "entusiasmo"
+   ]
+  },
+  {
+   "id": "P14",
+   "texto": "Tengo muchas ganas de que llegue el viaje del fin de semana",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "entusiasmo",
+    "esperanza"
+   ]
+  },
+  {
+   "id": "P15",
+   "texto": "Mi abuela salió del hospital y ya está mejor",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "esperanza",
+    "gratitud"
+   ]
+  },
+  {
+   "id": "P16",
+   "texto": "Gané el concurso de dibujo de la escuela",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "orgullo",
+    "felicidad"
+   ]
+  },
+  {
+   "id": "P17",
+   "texto": "Me reconcilié con mi hermano y platicamos un buen rato",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "carino"
+   ]
+  },
+  {
+   "id": "P18",
+   "texto": "Hoy amanecí con mucha energía y de buen humor",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "alegria"
+   ]
+  },
+  {
+   "id": "P19",
+   "texto": "Creo que este año me va a ir muy bien en la prepa",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "esperanza"
+   ]
+  },
+  {
+   "id": "P20",
+   "texto": "Qué padre estuvo el concierto, todavía estoy emocionado",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "entusiasmo"
+   ]
+  }
+ ]
+}
