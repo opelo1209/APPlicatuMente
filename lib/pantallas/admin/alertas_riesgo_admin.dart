@@ -15,7 +15,14 @@ class AlertasRiesgoAdmin extends StatefulWidget {
 }
 
 class _AlertasRiesgoAdminState extends State<AlertasRiesgoAdmin> {
-  late Future<RespuestaApi> _alertas = ServicioPrototipo.alertasRiesgo();
+  // Semana 5 (H9): por omisión se ven primero las que nadie ha atendido.
+  bool _soloPendientes = true;
+  late Future<RespuestaApi> _alertas = _cargar();
+
+  Future<RespuestaApi> _cargar() =>
+      ServicioPrototipo.alertasRiesgo(soloPendientes: _soloPendientes);
+
+  void _recargar() => setState(() => _alertas = _cargar());
 
   @override
   Widget build(BuildContext context) {
@@ -31,11 +38,27 @@ class _AlertasRiesgoAdminState extends State<AlertasRiesgoAdmin> {
         actions: [
           IconButton(
             tooltip: 'Actualizar',
-            onPressed: () =>
-                setState(() => _alertas = ServicioPrototipo.alertasRiesgo()),
+            onPressed: _recargar,
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(value: true, label: Text('Pendientes')),
+                ButtonSegment(value: false, label: Text('Todas')),
+              ],
+              selected: {_soloPendientes},
+              onSelectionChanged: (s) {
+                _soloPendientes = s.first;
+                _recargar();
+              },
+            ),
+          ),
+        ),
       ),
       body: FutureBuilder<RespuestaApi>(
         future: _alertas,
@@ -51,12 +74,19 @@ class _AlertasRiesgoAdminState extends State<AlertasRiesgoAdmin> {
               .whereType<Map>()
               .toList();
           if (alertas.isEmpty) {
-            return const Center(child: Text('No hay alertas.'));
+            return Center(
+              child: Text(
+                _soloPendientes
+                    ? 'No hay alertas pendientes.'
+                    : 'No hay alertas.',
+              ),
+            );
           }
           return ListView.builder(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             itemCount: alertas.length,
-            itemBuilder: (_, i) => _TarjetaAlerta(alerta: alertas[i]),
+            itemBuilder: (_, i) =>
+                _TarjetaAlerta(alerta: alertas[i], onCambio: _recargar),
           );
         },
       ),
@@ -77,8 +107,29 @@ String _origen(String? origen) => switch (origen) {
 };
 
 class _TarjetaAlerta extends StatelessWidget {
-  const _TarjetaAlerta({required this.alerta});
+  const _TarjetaAlerta({required this.alerta, required this.onCambio});
   final Map<dynamic, dynamic> alerta;
+  final VoidCallback onCambio;
+
+  Future<void> _atender(
+    BuildContext context,
+    bool atendida,
+    String nota,
+  ) async {
+    final r = await ServicioPrototipo.atenderAlerta(
+      alerta['id_alerta'] as int,
+      atendida: atendida,
+      nota: nota,
+    );
+    if (!context.mounted) return;
+    if (!r.ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(r.mensaje ?? 'No se pudo guardar.')),
+      );
+      return;
+    }
+    onCambio();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,29 +139,46 @@ class _TarjetaAlerta extends StatelessWidget {
     final reglas = (alerta['reglas'] as List? ?? const []).cast<Object>();
     final evidencia = (alerta['evidencia'] as List? ?? const []).cast<Object>();
     final prueba = (alerta['prueba'] as List? ?? const []).cast<Object>();
+    final atendida = alerta['atendida'] == true;
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFF0B4A8)),
+        side: BorderSide(
+          color: atendida ? const Color(0xFFB7DFB9) : const Color(0xFFF0B4A8),
+        ),
       ),
       child: ExpansionTile(
         shape: const RoundedRectangleBorder(side: BorderSide.none),
-        leading: const CircleAvatar(
-          backgroundColor: Color(0xFFFFEBE6),
-          child: Icon(Icons.priority_high_rounded, color: Color(0xFFC62828)),
-        ),
+        leading: atendida
+            ? const CircleAvatar(
+                backgroundColor: Color(0xFFE8F5E9),
+                child: Icon(Icons.check_rounded, color: Color(0xFF2E7D32)),
+              )
+            : const CircleAvatar(
+                backgroundColor: Color(0xFFFFEBE6),
+                child: Icon(
+                  Icons.priority_high_rounded,
+                  color: Color(0xFFC62828),
+                ),
+              ),
         title: Text(
           alerta['estudiante'] as String? ?? '',
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
         subtitle: Text(
           '${_origen(alerta['origen'] as String?)} · '
-          '${fecha == null ? '' : '${fecha.day}/${fecha.month} ${fecha.hour.toString().padLeft(2, '0')}:${fecha.minute.toString().padLeft(2, '0')}'}',
+          '${fecha == null ? '' : _fechaCorta(fecha)}'
+          '${atendida ? ' · atendida' : ''}',
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          EstadoAtencionAlerta(
+            alerta: alerta,
+            onAtender: (atendida, nota) => _atender(context, atendida, nota),
+          ),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 6,
             children: [for (final r in reglas) Chip(label: Text('Regla $r'))],
@@ -166,6 +234,120 @@ class _TarjetaAlerta extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+String _fechaCorta(DateTime f) =>
+    '${f.day}/${f.month} ${f.hour.toString().padLeft(2, '0')}:'
+    '${f.minute.toString().padLeft(2, '0')}';
+
+/// Semana 5 (H9): si la alerta ya se atendió, quién y cuándo; si no, el botón
+/// para marcarla. Separado de la tarjeta para poder probarlo solo.
+class EstadoAtencionAlerta extends StatelessWidget {
+  const EstadoAtencionAlerta({
+    super.key,
+    required this.alerta,
+    required this.onAtender,
+  });
+
+  final Map<dynamic, dynamic> alerta;
+  final void Function(bool atendida, String nota) onAtender;
+
+  Future<void> _pedirNota(BuildContext context) async {
+    final nota = await showDialog<String>(
+      context: context,
+      builder: (_) => const _DialogoNotaAtencion(),
+    );
+    if (nota != null) onAtender(true, nota.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (alerta['atendida'] != true) {
+      return FilledButton.icon(
+        onPressed: () => _pedirNota(context),
+        icon: const Icon(Icons.task_alt_rounded),
+        label: const Text('Marcar como atendida'),
+      );
+    }
+    final cuando = DateTime.tryParse(
+      alerta['fecha_atendida'] as String? ?? '',
+    )?.toLocal();
+    final nota = alerta['nota_atencion'] as String?;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F5E9),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Atendida por ${alerta['atendida_por'] ?? 'el administrador'}'
+            '${cuando == null ? '' : ' · ${_fechaCorta(cuando)}'}',
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1B5E20),
+            ),
+          ),
+          if (nota != null && nota.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(nota),
+          ],
+          TextButton(
+            onPressed: () => onAtender(false, ''),
+            child: const Text('Regresar a pendiente'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// El diálogo es dueño de su controlador: si lo liberara quien lo abre, el
+/// campo seguiría usándolo durante la animación de cierre.
+class _DialogoNotaAtencion extends StatefulWidget {
+  const _DialogoNotaAtencion();
+
+  @override
+  State<_DialogoNotaAtencion> createState() => _DialogoNotaAtencionState();
+}
+
+class _DialogoNotaAtencionState extends State<_DialogoNotaAtencion> {
+  final _control = TextEditingController();
+
+  @override
+  void dispose() {
+    _control.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Marcar como atendida'),
+      content: TextField(
+        controller: _control,
+        maxLength: 500,
+        maxLines: 3,
+        decoration: const InputDecoration(
+          labelText: 'Nota (opcional)',
+          hintText: 'Por ejemplo: se habló con el tutor',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _control.text),
+          child: const Text('Guardar'),
+        ),
+      ],
     );
   }
 }

@@ -22,6 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from . import limite_intentos as limite
 from .analizador_sentimiento import AnalizadorPysentimiento
 from .emociones_catalogo import buscar
 from .evaluador_diario import EntradaDiario, evaluar_entrada, resultado_a_dict
@@ -29,6 +30,7 @@ from .generador_llm import GeneradorAislado
 from .memoria_sesion import MemoriaSesiones
 from .respuesta_chat import respuesta_estudiante, traza_decision
 from .resumen_riesgo import alerta_de_fila, resumir
+from .resumen_tutor import dia_de_fila, resumir_diario
 from .serena_pipeline import responder
 from .vinculacion_bidireccional import (
     ESTADO_PENDIENTE_ESTUDIANTE,
@@ -58,6 +60,14 @@ ANALIZADOR = AnalizadorPysentimiento()
 GENERADOR = GeneradorAislado()
 # Semana 3, fase 2: memoria de la conversacion, solo en RAM (memoria_sesion).
 MEMORIA = MemoriaSesiones()
+
+# Semana 5 (H5): si alguien escribe mas rapido de lo que una persona puede,
+# el chat pide una pausa, pero nunca sin dejar a mano la linea de ayuda.
+MENSAJE_RITMO_CHAT = (
+    "Vas muy rápido. Espera un momento y vuelve a escribirme. Si necesitas "
+    "hablar con alguien ahora, llama a la Línea de la Vida (800 911 2000, "
+    "24 horas, gratuita)."
+)
 
 MENSAJE_SOLICITUD_TUTOR = (
     "Si los datos son correctos, el estudiante verá tu solicitud en su app y podrá aceptarla."
@@ -97,6 +107,13 @@ def crear_tablas_prototipo(cur: Any) -> None:
         )
         """
     )
+    # Semana 5 (H9): quien atendio la alerta, cuando y con que nota.
+    for columna in (
+        "atendida_por VARCHAR(240)",
+        "fecha_atendida TIMESTAMPTZ",
+        "nota_atencion TEXT",
+    ):
+        cur.execute(f"ALTER TABLE alertas_riesgo ADD COLUMN IF NOT EXISTS {columna}")
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS vinculacion_solicitudes (
@@ -137,6 +154,11 @@ class SolicitudEstudianteIn(BaseModel):
 
 class RespuestaEstudianteIn(BaseModel):
     acepta: bool
+
+
+class AtencionAlertaIn(BaseModel):
+    atendida: bool = True
+    nota: str = Field(default="", max_length=500)
 
 
 class ConfirmacionTutorIn(BaseModel):
@@ -224,6 +246,26 @@ def _registrar_alerta(cur: Any, user: dict[str, Any], origen: str, alerta: Any) 
 # --------------------------------------------------------------------------
 # Router
 # --------------------------------------------------------------------------
+
+
+def _alerta_admin(f: dict[str, Any]) -> dict[str, Any]:
+    atendida_en = f.get("fecha_atendida")
+    return {
+        "id_alerta": f["id_alerta"],
+        "estudiante": " ".join(p for p in (f["nombres"], f["apellido_paterno"]) if p) or f"usuario {f['id_usuario']}",
+        "origen": f["origen"],
+        "nivel": f["nivel"],
+        "reglas": f["reglas"],
+        "evidencia": f["evidencia"],
+        "prueba": f["prueba"],
+        "atendida": f["atendida"],
+        "atendida_por": f.get("atendida_por"),
+        "fecha_atendida": atendida_en.isoformat() if atendida_en else None,
+        "nota_atencion": f.get("nota_atencion"),
+        "fecha": f["fecha_creacion"].isoformat(),
+        "id_usuario": f["id_usuario"],
+        "perfil_tipo": f["perfil_tipo"],
+    }
 
 
 def crear_router(
@@ -351,8 +393,23 @@ def crear_router(
         log.info("chat usuario=%s traza=%s", user["id_usuario"], traza_decision(r))
         return respuesta_estudiante(r, sesion)
 
+    def _exigir_ritmo_chat(user: dict[str, Any]) -> None:
+        sujeto = f"{user['perfil_tipo']}:{user['id_usuario']}"
+        with db_conn() as conn:
+            with conn.cursor() as cur:
+                espera = limite.segundos_de_bloqueo(cur, limite.CHAT_USUARIO, sujeto)
+                if espera:
+                    raise HTTPException(
+                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                        detail=MENSAJE_RITMO_CHAT,
+                        headers={"Retry-After": str(espera)},
+                    )
+                limite.registrar(cur, limite.CHAT_USUARIO, sujeto)
+            conn.commit()
+
     @router.post("/chat")
     def chat(payload: MensajeChatIn, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+        _exigir_ritmo_chat(user)
         return _procesar_chat(payload.mensaje, user)
 
     @router.post("/chat/stream")
@@ -361,6 +418,8 @@ def crear_router(
         Primero {"evento": "parcial", "texto": ...} con lo que ya paso la
         guardia (el material aprobado aparece de inmediato) y al final
         {"evento": "final", ...} con lo mismo que devuelve /chat."""
+        # Antes de abrir el flujo, para que el 429 llegue como codigo HTTP.
+        _exigir_ritmo_chat(user)
         eventos: queue.Queue = queue.Queue()
 
         def trabajar() -> None:
@@ -387,37 +446,69 @@ def crear_router(
     # --------------------------- Administracion -----------------------------
 
     @router.get("/admin/alertas-riesgo")
-    def alertas_riesgo(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    def alertas_riesgo(
+        pendientes: bool = Query(default=False),
+        user: dict[str, Any] = Depends(current_user),
+    ) -> dict[str, Any]:
         _solo(user, "administrador")
+        # Semana 5 (H9): ?pendientes=true deja solo las que nadie ha atendido.
+        filtro = "WHERE NOT a.atendida" if pendientes else ""
         with db_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    """
+                    f"""
                     SELECT a.*, e.nombres, e.apellido_paterno
                     FROM alertas_riesgo a
                     LEFT JOIN usuarios_estudiantes e
                       ON a.perfil_tipo = 'estudiante' AND e.id_usuario = a.id_usuario
+                    {filtro}
                     ORDER BY a.fecha_creacion DESC LIMIT 100
                     """
                 )
                 filas = cur.fetchall()
+        return {"alertas": [_alerta_admin(f) for f in filas]}
+
+    @router.post("/admin/alertas-riesgo/{id_alerta}/atendida")
+    def atender_alerta(
+        id_alerta: int, payload: AtencionAlertaIn, user: dict[str, Any] = Depends(current_user)
+    ) -> dict[str, Any]:
+        """Semana 5 (H9): el administrador marca la alerta como atendida (o
+        la regresa a pendiente si se equivoco). Queda quien y cuando."""
+        _solo(user, "administrador")
+        nota = payload.nota.strip()
+        with db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE alertas_riesgo
+                    SET atendida = %s,
+                        atendida_por = CASE WHEN %s THEN %s END,
+                        fecha_atendida = CASE WHEN %s THEN NOW() END,
+                        nota_atencion = CASE WHEN %s THEN %s END
+                    WHERE id_alerta = %s
+                    RETURNING id_alerta, atendida, atendida_por, fecha_atendida, nota_atencion
+                    """,
+                    (
+                        payload.atendida,
+                        payload.atendida,
+                        user.get("nombre_completo") or user.get("nombre_usuario"),
+                        payload.atendida,
+                        payload.atendida,
+                        nota or None,
+                        id_alerta,
+                    ),
+                )
+                fila = cur.fetchone()
+                if fila is None:
+                    raise HTTPException(status_code=404, detail="La alerta no existe.")
+            conn.commit()
+        log.info("alerta %s atendida=%s por usuario %s", id_alerta, payload.atendida, user["id_usuario"])
         return {
-            "alertas": [
-                {
-                    "id_alerta": f["id_alerta"],
-                    "estudiante": " ".join(p for p in (f["nombres"], f["apellido_paterno"]) if p) or f"usuario {f['id_usuario']}",
-                    "origen": f["origen"],
-                    "nivel": f["nivel"],
-                    "reglas": f["reglas"],
-                    "evidencia": f["evidencia"],
-                    "prueba": f["prueba"],
-                    "atendida": f["atendida"],
-                    "fecha": f["fecha_creacion"].isoformat(),
-                    "id_usuario": f["id_usuario"],
-                    "perfil_tipo": f["perfil_tipo"],
-                }
-                for f in filas
-            ]
+            "id_alerta": fila["id_alerta"],
+            "atendida": fila["atendida"],
+            "atendida_por": fila["atendida_por"],
+            "fecha_atendida": fila["fecha_atendida"].isoformat() if fila["fecha_atendida"] else None,
+            "nota_atencion": fila["nota_atencion"],
         }
 
     @router.get("/admin/resumen-riesgo/{id_usuario}")
@@ -452,6 +543,55 @@ def crear_router(
             "preventivas": r.preventivas,
             "pendientes": r.pendientes,
             "dias": dias,
+        }
+
+    @router.get("/admin/resumen-tutor/{id_usuario}")
+    def resumen_para_tutor(
+        id_usuario: int,
+        dias: int = Query(default=7, ge=1, le=90),
+        user: dict[str, Any] = Depends(current_user),
+    ) -> dict[str, Any]:
+        """Semana 5 (asesor): lo que recibiria el tutor, como un terapeuta
+        que da un resumen y no lo que dijo el adolescente. BORRADOR: solo lo
+        ve el administrador hasta que psicologia y el asesor lo aprueben.
+        El texto del diario se lee aqui solo para saber si hubo groserias."""
+        _solo(user, "administrador")
+        with db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT nombres FROM usuarios_estudiantes WHERE id_usuario = %s", (id_usuario,))
+                estudiante = cur.fetchone()
+                if estudiante is None:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Estudiante no encontrado")
+                cur.execute(
+                    """
+                    SELECT fecha, polaridad, emociones, texto FROM diario_entradas
+                    WHERE id_estudiante = %s AND fecha > CURRENT_DATE - %s
+                    ORDER BY fecha
+                    """,
+                    (id_usuario, dias),
+                )
+                diario = [dia_de_fila(f) for f in cur.fetchall()]
+                cur.execute(
+                    """
+                    SELECT origen, nivel, reglas, atendida, fecha_creacion FROM alertas_riesgo
+                    WHERE perfil_tipo = 'estudiante' AND id_usuario = %s
+                      AND fecha_creacion > NOW() - make_interval(days => %s)
+                    """,
+                    (id_usuario, dias),
+                )
+                alertas = [alerta_de_fila(f) for f in cur.fetchall()]
+        nombre = estudiante["nombres"] or "su hijo o hija"
+        r = resumir_diario(diario, nombre, dias)
+        senales = resumir(alertas, nombre).tutor if alertas else ""
+        return {
+            "borrador": " ".join(t for t in (r.texto, senales) if t),
+            "dias": dias,
+            "dias_con_registro": r.dias_con_registro,
+            "positivos": r.positivos,
+            "neutros": r.neutros,
+            "dificiles": r.dificiles,
+            "dias_altisonantes": r.dias_altisonantes,
+            "alertas": len(alertas),
         }
 
     # ----------------------- Vinculacion: estudiante ------------------------

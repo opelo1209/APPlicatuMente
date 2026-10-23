@@ -141,8 +141,23 @@ class ServicioPrototipo {
 
   // ------------------------------ Alertas ---------------------------------
 
-  static Future<RespuestaApi> alertasRiesgo() =>
-      _llamar('GET', Peticiones.adminAlertasRiesgo);
+  static Future<RespuestaApi> alertasRiesgo({bool soloPendientes = false}) =>
+      _llamar(
+        'GET',
+        soloPendientes
+            ? '${Peticiones.adminAlertasRiesgo}?pendientes=true'
+            : Peticiones.adminAlertasRiesgo,
+      );
+
+  /// Semana 5 (H9): marca la alerta como atendida o la regresa a pendiente.
+  static Future<RespuestaApi> atenderAlerta(
+    int idAlerta, {
+    required bool atendida,
+    String nota = '',
+  }) => _llamar('POST', Peticiones.adminAtenderAlerta(idAlerta), {
+    'atendida': atendida,
+    'nota': nota,
+  });
 
   static Future<RespuestaApi> resumenRiesgo(int idUsuario, {int dias = 30}) =>
       _llamar('GET', '${Peticiones.adminResumenRiesgo(idUsuario)}?dias=$dias');

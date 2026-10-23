@@ -10,11 +10,11 @@ import 'pantallas/theme_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  final isDarkMode = prefs.getBool('darkMode') ?? false;
 
   runApp(
     ChangeNotifierProvider(
-      create: (_) => ThemeProvider()..toogleTheme(isDarkMode),
+      create: (_) =>
+          ThemeProvider(modoOscuro: ThemeProvider.preferenciaGuardada(prefs)),
       child: const MyApp(),
     ),
   );

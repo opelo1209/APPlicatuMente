@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 
 import '../servicios/servicio_prototipo.dart';
+import 'aviso_confianza.dart';
 import 'diario_catalogo.dart';
 import 'diario_crisis.dart';
 import 'diario_entrada.dart';
@@ -82,6 +83,15 @@ class DiarioFlujo extends StatefulWidget {
 
 class _DiarioFlujoState extends State<DiarioFlujo> {
   bool _guardando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Semana 5: antes de escribir, qué ven sus papás (una sola vez).
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => mostrarAvisoConfianzaSiHaceFalta(context),
+    );
+  }
 
   void _abrirHistorial() => abrirHistorial(context, widget.onAbrirSerena);
 
