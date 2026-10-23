@@ -206,3 +206,20 @@ def test_el_riesgo_se_detecta_aunque_el_dia_este_marcado_neutro():
 
     r = evaluar_entrada(EntradaDiario("neutro", ("tranquilidad",), "ya no quiero vivir"), AnalizadorFalso("negativo", "tristeza", 0.95))
     assert r.accion != "normal"
+
+
+def test_un_dia_neutro_no_recibe_la_tarjeta_de_serena_por_el_texto():
+    # Captura de prototipo15: «Desayuné cereal…» marcado neutro mostraba
+    # «Por lo que escribiste, hay algunos temas que podrías platicar…».
+    r = _diario("neutro", ("tranquilidad",), AnalizadorFalso("negativo", "tristeza", 0.95))
+    assert not r.ofrecer_serena
+
+
+def test_un_dia_marcado_negativo_si_recibe_la_tarjeta_de_serena():
+    r = _diario("negativo", ("tristeza",), AnalizadorFalso("negativo", "tristeza", 0.95))
+    assert r.ofrecer_serena
+
+
+def test_un_dia_bueno_con_texto_negativo_si_recibe_la_tarjeta():
+    r = _diario("positivo", ("alegria",), AnalizadorFalso("negativo", "tristeza", 0.95))
+    assert r.ofrecer_serena

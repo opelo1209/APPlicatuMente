@@ -284,9 +284,17 @@ def evaluar_entrada(entrada: EntradaDiario, analizador: AnalizadorSentimiento) -
     accion = decision.accion
 
     concordancia, mensaje = _concordancia(entrada, analisis, consulta)
-    dia_negativo = entrada.polaridad == POLARIDAD_NEGATIVA or (
+    texto_negativo = (
         not consulta and _es_confiable(analisis) and analisis.polaridad == POLARIDAD_NEGATIVA  # type: ignore[union-attr]
     )
+    # Semana 5 (capturas de prototipo15): en un dia marcado neutro, la
+    # tarjeta «Por lo que escribiste, hay algunos temas…» contradecia al
+    # estudiante igual que el mensaje de concordancia. Misma regla
+    # provisional; las senales de riesgo (explorar, sugerir apoyo) si la
+    # muestran.
+    if entrada.polaridad == POLARIDAD_NEUTRA and NO_CONTRADECIR_DIA_NEUTRO:
+        texto_negativo = False
+    dia_negativo = entrada.polaridad == POLARIDAD_NEGATIVA or texto_negativo
     ofrecer_serena = accion != ACCION_CRISIS and (
         dia_negativo or accion in (ACCION_EXPLORAR, ACCION_SUGERIR_APOYO)
     )
