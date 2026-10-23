@@ -54,6 +54,8 @@ class Peticiones {
   static String vinculacionConfirmar(int id) =>
       '$baseUrl/vinculacion/solicitudes/$id/confirmar';
   static const String adminAlertasRiesgo = '$baseUrl/admin/alertas-riesgo';
+  static String adminAtenderAlerta(int idAlerta) =>
+      '$baseUrl/admin/alertas-riesgo/$idAlerta/atendida';
   static String adminResumenRiesgo(int idUsuario) =>
       '$baseUrl/admin/resumen-riesgo/$idUsuario';
 
