@@ -51,6 +51,25 @@ RESPUESTA_SEGURA_EXPLORAR = (
     "con alguien. ¿Quieres contarme un poco más de lo que te está pasando? " + LINEAS_TEXTO
 )
 
+# Semana 5: piezas de "supone_genero" (texto ya normalizado: sin acentos y
+# sin tilde en la ñ).
+# Verbos con los que Serena le atribuye un estado a quien escribe (tú).
+# Sin acento, «estás» y el demostrativo «estas» se escriben igual: «estas
+# llamadas» no cuenta (un plural femenino despues de «estas»).
+_VERBO_TU = (
+    r"(?:te\s+(?:sientes|sientas|sentiste|sentias|sentiras|sentirias|has\s+sentido|notas|notaste|ves|veias|"
+    r"quedaste|pusiste|pones|encuentras|vuelves)|estas(?!\s+\w+as\b)|estes|estabas|estuviste|estaras|estarias|has\s+estado|"
+    r"eres|seas|serias|fuiste|andas|andabas|sigues|pareces|quedas)"
+)
+_GRADO = r"(?:(?:muy|mas|menos|un\s+poco|algo|tan|bastante|super|demasiado|medio|realmente|todavia|aun|ya)\s+)*"
+# Adjetivos que cambian con el genero, o cualquier participio en -ado/-ido
+# (con dos letras o mas antes de la terminacion: no "nada" ni "vida").
+_ADJ_GENERO = (
+    r"(?:(?:comod|incomod|tranquil|nervios|sol|ansios|segur|insegur|content|list|dispuest|sincer|honest|"
+    r"valios|orgullos|furios|celos|timid|lent|rar|fe|bonit|guap|buen|mal|perfect|tont|atent|"
+    r"abiert|tens|hart|viv|vaci|rot|exhaust)[ao]s?|\w{2,}(?:ad|id)[ao]s?)\b"
+)
+
 _PATRONES = {
     "diagnostica": [
         r"\b(?:tienes|tiene|padeces|padece|sufres\s+de|sufres|presentas)\s+(?:un\s+|una\s+)?"
@@ -112,12 +131,19 @@ _PATRONES = {
         r"\bnecesito\s+(?:tu\s+)?consejo\b",
     ],
     # Semana 4 (captura de prototipo11: «¿Te sientes cómoda con esa idea?»):
-    # el prompt pide lenguaje neutro y el modelo supone el género.
+    # el prompt pide lenguaje neutro y el modelo supone el género. Semana 5
+    # (reunión con el asesor): la regla solo cubría el orden «verbo +
+    # adjetivo» con una lista corta; ahora también otros tiempos («te
+    # sentirías»), el orden invertido («qué tan cómoda te sientes»), los
+    # participios («rechazada»), «verte contento», «por ser tan sincera» y
+    # los saludos («bienvenida»).
     "supone_genero": [
-        r"\b(?:te\s+sientes|te\s+sientas|te\s+sentiste|estas|estes|estuviste|eres|seas|te\s+notas|andas|te\s+ves)\s+"
-        r"(?:muy\s+|un\s+poco\s+|algo\s+|tan\s+|bastante\s+)?"
-        r"(?:comod|incomod|tranquil|cansad|preocupad|enojad|agobiad|estresad|asustad|frustrad|confundid|"
-        r"aburrid|emocionad|nervios|sol|abrumad|desanimad|deprimid|ansios|segur|content|agotad|aislad)[ao]s?\b",
+        rf"\b{_VERBO_TU}\s+{_GRADO}{_ADJ_GENERO}",
+        rf"\bque\s+tan\s+{_ADJ_GENERO}\s+(?:te\s+(?:sientes|sentiste|sentirias|ves|notas)|estas|eres)\b",
+        rf"\b(?:verte|sentirte|notarte|leerte|encontrarte|saberte|por\s+ser)\s+{_GRADO}{_ADJ_GENERO}",
+        # «Bienvenida» como saludo; «te doy la bienvenida» es neutro.
+        r"(?<!la\s)\bbienvenid[ao]s?\b",
+        r"(?:^|[,¡!¿?.]\s*)(?:querid[ao]|amig[ao]|chic[ao]|nin[ao]|campeon|campeona)s?\s*[,.!?]",
     ],
     "impone": [
         r"(?<!no\s)\btienes\s+que\b",

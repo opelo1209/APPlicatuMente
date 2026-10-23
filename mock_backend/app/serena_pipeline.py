@@ -225,8 +225,8 @@ def _mensajes(
         )
     else:
         contenido = (
-            "Contenido aprobado: no hay nada sobre este tema. No des datos ni técnicas; acompaña, "
-            "haz una pregunta abierta y sugiere hablar con un adulto de confianza."
+            "Contenido aprobado: no hay nada sobre este tema. No des datos ni técnicas; acompaña "
+            "y haz una pregunta abierta."
         )
     sistema = f"{PROMPT_SERENA}\n\n{_contexto_interno(analisis, intencion, decision)}\n\n{contenido}"
     usuario = _mensaje_con_contexto(mensaje, historial, MAX_TURNOS_CONTEXTO, MAX_CARACTERES_TURNO)
@@ -283,16 +283,19 @@ def _invitacion(mensaje: str) -> str:
 
 
 # Semana 4: la invitacion iba en TODAS las respuestas normales y Serena
-# sonaba repetitiva. Se omite si ya se dijo en las ultimas respuestas (de
-# cualquier texto: invitacion, respuesta segura, limites). Crisis y limites
-# no pasan por aqui; la sugerencia de apoyo de Wang (R10) la fuerza.
+# sonaba repetitiva; se omitia si ya se habia dicho en las dos respuestas
+# anteriores. Semana 5 (reunion con el asesor): la bienvenida del chat ya
+# dice que todo se puede platicar con un adulto, asi que una respuesta normal
+# ya no invita. Solo la sugerencia de apoyo de Wang (R10 racha negativa, R15
+# seguimiento de una senal ambigua), y sin repetirse. Crisis, explorar y
+# limites no pasan por aqui: sus textos fijos siempre derivan.
 INVITACION_SIN_REPETIR_TURNOS = 2
 _YA_INVITO = re.compile(r"adulto de confianza|alguien de confianza|orientaci[oó]n de tu escuela", re.IGNORECASE)
 
 
-def _toca_invitar(historial, forzar: bool = False) -> bool:
-    if forzar:
-        return True
+def _toca_invitar(historial, sugerir_apoyo: bool = False) -> bool:
+    if not sugerir_apoyo:
+        return False
     recientes = list(historial)[-INVITACION_SIN_REPETIR_TURNOS:]
     return not any(_YA_INVITO.search(t.respuesta) for t in recientes)
 
@@ -501,7 +504,7 @@ def responder(
     etapas["modo"] = modo
     # R17: en una consulta no se invita a buscar a un adulto ni se supone
     # malestar; se informa y se deja la puerta abierta.
-    invitar = not informar and _toca_invitar(historial, forzar=entrada.accion == ACCION_SUGERIR_APOYO)
+    invitar = not informar and _toca_invitar(historial, sugerir_apoyo=entrada.accion == ACCION_SUGERIR_APOYO)
     ficha = FICHAS_INFORMATIVAS.get(contexto.tema) if informar and not fragmentos else None
     con_contenido = bool(fragmentos or ficha)
     necesarias = 1 if con_contenido else 2

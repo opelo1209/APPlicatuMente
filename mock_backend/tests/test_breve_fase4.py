@@ -9,6 +9,8 @@ y una invitacion fija a hablar con un adulto de confianza.
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.serena_pipeline import INVITACIONES_ADULTO, MAX_TOKENS_BREVE, extracto, responder  # noqa: E402
@@ -19,24 +21,25 @@ AF = AnalizadorFalso("negativo", "miedo")
 LARGA = "Entiendo que te pongas nervioso al exponer. Es algo que le pasa a mucha gente. Además te digo que tienes que relajarte siempre."
 
 
-def test_breve_usa_una_oracion_del_modelo_el_texto_aprobado_y_la_invitacion():
+def test_breve_usa_una_oracion_del_modelo_y_el_texto_aprobado():
     g = GeneradorFalso(LARGA)
     r = responder("me pongo muy nervioso cuando expongo", AF, g, modo="breve")
     assert r.tipo == "normal"
     assert r.texto.startswith("Entiendo que te pongas nervioso al exponer.")
     assert "Es algo que le pasa" not in r.texto  # solo la primera oracion
     assert "Del material del programa:" in r.texto
-    assert any(inv in r.texto for inv in INVITACIONES_ADULTO)
+    # Semana 5: la bienvenida del chat ya invita a platicarlo con un adulto.
+    assert not any(inv in r.texto for inv in INVITACIONES_ADULTO)
     assert r.fuentes
     assert g.ultimo_max_tokens == MAX_TOKENS_BREVE
 
 
-def test_breve_sin_tema_no_cita_material_pero_invita_a_un_adulto():
+def test_breve_sin_tema_no_cita_material_ni_repite_la_invitacion():
     g = GeneradorFalso("Qué bueno que me lo cuentes. ¿Cómo te sentiste?")
     r = responder("me gusta alguien y no sé cómo decirle", AF, g, modo="breve")
     assert "Del material del programa" not in r.texto
     assert "¿Cómo te sentiste?" in r.texto  # sin material, el modelo puede preguntar
-    assert any(inv in r.texto for inv in INVITACIONES_ADULTO)
+    assert not any(inv in r.texto for inv in INVITACIONES_ADULTO)
     assert not r.fuentes
 
 
@@ -105,9 +108,16 @@ def test_el_contexto_solo_lleva_lo_que_escribio_el_estudiante():
     assert all(m["role"] != "assistant" for m in g.ultimos_mensajes)
 
 
-def test_la_guardia_bloquea_material_inventado_por_el_modelo():
+# Semana 5: "como ayudo a un amigo que esta triste" ahora es una consulta y
+# se responde con la ficha fija de tristeza, sin llamar al modelo; ya no hay
+# texto del modelo que bloquear. Se prueba la guardia en los dos caminos que
+# si pasan por el modelo: un mensaje personal y una consulta sin ficha.
+@pytest.mark.parametrize(
+    "mensaje", ["me pongo triste cuando mi amigo no me habla", "cómo ayudo a un amigo que tiene ansiedad"]
+)
+def test_la_guardia_bloquea_material_inventado_por_el_modelo(mensaje):
     falso = GeneradorFalso("Entiendo. Del material del programa: La empatía es una habilidad.")
-    r = responder("cómo ayudo a un amigo que está triste", AF, falso, modo="breve")
+    r = responder(mensaje, AF, falso, modo="breve")
     assert r.tipo == "bloqueada"
     assert "La empatía es una habilidad" not in r.texto
 

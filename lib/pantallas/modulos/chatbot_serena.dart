@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../diario/aviso_confianza.dart';
 import '../diario/diario_catalogo.dart' show LineaAyuda;
 import '../diario/diario_flujo.dart' show mostrarNumero;
 import '../diario/diario_widgets.dart' show TarjetaLineasAyuda;
@@ -9,6 +10,17 @@ import '../servicios/personalizacion.dart';
 import '../servicios/prototipo.dart';
 import '../servicios/servicio_serena.dart';
 import '../theme_provider.dart';
+
+// PROTOTIPO Semana 5 (reunión con el asesor): la invitación a platicarlo con
+// un adulto va una sola vez, al abrir el chat, y no al final de cada
+// respuesta. «Te doy la bienvenida» en lugar de «bienvenido/bienvenida»: no se
+// supone el género de quien escribe.
+const String mensajeBienvenidaSerena =
+    '¡Hola! Te doy la bienvenida al chat 💚 Soy Serena, tu acompañante de '
+    'bienestar emocional.\n\n'
+    'Ten en mente que todo lo que platiquemos aquí también lo puedes platicar '
+    'con un adulto de confianza: tus papás, un maestro o un especialista.\n\n'
+    'Ahora sí, empecemos: ¿cómo te sientes hoy?';
 
 class ChatbotSerena extends StatefulWidget {
   const ChatbotSerena({super.key, this.accentColor});
@@ -37,8 +49,6 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
   Color get _accentColor => widget.accentColor ?? _verde;
   Color get _accentDark => AppPersonalizacion.darken(_accentColor, 0.22);
 
-  static const String _mensajeBienvenida =
-      '¡Hola! Soy Serena, tu acompañante de bienestar emocional 💚\n¿Cómo te sientes hoy? Cuéntame, estoy aquí para escucharte.';
 
   static const List<String> _recomendaciones = [
     'Como calmar la ansiedad',
@@ -82,9 +92,10 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
     if (!mounted) return;
     setState(() {
       _conectado = ok;
-      _mensajes.add(MensajeSerena(texto: _mensajeBienvenida, esUsuario: false));
+      _mensajes.add(MensajeSerena(texto: mensajeBienvenidaSerena, esUsuario: false));
     });
     _irAlFinal();
+    await mostrarAvisoConfianzaSiHaceFalta(context);
   }
 
   void _irAlFinal() {
@@ -200,7 +211,7 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                 _mensajes.clear();
                 _huboCrisis = false;
                 _mensajes.add(
-                  MensajeSerena(texto: _mensajeBienvenida, esUsuario: false),
+                  MensajeSerena(texto: mensajeBienvenidaSerena, esUsuario: false),
                 );
                 _cargando = false;
               });

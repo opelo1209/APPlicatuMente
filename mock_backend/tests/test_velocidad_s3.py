@@ -29,6 +29,7 @@ from app.serena_pipeline import (  # noqa: E402
     precalentar,
     responder,
 )
+from app.memoria_sesion import SENAL_AMBIGUA, Turno  # noqa: E402
 from tests.test_evaluador_diario import AnalizadorFalso  # noqa: E402
 from tests.test_generador_aislado import MENSAJES, bucle_eco  # noqa: E402
 from tests.test_serena_pipeline import GeneradorFalso  # noqa: E402
@@ -36,6 +37,9 @@ from tests.test_stream_fase5 import GeneradorPorPartes  # noqa: E402
 
 AF = AnalizadorFalso("negativo", "miedo")
 SIN_TEMA = "me gusta alguien y no sé cómo decirle"
+# Semana 5: sin material, solo se adelanta texto cuando hay invitacion, y la
+# invitacion ya solo va al sugerir apoyo (R15: hubo una senal ambigua antes).
+CON_SENAL_PREVIA = [Turno("ya no le veo sentido", "¿Desde cuándo?", "explorar", SENAL_AMBIGUA, "negativo", 0.0)]
 
 
 def _sistema(mensajes) -> str:
@@ -112,7 +116,7 @@ def test_el_generador_aislado_recuerda_cuando_se_uso():
 def test_sin_material_se_avisa_la_invitacion_antes_de_que_empiece_el_modelo():
     g = GeneradorPorPartes("Qué bueno que me escribes. ¿Qué te gustaría decirle? Sobrante.")
     avisos = []
-    r = responder(SIN_TEMA, AF, g, modo="breve", al_avanzar=lambda t: avisos.append((g.empezo, t)))
+    r = responder(SIN_TEMA, AF, g, modo="breve", historial=CON_SENAL_PREVIA, al_avanzar=lambda t: avisos.append((g.empezo, t)))
     assert avisos[0][0] is False  # el modelo aun no empezaba
     assert avisos[0][1] in INVITACIONES_ADULTO
     assert r.texto.endswith(avisos[0][1])  # lo adelantado es parte de la respuesta final
@@ -122,7 +126,7 @@ def test_cada_aviso_es_el_final_de_la_respuesta():
     # La burbuja crece hacia arriba: nunca se muestra algo que luego cambia.
     g = GeneradorPorPartes("Qué bueno que me escribes. ¿Qué te gustaría decirle? Sobrante.")
     avisos = []
-    r = responder(SIN_TEMA, AF, g, modo="breve", al_avanzar=avisos.append)
+    r = responder(SIN_TEMA, AF, g, modo="breve", historial=CON_SENAL_PREVIA, al_avanzar=avisos.append)
     assert len(avisos) == 2
     assert avisos[1].startswith("Qué bueno que me escribes.")
     assert all(r.texto.endswith(a.split(". ", 1)[-1]) for a in avisos)

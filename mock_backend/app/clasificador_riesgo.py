@@ -89,6 +89,8 @@ IDEACION_DIRECTA = [
     rf"\b(?:qu?|k)iero\s+(?:me\w*\s+)?morir(?:me)?\b(?!{_HIPERBOLE})",
     rf"\b{_DESEO}\s+(?:ya\s+)?(?:me\s+)?{_MUERTE_PROPIA}\b(?!{_HIPERBOLE})",
     r"\bme\s+(?:quiero|voy\s+a)\s+(?:matar|suicidar|quitar\s+la\s+vida)\b",
+    # Semana 5: "pienso quitarme la vida" (sin "en") y planear o intentar.
+    rf"\b(?:pienso|planeo|estoy\s+planeando|voy\s+a\s+intentar|intentare)\s+(?:me\s+)?{_MUERTE_PROPIA}\b",
     r"\bme\s+(?:quiero|voy\s+a)\s+ir\s+(?:de\s+este\s+mundo|para\s+siempre)\b",
     r"\b(?:y|para)\s+(?:ya\s+)?no\s+despertar\w*\b",
     r"\b(?:cansad|hart)[oa]s?\s+de\s+(?:vivir|existir)\b",
@@ -153,6 +155,12 @@ PLANEACION_O_INTENCION = [
     # despedirse o terminar para no disparar con cualquier "ya tengo todo
     # listo para el examen".
     r"\bya\s+tengo\s+todo\s+listo\b.{0,25}\b(?:para\s+)?(?:hacerlo|despedirme|acabar|terminar\s+con)\b",
+    # Semana 5: la frase anterior no reconocia el objeto ("ya tengo todo
+    # listo para quitarme la vida" pasaba como charla normal). Preparacion
+    # + muerte propia, del mismo modo sistematico que _DESEO.
+    rf"\b(?:(?:ya\s+)?(?:tengo|esta)\s+todo\s+(?:listo|preparado)|me\s+(?:estoy\s+)?prepar\w+|prepare\s+todo|"
+    rf"estoy\s+list[oa]|ya\s+tengo\s+(?:con\s+que|lo\s+(?:que\s+)?necesari\w*))\s+(?:\w+\s+){{0,2}}?para\s+{_MUERTE_PROPIA}\b"
+    rf"(?!{_HIPERBOLE})",
     # "esta va a ser la ultima vez que + hablamos/nos vemos/me ven": frase
     # de despedida con intencion explicita, distinta de DESPEDIDA porque
     # aqui se declara una accion futura concreta, no solo un sentimiento.
@@ -175,6 +183,44 @@ _NO_AUTOLESION = (
     r"|\s+con\s+(?:una\s+|un\s+)?(?:hoja|papel|el\s+sol))"
 )
 
+# Semana 5: accidentes contados en el mismo mensaje ("me corte el dedo
+# picando jitomate", "me golpee la rodilla al bajarme del camion"). Antes se
+# tomaban como autolesion y generaban alerta para el administrador.
+_ACCIDENTE = (
+    r"\b(?:sin\s+querer|por\s+accidente|de\s+accidente|accidentalmente)\b",
+    # Actividades. Nunca los verbos de la autolesion misma (cortando,
+    # lastimando, quemando, golpeando) ni "haciendo" a secas: "me estuve
+    # cortando" o "me estoy haciendo dano" son autolesion. Las mediciones de
+    # la Semana 5 encontraron justo ese error en una primera version.
+    r"\b(?:picando|cocinando|pelando|jugando|corriendo|entrenando|patinando|brincando)\b",
+    r"\bhaciendo\s+(?:de\s+comer|la\s+comida|tortillas|ejercicio|deporte|la\s+tarea|manualidades)\b",
+    r"\bal\s+(?:bajar|subir|caer|correr|brincar|saltar|abrir|cerrar|cocinar|jugar)\w*\b",
+    r"\bme\s+(?:cai|resbale|tropece)\b",
+    r"\b(?:en\s+(?:el\s+recreo|la\s+cocina|educacion\s+fisica|deportes|la\s+clase|tecnologia|el\s+taller)|"
+    r"en\s+la\s+bici|de\s+la\s+bici|con\s+(?:la|el)\s+(?:puerta|comal|estufa|plancha|cuter|locker|mesa|banca|silla|horno|sarten))\b",
+)
+# Lo que convierte el relato en autolesion aunque mencione un accidente:
+# intencion, repeticion, ocultarlo, desmentir el accidente o el malestar
+# como motivo.
+_NO_ES_ACCIDENTE = (
+    r"\b(?:a\s+proposito|adrede|apropos\w*|para\s+(?:sentir|castigarme|no\s+sentir|calmarme|desahogarme))\b",
+    r"\b(?:otra\s+vez|de\s+nuevo|volvi\s+a|siempre\s+que|cada\s+vez\s+que|cuando\s+me\s+siento)\b",
+    # Ocultarlo: "nadie sabe", "no quiero que nadie sepa", "que no se entere".
+    r"\b(?:nadie\s+(?:sabe|sepa|se\s+enter\w*|se\s+de\s+cuenta)|no\s+(?:le\s+)?digas|que\s+no\s+se\s+enter\w*|"
+    r"no\s+quiero\s+que\s+(?:nadie\s+)?(?:sepa|se\s+enter\w*|lo\s+sepa|vea))\b",
+    r"\b(?:no\s+fue\s+(?:sin\s+querer|(?:un\s+|por\s+)?accidente)|la\s+verdad|fui\s+yo|me\s+lo\s+hice|me\s+lo\s+merezco)\b",
+    r"\b(?:porque\s+(?:estaba|me\s+sentia|ya\s+no)|ya\s+no\s+(?:aguant|pod|soport)\w*|contra\s+la\s+pared)\b",
+)
+
+
+def es_accidente(plano: str) -> bool:
+    """Semana 5. Solo con un marcador de accidente Y ninguno de intencion.
+    Ante la duda gana la autolesion: un falso positivo cuesta una pregunta
+    de mas; un falso negativo, una senal que nadie ve. POR CONFIRMAR con
+    psicologia, igual que el resto del lexico."""
+    return any(re.search(p, plano) for p in _ACCIDENTE) and not any(re.search(p, plano) for p in _NO_ES_ACCIDENTE)
+
+
 AUTOLESION_OCURRIDA = [
     rf"\bme\s+cort[eé]\b{_NO_AUTOLESION}",
     # Fase 1b: presente habitual ("me corto cuando...") y "me volvi a cortar".
@@ -184,7 +230,9 @@ AUTOLESION_OCURRIDA = [
     r"\bme\s+(?:pego|golpeo)\s+(?:contra|en\s+la\s+cabeza|la\s+cabeza)\b",
     r"\bhasta\s+(?:sangrar|que\s+sangr\w+)\b",
     r"\btengo\s+(?:cortadas|cortes|heridas)\b.{0,40}\b(?:nadie\s+(?:sabe|se\s+entera)|nuev[oa]s?|que\s+me\s+hice)\b",
-    r"\bme\s+(?:hice|hago)\s+dano\b",
+    # Semana 5: tambien en progresivo ("me estoy haciendo dano"), que no se
+    # detectaba en ninguna version anterior.
+    r"\bme\s+(?:hice|hago|estoy\s+haciendo|estuve\s+haciendo|he\s+estado\s+haciendo)\s+dano\b",
     r"\bme\s+lastim[eé]\b",
     r"\bvolvi\s+a\s+cortarme\b",
     r"\bme\s+quem[eé]\b(?!\s+con\s+el\s+sol)",
@@ -425,6 +473,10 @@ def clasificar_mensaje(texto: str) -> ResultadoClasificacion:
         coincidencias = _coincidencias(patrones, plano)
         if coincidencias:
             categorias_encontradas[nombre] = coincidencias
+    # Semana 5: un accidente contado como tal no es autolesion. Solo se
+    # quita esta categoria; cualquier otra senal del mensaje se conserva.
+    if "autolesion_ocurrida" in categorias_encontradas and es_accidente(plano):
+        categorias_encontradas = {k: v for k, v in categorias_encontradas.items() if k != "autolesion_ocurrida"}
 
     if not categorias_encontradas:
         return ResultadoClasificacion(nivel=NIVEL_NINGUNO)
