@@ -252,7 +252,11 @@ def _alerta_admin(f: dict[str, Any]) -> dict[str, Any]:
     atendida_en = f.get("fecha_atendida")
     return {
         "id_alerta": f["id_alerta"],
-        "estudiante": " ".join(p for p in (f["nombres"], f["apellido_paterno"]) if p) or f"usuario {f['id_usuario']}",
+        "estudiante": (
+            "Cuenta borrada"  # Semana 5: alerta anonimizada al borrar la cuenta
+            if f["perfil_tipo"] == "cuenta_borrada"
+            else " ".join(p for p in (f["nombres"], f["apellido_paterno"]) if p) or f"usuario {f['id_usuario']}"
+        ),
         "origen": f["origen"],
         "nivel": f["nivel"],
         "reglas": f["reglas"],

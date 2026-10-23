@@ -8,6 +8,7 @@ import 'login.dart';
 import 'monitoreo_admin.dart';
 import 'admin/editor_cuestionarios_admin.dart';
 import 'admin/alertas_riesgo_admin.dart';
+import 'admin/cuentas_admin.dart';
 import 'diario/diario_flujo.dart';
 import 'vinculacion/vinculacion_estudiante.dart';
 import 'vinculacion/vinculacion_tutor.dart';
@@ -783,6 +784,25 @@ class _PrincipalState extends State<Principal>
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const AlertasRiesgoAdmin()),
+            );
+          },
+        ),
+      );
+    }
+
+    // Semana 5: lista de cuentas, reactivar y borrado completo.
+    if (_can('can_review_risk_alerts')) {
+      cards.add(
+        _buildOptionCard(
+          context,
+          imagePath: 'assets/imagenes/quetzal_6.png',
+          title: "Cuentas",
+          subtitle: "Estudiantes y tutores: reactivar, desactivar o borrar",
+          color: const Color(0xFF37474F),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CuentasAdmin()),
             );
           },
         ),

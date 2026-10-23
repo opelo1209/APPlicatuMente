@@ -30,6 +30,8 @@ from .niveles_columbia import SEGUIMIENTO as NIVEL_SEGUIMIENTO
 from .niveles_columbia import URGENTE as NIVEL_URGENTE
 from .memoria_sesion import reservar_proceso_unico
 from .prototipo_api import ANALIZADOR, GENERADOR, MEMORIA, crear_router, crear_tablas_prototipo
+from .cuentas_admin import crear_router_cuentas
+from .cuentas_admin import crear_tabla as crear_tabla_cuentas_borradas
 from .serena_pipeline import mantener_caliente, precalentar
 
 
@@ -474,6 +476,7 @@ def init_db() -> None:
             crear_tablas_prototipo(cur)
             limite.crear_tabla(cur)
             recuperacion.crear_tabla(cur)
+            crear_tabla_cuentas_borradas(cur)
         conn.commit()
 
 
@@ -2186,6 +2189,17 @@ def chat_history_delete(user: dict[str, Any] = Depends(current_user)) -> dict[st
     MEMORIA.borrar(chat_session_id(user))
     return {"success": True, "sesion_id": chat_session_id(user)}
 
+
+# Semana 5: lista de cuentas y borrado completo (derecho de cancelacion).
+app.include_router(
+    crear_router_cuentas(
+        db_conn=db_conn,
+        current_user=current_user,
+        olvidar_conversacion=lambda perfil, id_usuario: MEMORIA.borrar(
+            chat_session_id({"perfil_tipo": perfil, "id_usuario": id_usuario})
+        ),
+    )
+)
 
 # PROTOTIPO Semana 2: diario, compuerta de Serena, alertas y vinculacion.
 app.include_router(
