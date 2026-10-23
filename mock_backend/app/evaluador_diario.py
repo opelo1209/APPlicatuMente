@@ -180,6 +180,16 @@ def _es_confiable(analisis: ResultadoSentimiento | None) -> bool:
     return analisis is not None and analisis.probabilidad(analisis.polaridad) >= UMBRAL_CONFIANZA
 
 
+MENSAJE_GUARDADO = "Gracias por escribir. Tu registro de hoy quedó guardado."
+# Semana 5 (bateria de 60 frases): el analizador leyo como negativos 8 de 20
+# dias neutros («Desayuné cereal y me fui en el camión») y el diario le decia
+# al estudiante «notamos tristeza». PROVISIONAL, hasta que psicologia
+# responda (consulta S5, pregunta 8): un dia que el estudiante marco como
+# neutro no se contradice. Los dias marcados como buenos si, porque ahi la
+# diferencia puede mostrar a alguien que dice estar bien y no lo esta. La
+# deteccion de riesgo y la racha de dias negativos no cambian.
+NO_CONTRADECIR_DIA_NEUTRO = True
+
 MENSAJE_CONSULTA = (
     "Lo que escribiste habla de un tema y no de cómo te sentiste, así que tu día queda como lo marcaste."
 )
@@ -195,9 +205,11 @@ def _concordancia(entrada: EntradaDiario, analisis: ResultadoSentimiento | None,
         coincide = _es_confiable(analisis) and analisis.polaridad == entrada.polaridad  # type: ignore[union-attr]
         return ("coincide" if coincide else "incierto"), MENSAJE_CONSULTA
     if not _es_confiable(analisis):
-        return "incierto", "Gracias por escribir. Tu registro de hoy quedó guardado."
+        return "incierto", MENSAJE_GUARDADO
     if analisis.polaridad == entrada.polaridad:
         return "coincide", "Lo que escribiste va de acuerdo con cómo calificaste tu día."
+    if entrada.polaridad == POLARIDAD_NEUTRA and NO_CONTRADECIR_DIA_NEUTRO:
+        return "incierto", MENSAJE_GUARDADO
     emocion = _NOMBRE_CLASE[analisis.emocion_principal()]
     return (
         "difiere",
