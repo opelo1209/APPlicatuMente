@@ -67,6 +67,25 @@ class ResultadoSentimiento:
     def emocion_principal(self) -> str:
         return self.emociones[0][0] if self.emociones else CLASE_OTRA
 
+    def puntaje(self) -> float:
+        """Semana 6 (asesor): P(positivo) - P(negativo), de -1 a 1."""
+        return round(self.probabilidad(POLARIDAD_POSITIVA) - self.probabilidad(POLARIDAD_NEGATIVA), 4)
+
+
+def polaridad_por_intervalo(resultado: ResultadoSentimiento, izquierda: float = 0.0, derecha: float = 0.0) -> str:
+    """Semana 6 (asesor): el neutro como intervalo [-izquierda, derecha]
+    alrededor de cero en el puntaje. Si el modelo ya dijo neutro, se queda;
+    con el intervalo en cero da la clase mas probable, como hasta ahora.
+    La app todavia no lo usa: se mide con bateria/intervalo.py."""
+    if not (0.0 <= izquierda <= 1.0 and 0.0 <= derecha <= 1.0):
+        raise ValueError("los lados del intervalo van de 0 a 1")
+    if resultado.polaridad == POLARIDAD_NEUTRA:
+        return POLARIDAD_NEUTRA
+    puntaje = resultado.puntaje()
+    if -izquierda <= puntaje <= derecha:
+        return POLARIDAD_NEUTRA
+    return POLARIDAD_POSITIVA if puntaje > 0 else POLARIDAD_NEGATIVA
+
 
 class AnalizadorSentimiento(Protocol):
     def analizar(self, texto: str) -> ResultadoSentimiento: ...

@@ -1,0 +1,566 @@
+{
+ "nombre": "bateria_sentimiento_s6",
+ "version": 1,
+ "fecha": "2026-10-30",
+ "descripcion": "Semana 6 (reunion con el asesor, intervalo del neutro): frases NUEVAS para medir sin volver a ajustar el intervalo que se probo con frases_s5. 20 negativas suaves (la zona donde abrir el intervalo puede perder malestar real), 20 neutras de dia comun y 20 positivas tibias. Etiquetas puestas ANTES de medir por el equipo tecnico; las revisa psicologia. Sin frases de crisis. No incluye las 10 frases negativas suaves que se usaron para explorar el riesgo en la Semana 6.",
+ "clases_emocion": [
+  "alegria",
+  "tristeza",
+  "enojo",
+  "miedo",
+  "sorpresa",
+  "asco",
+  "otra"
+ ],
+ "frases": [
+  {
+   "id": "N01",
+   "texto": "Hoy no me salió bien la exposición",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "frustracion"
+   ]
+  },
+  {
+   "id": "N02",
+   "texto": "Me quedé con ganas de ir a la fiesta",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "tristeza"
+   ]
+  },
+  {
+   "id": "N03",
+   "texto": "Mi mejor amiga se cambió de escuela y la echo de menos",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "tristeza",
+    "soledad"
+   ]
+  },
+  {
+   "id": "N04",
+   "texto": "Me regañaron por llegar tarde",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "culpa"
+   ]
+  },
+  {
+   "id": "N05",
+   "texto": "Me puse nervioso cuando el maestro me preguntó",
+   "polaridad": "negativo",
+   "emocion": "miedo",
+   "emociones_diario": [
+    "ansiedad"
+   ]
+  },
+  {
+   "id": "N06",
+   "texto": "No me dejaron salir el sábado",
+   "polaridad": "negativo",
+   "emocion": "enojo",
+   "emociones_diario": [
+    "frustracion"
+   ]
+  },
+  {
+   "id": "N07",
+   "texto": "Saqué seis en el examen de historia",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "frustracion"
+   ]
+  },
+  {
+   "id": "N08",
+   "texto": "Mis papás discutieron en la cena",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "angustia"
+   ]
+  },
+  {
+   "id": "N09",
+   "texto": "Me dio pena equivocarme frente a todos",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "verguenza"
+   ]
+  },
+  {
+   "id": "N10",
+   "texto": "Mi hermano rompió mi audífono y ni se disculpó",
+   "polaridad": "negativo",
+   "emocion": "enojo",
+   "emociones_diario": [
+    "ira"
+   ]
+  },
+  {
+   "id": "N11",
+   "texto": "Hoy comí sola en el recreo",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "soledad"
+   ]
+  },
+  {
+   "id": "N12",
+   "texto": "Me preocupa no terminar el proyecto a tiempo",
+   "polaridad": "negativo",
+   "emocion": "miedo",
+   "emociones_diario": [
+    "ansiedad"
+   ]
+  },
+  {
+   "id": "N13",
+   "texto": "Perdí el partido de fútbol",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "frustracion"
+   ]
+  },
+  {
+   "id": "N14",
+   "texto": "Me duele un poco que no me invitaran",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "tristeza"
+   ]
+  },
+  {
+   "id": "N15",
+   "texto": "Estoy algo estresado por los exámenes",
+   "polaridad": "negativo",
+   "emocion": "miedo",
+   "emociones_diario": [
+    "ansiedad"
+   ]
+  },
+  {
+   "id": "N16",
+   "texto": "Se murió mi perrito hace una semana y todavía lo extraño",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "tristeza"
+   ]
+  },
+  {
+   "id": "N17",
+   "texto": "Me molestó que se burlaran de mi corte de pelo",
+   "polaridad": "negativo",
+   "emocion": "enojo",
+   "emociones_diario": [
+    "ira",
+    "verguenza"
+   ]
+  },
+  {
+   "id": "N18",
+   "texto": "No pude dormir bien por pensar en la tarea",
+   "polaridad": "negativo",
+   "emocion": "miedo",
+   "emociones_diario": [
+    "ansiedad"
+   ]
+  },
+  {
+   "id": "N19",
+   "texto": "Hoy fue un día pesado en la escuela",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "frustracion"
+   ]
+  },
+  {
+   "id": "N20",
+   "texto": "Me quedé fuera del equipo de básquet",
+   "polaridad": "negativo",
+   "emocion": "tristeza",
+   "emociones_diario": [
+    "tristeza",
+    "frustracion"
+   ]
+  },
+  {
+   "id": "U01",
+   "texto": "Hoy tuvimos clase de inglés y de civismo",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "U02",
+   "texto": "Comí arroz con pollo en la casa de mi abuela",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "tranquilidad"
+   ]
+  },
+  {
+   "id": "U03",
+   "texto": "Mañana hay que llevar el uniforme de deportes",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "U04",
+   "texto": "Estuve leyendo un rato en la tarde",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "tranquilidad"
+   ]
+  },
+  {
+   "id": "U05",
+   "texto": "Fui a la papelería por unas cartulinas",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "U06",
+   "texto": "En la mañana hizo frío y me puse chamarra",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "U07",
+   "texto": "Mi mamá cambió los muebles de la sala",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "U08",
+   "texto": "El examen de física es el lunes",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "U09",
+   "texto": "Me tocó hacer equipo con compañeros que casi no conozco",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "confusion"
+   ]
+  },
+  {
+   "id": "U10",
+   "texto": "Hoy no tuve tarea",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "tranquilidad"
+   ]
+  },
+  {
+   "id": "U11",
+   "texto": "Vi la tele un rato y luego me dormí",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "cansancio"
+   ]
+  },
+  {
+   "id": "U12",
+   "texto": "Hoy fue un día normal, sin nada especial",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "U13",
+   "texto": "Estuve todo el día en la casa",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "aburrimiento"
+   ]
+  },
+  {
+   "id": "U14",
+   "texto": "Nos cambiaron de salón por la remodelación",
+   "polaridad": "neutro",
+   "emocion": "sorpresa",
+   "emociones_diario": [
+    "sorpresa"
+   ]
+  },
+  {
+   "id": "U15",
+   "texto": "Acompañé a mi papá al banco",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "aburrimiento"
+   ]
+  },
+  {
+   "id": "U16",
+   "texto": "Me corté el pelo",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "U17",
+   "texto": "Hice la tarea de mate y luego cené",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "cansancio"
+   ]
+  },
+  {
+   "id": "U18",
+   "texto": "Me acordé de cuando íbamos a la playa de chiquitos",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "nostalgia"
+   ]
+  },
+  {
+   "id": "U19",
+   "texto": "No sé bien qué carrera voy a escoger",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "confusion"
+   ]
+  },
+  {
+   "id": "U20",
+   "texto": "Hoy salí temprano porque hubo consejo técnico",
+   "polaridad": "neutro",
+   "emocion": "otra",
+   "emociones_diario": [
+    "indiferencia"
+   ]
+  },
+  {
+   "id": "P01",
+   "texto": "Hoy estuvo bien la clase",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "calma"
+   ]
+  },
+  {
+   "id": "P02",
+   "texto": "Me fue más o menos bien en el examen, mejor de lo que pensaba",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "alegria"
+   ]
+  },
+  {
+   "id": "P03",
+   "texto": "Platiqué un rato con mi abuela por videollamada",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "carino"
+   ]
+  },
+  {
+   "id": "P04",
+   "texto": "Por fin terminé el proyecto",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "alegria",
+    "calma"
+   ]
+  },
+  {
+   "id": "P05",
+   "texto": "Mis amigos me guardaron lugar en el camión",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "gratitud"
+   ]
+  },
+  {
+   "id": "P06",
+   "texto": "Aprendí a hacer hot cakes",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "orgullo"
+   ]
+  },
+  {
+   "id": "P07",
+   "texto": "Me felicitaron por mi dibujo",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "orgullo"
+   ]
+  },
+  {
+   "id": "P08",
+   "texto": "Hoy me sentí tranquilo en la escuela",
+   "polaridad": "positivo",
+   "emocion": "otra",
+   "emociones_diario": [
+    "calma"
+   ]
+  },
+  {
+   "id": "P09",
+   "texto": "Ya casi son vacaciones",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "esperanza",
+    "entusiasmo"
+   ]
+  },
+  {
+   "id": "P10",
+   "texto": "Me regalaron un libro que quería",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "alegria",
+    "gratitud"
+   ]
+  },
+  {
+   "id": "P11",
+   "texto": "Pasé la tarde jugando con mi hermanito",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "carino"
+   ]
+  },
+  {
+   "id": "P12",
+   "texto": "La maestra dijo que voy mejorando",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "orgullo",
+    "esperanza"
+   ]
+  },
+  {
+   "id": "P13",
+   "texto": "Hoy no me peleé con nadie y estuvo tranquilo",
+   "polaridad": "positivo",
+   "emocion": "otra",
+   "emociones_diario": [
+    "calma"
+   ]
+  },
+  {
+   "id": "P14",
+   "texto": "Me invitaron al cumpleaños de una compañera",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "entusiasmo"
+   ]
+  },
+  {
+   "id": "P15",
+   "texto": "Salí a caminar con mi perro y me despejé",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "calma"
+   ]
+  },
+  {
+   "id": "P16",
+   "texto": "Hice las paces con mi amigo",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "alegria"
+   ]
+  },
+  {
+   "id": "P17",
+   "texto": "Me salió el truco de la patineta",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "orgullo"
+   ]
+  },
+  {
+   "id": "P18",
+   "texto": "Mi papá me ayudó con la maqueta",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "gratitud"
+   ]
+  },
+  {
+   "id": "P19",
+   "texto": "Hoy comimos pizza en familia",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "alegria",
+    "carino"
+   ]
+  },
+  {
+   "id": "P20",
+   "texto": "Me dieron ganas de seguir estudiando música",
+   "polaridad": "positivo",
+   "emocion": "alegria",
+   "emociones_diario": [
+    "entusiasmo",
+    "esperanza"
+   ]
+  }
+ ]
+}
