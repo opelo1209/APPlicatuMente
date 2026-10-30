@@ -41,7 +41,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Bienvenido al TCG Salud Mental'), findsOneWidget);
+    expect(
+      find.text('Te damos la bienvenida al TCG Salud Mental'),
+      findsOneWidget,
+    );
     expect(find.text('Siguiente'), findsOneWidget);
     expect(find.text('Omitir'), findsOneWidget);
   });

@@ -17,6 +17,9 @@ import 'servicios/boton_instalar_app.dart';
 import 'servicios/google_web_button.dart';
 import 'servicios/user.dart';
 
+// Semana 6: «¡Bienvenido de nuevo!» suponía el género de quien entra.
+const saludoInicioSesion = '¡Qué gusto verte de nuevo!';
+
 class Login extends StatefulWidget {
   const Login({super.key});
 
@@ -438,7 +441,7 @@ class _LoginState extends State<Login> {
                               ),
                             ),
                             Text(
-                              "¡Bienvenido de nuevo!",
+                              saludoInicioSesion,
                               style: TextStyle(
                                 fontSize: 18,
                                 color: theme.colorScheme.onSurface.withValues(
