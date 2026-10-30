@@ -139,6 +139,17 @@ class ContextoMensaje:
     motivo: str  # para la traza del servidor; nunca llega al estudiante
 
 
+# Semana 6: a «Hola Serena» el modelo contestaba «Estoy bien, gracias por
+# preguntar». Solo puede hablar de como esta si se lo preguntaron.
+_PREGUNTA_POR_SERENA = re.compile(
+    r"\b(?:como|que\s+tal)\s+(?:estas|andas|te\s+va|te\s+sientes|has\s+estado|amaneciste|te\s+fue)\b"
+)
+
+
+def pregunta_por_serena(texto: str) -> bool:
+    return bool(texto) and bool(_PREGUNTA_POR_SERENA.search(normalizar_chat(texto)))
+
+
 def _alguno(patrones: tuple[str, ...], plano: str) -> str | None:
     return next((p for p in patrones if re.search(p, plano)), None)
 

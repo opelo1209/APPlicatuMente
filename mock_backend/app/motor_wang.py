@@ -525,6 +525,11 @@ REGLAS_SALIDA = (
         "promete_lista -> reemplazar_apertura",
         "Semana 6: el modelo anuncio una lista y se corto (\"...para sentirte mas feliz: 1.\").",
     ),
+    Regla(
+        "S19",
+        "habla_de_su_estado -> reemplazar_apertura",
+        "Semana 6: a \"Hola Serena\" contesto \"Estoy bien, gracias por preguntar\" sin que nadie preguntara.",
+    ),
 )
 ACCION_BLOQUEAR = "bloquear"
 ACCION_REEMPLAZAR_APERTURA = "reemplazar_apertura"

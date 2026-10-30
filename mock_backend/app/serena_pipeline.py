@@ -39,9 +39,9 @@ from .acompanamiento import (
     sin_repetir,
 )
 from .analizador_sentimiento import AnalizadorNoDisponible, AnalizadorSentimiento, ResultadoSentimiento
-from .clasificador_riesgo import clasificar_mensaje, combinar_con_nivel_cssrs
+from .clasificador_riesgo import clasificar_mensaje, combinar_con_nivel_cssrs, normalizar_chat
 from .evaluador_diario import UMBRAL_CONFIANZA
-from .contexto_mensaje import HECHO_CONSULTA, TEMAS_CON_LINEAS, analizar_contexto
+from .contexto_mensaje import HECHO_CONSULTA, TEMAS_CON_LINEAS, analizar_contexto, pregunta_por_serena
 from .exploracion import lineas_para, pregunta_seguimiento
 from .generador_llm import GeneradorNoDisponible, GeneradorRespuesta
 from .guardia_salida import LINEAS_TEXTO, aplicar_guardia
@@ -327,6 +327,21 @@ def _mayuscula(texto: str) -> str:
 _SALUDO = re.compile(r"^\s*¡?\s*(?:hola|hey|buenas)\b\s*[!.,]*\s*", re.IGNORECASE)
 
 
+APERTURA_SALUDO = "¡Hola! Qué gusto leerte."
+
+
+_RESTO_DE_SALUDO = re.compile(r"^(?:serena|que\s+onda|que\s+tal|tardes|dias|noches|como\s+estas|[\s,.!¡?¿]+)*$")
+
+
+def _solo_saluda(mensaje: str, analisis) -> bool:
+    """El mensaje es solo un saludo («Hola Serena», «buenas tardes»): nada
+    mas que contestar, asi que la apertura fija tambien saluda."""
+    if not _SALUDO.match(mensaje) or getattr(analisis, "polaridad", None) == "negativo":
+        return False
+    resto = normalizar_chat(_SALUDO.sub("", mensaje, count=1))
+    return bool(_RESTO_DE_SALUDO.match(resto))
+
+
 def _sin_saludo(texto: str) -> str:
     """Semana 6: quita el «¡Hola!» con que el modelo abre aunque ya
     estuvieran platicando."""
@@ -525,6 +540,8 @@ def responder(
     if breve and informar:
         cuerpo = " ".join(p for p in (cuerpo, ficha, CIERRE_INFORMATIVO) if p)
     apertura_fija = APERTURA_INFORMATIVA if informar else _apertura_fija(analisis)
+    if not informar and not historial and _solo_saluda(mensaje, analisis):
+        apertura_fija = APERTURA_SALUDO
     if breve and al_avanzar is not None and cuerpo:
         # El material aprobado y la invitacion a un adulto ya se conocen: se
         # muestran mientras el modelo redacta. Velocidad (cierre S3): tambien
@@ -535,6 +552,8 @@ def responder(
     # Semana 6 (captura del asesor): Serena puede reconocer un malestar solo
     # si el estudiante lo conto (S17); el modelo lo inventaba.
     malestar = bool(riesgo.categorias) or getattr(analisis, "polaridad", None) == "negativo" or "racha_negativa" in hechos
+    # Y solo dice como esta si se lo preguntaron (S19).
+    le_preguntan = pregunta_por_serena(mensaje)
 
     def avisar_oracion(oracion: str) -> None:
         # Solo se muestra lo que pasa la guardia de salida, arriba de lo que
@@ -542,7 +561,7 @@ def responder(
         oracion = _sin_saludo(oracion) if historial else oracion
         if not oracion:
             return
-        guardia = aplicar_guardia(oracion, requiere_lineas=False, breve=breve, entrada_negativa=malestar)
+        guardia = aplicar_guardia(oracion, requiere_lineas=False, breve=breve, entrada_negativa=malestar, pregunta_por_serena=le_preguntan)
         if al_avanzar is not None and guardia.mostrable:
             al_avanzar(f"{_mayuscula(oracion)} {cuerpo}".strip())
 
@@ -581,12 +600,12 @@ def responder(
     explorar = entrada.accion in (ACCION_EXPLORAR, ACCION_SUGERIR_APOYO)
     # En modo breve la guardia revisa SOLO lo que escribio el modelo; el
     # material aprobado y la invitacion son texto fijo.
-    guardia = aplicar_guardia(crudo, requiere_lineas=explorar and not breve, breve=breve, entrada_negativa=malestar)
+    guardia = aplicar_guardia(crudo, requiere_lineas=explorar and not breve, breve=breve, entrada_negativa=malestar, pregunta_por_serena=le_preguntan)
     if breve and not guardia.bloqueada:
         # Lo peligroso (bloquear) se revisa en TODO lo que escribio el
         # modelo; el estilo (S12-S15), solo en las oraciones que se muestran.
         usadas = " ".join(_oraciones(crudo)[:necesarias])
-        guardia = aplicar_guardia(usadas or crudo, requiere_lineas=False, breve=True, entrada_negativa=malestar)
+        guardia = aplicar_guardia(usadas or crudo, requiere_lineas=False, breve=True, entrada_negativa=malestar, pregunta_por_serena=le_preguntan)
     etapas["salida"] = _decision_dict(guardia.decision)
     if guardia.bloqueada:
         alerta = {"tipo": "respuesta_bloqueada", "nivel": "salida", "reglas": list(guardia.decision.reglas_usadas),

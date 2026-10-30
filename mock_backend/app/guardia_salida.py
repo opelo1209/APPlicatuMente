@@ -160,6 +160,12 @@ _PATRONES = {
         r"\b(?:estas|andas)\s+(?:pasando|atravesando|viviendo)\s+(?:por\s+)?(?:un|una)\s+"
         r"(?:\w+\s+)?(?:momento|etapa|dia|situacion|racha|epoca)\b",
     ],
+    # Semana 6: a «Hola Serena» el modelo dijo «Estoy bien, gracias por
+    # preguntar». Solo cuenta si no le preguntaron (pregunta_por_serena=False).
+    "habla_de_su_estado": [
+        r"\b(?:yo\s+)?estoy\s+(?:muy\s+)?(?:bien|genial|excelente|de\s+maravilla)\b",
+        r"\bgracias\s+por\s+preguntar\b",
+    ],
     # Semana 6: anuncia una lista y se queda sin tokens («...mas feliz: 1.»).
     # Una lista completa (modo completo) no cuenta: solo la que se corta.
     "promete_lista": [
@@ -209,7 +215,11 @@ def _tiene_lineas(texto: str) -> bool:
 
 
 def hechos_de_salida(
-    texto: str, requiere_lineas: bool, breve: bool = False, entrada_negativa: bool = False
+    texto: str,
+    requiere_lineas: bool,
+    breve: bool = False,
+    entrada_negativa: bool = False,
+    pregunta_por_serena: bool = False,
 ) -> set[str]:
     if not texto or not texto.strip():
         return {"respuesta_vacia"}
@@ -219,6 +229,8 @@ def hechos_de_salida(
         hechos.add("solo_acompanar")
     if entrada_negativa:
         hechos.discard("supone_malestar")
+    if pregunta_por_serena:
+        hechos.discard("habla_de_su_estado")
     if clasificar_mensaje(texto).nivel == NIVEL_ALTO:
         hechos.add("salida_con_riesgo")
     if requiere_lineas:
@@ -247,11 +259,16 @@ def _recortar(texto: str) -> str:
 
 
 def aplicar_guardia(
-    texto: str, requiere_lineas: bool, breve: bool = False, entrada_negativa: bool = False
+    texto: str,
+    requiere_lineas: bool,
+    breve: bool = False,
+    entrada_negativa: bool = False,
+    pregunta_por_serena: bool = False,
 ) -> ResultadoGuardia:
     """entrada_negativa: el estudiante si conto un malestar; entonces Serena
-    puede reconocerlo («Entiendo que te sientes triste»)."""
-    hechos = frozenset(hechos_de_salida(texto, requiere_lineas, breve, entrada_negativa))
+    puede reconocerlo («Entiendo que te sientes triste»).
+    pregunta_por_serena: le preguntaron como esta; entonces puede contestarlo."""
+    hechos = frozenset(hechos_de_salida(texto, requiere_lineas, breve, entrada_negativa, pregunta_por_serena))
     decision = decidir(hechos, METAS_SALIDA, REGLAS_SALIDA)
     if decision.accion == ACCION_BLOQUEAR:
         segura = RESPUESTA_SEGURA_EXPLORAR if requiere_lineas else RESPUESTA_SEGURA
