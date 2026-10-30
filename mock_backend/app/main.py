@@ -122,8 +122,10 @@ DEMO_USERS = {
 log = logging.getLogger("aptm")
 
 # Semana 5 (H11): OWASP recomienda 600 000 iteraciones para PBKDF2-SHA256.
-# Los hashes viejos (120 000) se actualizan solos al iniciar sesion.
-PBKDF2_ITERACIONES = 600_000
+# Semana 6 (asesor): con 600 000 entrar tardaba ~2.6 s en el servidor; se
+# baja a la mitad. El algoritmo sigue siendo PBKDF2-HMAC-SHA256 (antes 120 000
+# iteraciones). Un hash con otro costo se recalcula al iniciar sesion.
+PBKDF2_ITERACIONES = 300_000
 # Semana 5 (H5): longitud de las contrasenas nuevas. El tope evita que una
 # contrasena enorme ocupe el CPU calculando PBKDF2.
 LONGITUD_MINIMA_PASSWORD = 8
@@ -258,7 +260,7 @@ def necesita_rehash(password_hash: str) -> bool:
     Semana 6: ``!=`` y no ``<``, para que los de 600 000 tambien bajen."""
     try:
         algorithm, iterations, _, _ = password_hash.split("$", 3)
-        return algorithm != "pbkdf2_sha256" or int(iterations) < PBKDF2_ITERACIONES
+        return algorithm != "pbkdf2_sha256" or int(iterations) != PBKDF2_ITERACIONES
     except ValueError:
         return True
 

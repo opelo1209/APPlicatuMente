@@ -388,26 +388,29 @@ def test_el_administrador_no_se_desactiva_a_si_mismo(cliente):
 # -------------------------------------------------------------------- H11
 
 
-def test_las_contrasenas_nuevas_usan_600_mil_iteraciones(cliente_real):
+# Semana 6 (asesor): 600 000 iteraciones hacian lento el inicio de sesion;
+# se bajo a la mitad.
+def test_las_contrasenas_nuevas_usan_300_mil_iteraciones(cliente_real):
     usuario, r = registrar(cliente_real)
     assert r.status_code == 201
-    assert fila(usuario)["password_hash"].startswith("pbkdf2_sha256$600000$")
+    assert fila(usuario)["password_hash"].startswith("pbkdf2_sha256$300000$")
 
 
-def test_un_hash_viejo_se_actualiza_al_entrar(cliente_real):
+@pytest.mark.parametrize("iteraciones", [120_000, 600_000])
+def test_un_hash_con_otro_costo_se_actualiza_al_entrar(cliente_real, iteraciones):
     cliente = cliente_real
     usuario, _ = registrar(cliente)
     sal = secrets.token_hex(16)
-    viejo = hashlib.pbkdf2_hmac("sha256", CLAVE.encode(), sal.encode(), 120_000).hex()
+    viejo = hashlib.pbkdf2_hmac("sha256", CLAVE.encode(), sal.encode(), iteraciones).hex()
     with main_mod.db_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 "UPDATE usuarios_padres SET password_hash = %s WHERE nombre_usuario = %s",
-                (f"pbkdf2_sha256$120000${sal}${viejo}", usuario),
+                (f"pbkdf2_sha256${iteraciones}${sal}${viejo}", usuario),
             )
         conn.commit()
     assert entrar(cliente, usuario).status_code == 200
-    assert fila(usuario)["password_hash"].startswith("pbkdf2_sha256$600000$")
+    assert fila(usuario)["password_hash"].startswith("pbkdf2_sha256$300000$")
     assert entrar(cliente, usuario).status_code == 200
 
 
@@ -415,7 +418,8 @@ def test_un_hash_viejo_se_actualiza_al_entrar(cliente_real):
     "guardado,esperado",
     [
         ("pbkdf2_sha256$120000$sal$abc", True),
-        ("pbkdf2_sha256$600000$sal$abc", False),
+        ("pbkdf2_sha256$600000$sal$abc", True),
+        ("pbkdf2_sha256$300000$sal$abc", False),
         ("md5$1$sal$abc", True),
         ("basura", True),
     ],
