@@ -168,7 +168,9 @@ INVITACIONES_ADULTO = (
 )
 INSTRUCCION_BREVE = (
     "Escribe UNA sola oración breve y cálida que reconozca lo que la persona dice o siente. "
-    "No des consejos, técnicas ni datos: el contenido aprobado se agrega después."
+    "No des consejos, técnicas ni datos: el contenido aprobado se agrega después. "
+    # Semana 6 (captura del asesor).
+    "No le atribuyas emociones que no mencionó ni supongas que está mal."
 )
 # Semana 4: la persona pide informacion; no se supone que se siente asi.
 INSTRUCCION_BREVE_INFORMAR = (
@@ -182,7 +184,9 @@ INSTRUCCION_BREVE_INFORMAR_SIN_CONTENIDO = (
 )
 INSTRUCCION_BREVE_SIN_CONTENIDO = (
     "Escribe como máximo dos oraciones breves: una que reconozca lo que la persona dice o siente "
-    "y una pregunta abierta. No des consejos, técnicas ni datos."
+    "y una pregunta abierta. No des consejos, técnicas ni datos. "
+    # Semana 6 (captura del asesor).
+    "No le atribuyas emociones que no mencionó ni supongas que está mal."
 )
 
 
@@ -318,6 +322,15 @@ def _mensajes_breve(mensaje, analisis, intencion, decision, fragmentos, historia
 
 def _mayuscula(texto: str) -> str:
     return texto[:1].upper() + texto[1:]
+
+
+_SALUDO = re.compile(r"^\s*¡?\s*(?:hola|hey|buenas)\b\s*[!.,]*\s*", re.IGNORECASE)
+
+
+def _sin_saludo(texto: str) -> str:
+    """Semana 6: quita el «¡Hola!» con que el modelo abre aunque ya
+    estuvieran platicando."""
+    return _mayuscula(_SALUDO.sub("", texto, count=1))
 
 
 def _cuerpo_breve(fragmentos, mensaje: str, invitar: bool = True) -> str:
@@ -519,10 +532,18 @@ def responder(
         # mostraban nada durante 12-20 s.
         al_avanzar(cuerpo)
 
+    # Semana 6 (captura del asesor): Serena puede reconocer un malestar solo
+    # si el estudiante lo conto (S17); el modelo lo inventaba.
+    malestar = bool(riesgo.categorias) or getattr(analisis, "polaridad", None) == "negativo" or "racha_negativa" in hechos
+
     def avisar_oracion(oracion: str) -> None:
         # Solo se muestra lo que pasa la guardia de salida, arriba de lo que
         # ya se veia (la burbuja crece; no cambia lo ya mostrado).
-        if al_avanzar is not None and aplicar_guardia(oracion, requiere_lineas=False, breve=breve).mostrable:
+        oracion = _sin_saludo(oracion) if historial else oracion
+        if not oracion:
+            return
+        guardia = aplicar_guardia(oracion, requiere_lineas=False, breve=breve, entrada_negativa=malestar)
+        if al_avanzar is not None and guardia.mostrable:
             al_avanzar(f"{_mayuscula(oracion)} {cuerpo}".strip())
 
     # Semana 4 (prototipo11, en el servidor): en una consulta el modelo
@@ -549,6 +570,10 @@ def responder(
         crudo = apertura_fija if breve else _respuesta_sin_modelo(analisis, fragmentos)
         etapas["modelo"] = SIN_MODELO_FICHA if breve and ficha else SIN_MODELO
     etapas["texto_modelo"] = crudo
+    if historial:
+        # Semana 6: «¡Hola!» a media conversacion (captura del asesor). Si
+        # solo saludaba, va la apertura fija (vacio seria «bloquear»).
+        crudo = _sin_saludo(crudo) or apertura_fija
 
     # 4. SALIDA -------------------------------------------------------------
     # Fase 2: "sugerir apoyo" (R10 racha negativa, R15 seguimiento de una
@@ -556,12 +581,12 @@ def responder(
     explorar = entrada.accion in (ACCION_EXPLORAR, ACCION_SUGERIR_APOYO)
     # En modo breve la guardia revisa SOLO lo que escribio el modelo; el
     # material aprobado y la invitacion son texto fijo.
-    guardia = aplicar_guardia(crudo, requiere_lineas=explorar and not breve, breve=breve)
+    guardia = aplicar_guardia(crudo, requiere_lineas=explorar and not breve, breve=breve, entrada_negativa=malestar)
     if breve and not guardia.bloqueada:
         # Lo peligroso (bloquear) se revisa en TODO lo que escribio el
         # modelo; el estilo (S12-S15), solo en las oraciones que se muestran.
         usadas = " ".join(_oraciones(crudo)[:necesarias])
-        guardia = aplicar_guardia(usadas or crudo, requiere_lineas=False, breve=True)
+        guardia = aplicar_guardia(usadas or crudo, requiere_lineas=False, breve=True, entrada_negativa=malestar)
     etapas["salida"] = _decision_dict(guardia.decision)
     if guardia.bloqueada:
         alerta = {"tipo": "respuesta_bloqueada", "nivel": "salida", "reglas": list(guardia.decision.reglas_usadas),

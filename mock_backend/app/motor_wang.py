@@ -515,6 +515,16 @@ REGLAS_SALIDA = (
         "supone_genero -> reemplazar_apertura",
         "Semana 4: lenguaje neutro; el modelo supuso el genero (\"¿Te sientes comoda...?\").",
     ),
+    Regla(
+        "S17",
+        "supone_malestar -> reemplazar_apertura",
+        "Semana 6 (captura del asesor): no atribuir tristeza o un mal momento a quien no lo conto.",
+    ),
+    Regla(
+        "S18",
+        "promete_lista -> reemplazar_apertura",
+        "Semana 6: el modelo anuncio una lista y se corto (\"...para sentirte mas feliz: 1.\").",
+    ),
 )
 ACCION_BLOQUEAR = "bloquear"
 ACCION_REEMPLAZAR_APERTURA = "reemplazar_apertura"

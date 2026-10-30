@@ -21,7 +21,7 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import Iterable, Mapping
 
-from .contexto_mensaje import TEMA_AUTOLESION, TEMA_DEPRESION, TEMA_SUICIDIO, TEMA_TRISTEZA
+from .contexto_mensaje import TEMA_AUTOLESION, TEMA_BIENESTAR, TEMA_DEPRESION, TEMA_SUICIDIO, TEMA_TRISTEZA
 
 CRISIS_REPETIDA = (
     "Sigo aquí contigo y me importa que estés a salvo. ¿Estás en un lugar seguro ahorita? "
@@ -74,6 +74,15 @@ FICHAS_INFORMATIVAS: Mapping[str, str] = MappingProxyType(
             "El suicidio se puede prevenir. Algunas señales de alerta son hablar de querer morir o de ser una "
             "carga, despedirse o regalar sus cosas, y alejarse de todos. Si notas esto en alguien, pregúntale "
             "cómo está, escúchalo sin juzgar y busquen juntos a un adulto o una línea de ayuda."
+        ),
+        # Semana 6 (captura del asesor): pedia tecnicas para sentirse mas feliz
+        # y el modelo prometia una lista que no llegaba. BORRADOR para
+        # psicologia; la respiracion es la del modulo de Ansiedad.
+        TEMA_BIENESTAR: (
+            "Hay cosas sencillas que ayudan a sentirse bien: hacer cada día algo que disfrutes, moverte un poco "
+            "(caminar, bailar o jugar), dormir lo suficiente y pasar tiempo con personas que te caen bien. "
+            "También ayuda, antes de dormir, pensar en tres cosas buenas que pasaron en el día. Y cuando algo "
+            "te preocupe, respira lento: inhala 4 segundos, sostén 4 y exhala 6."
         ),
         TEMA_AUTOLESION: (
             "La autolesión es hacerse daño a propósito, sin querer morir; muchas veces es una forma de aguantar "

@@ -148,6 +148,23 @@ _PATRONES = {
         r"(?<!la\s)\bbienvenid[ao]s?\b",
         r"(?:^|[,¡!¿?.]\s*)(?:querid[ao]|amig[ao]|chic[ao]|nin[ao]|campeon|campeona)s?\s*[,.!?]",
     ],
+    # Semana 6 (captura del asesor): el estudiante pidio tecnicas para estar
+    # mas feliz y el modelo le dijo «Entiendo que te sientes triste» y
+    # «Parece que estas pasando por un momento dificil». Solo cuenta si el
+    # estudiante no conto un malestar (entrada_negativa=False): el motor de
+    # Wang no supone mundo cerrado y no puede probar «not entrada_negativa».
+    "supone_malestar": [
+        r"\b(?:parece|veo|noto|entiendo|imagino|se\s+nota|se\s+ve)\s+que\b[^.!?]{0,50}?"
+        r"\b(?:trist\w*|mal|dificil\w*|complicad\w*|dur[oa]|sol[oa]s?|preocupad\w*|agobiad\w*|desanimad\w*|"
+        r"deprimid\w*|angusti\w*|estresad\w*|abrumad\w*|ansios\w*|frustrad\w*|dolid\w*|decaid\w*|aguitad\w*)\b",
+        r"\b(?:estas|andas)\s+(?:pasando|atravesando|viviendo)\s+(?:por\s+)?(?:un|una)\s+"
+        r"(?:\w+\s+)?(?:momento|etapa|dia|situacion|racha|epoca)\b",
+    ],
+    # Semana 6: anuncia una lista y se queda sin tokens («...mas feliz: 1.»).
+    # Una lista completa (modo completo) no cuenta: solo la que se corta.
+    "promete_lista": [
+        r":\s*(?:\d+\s*[.)]?\s*)?$",
+    ],
     "impone": [
         r"(?<!no\s)\btienes\s+que\b",
         r"(?<!no\s)\bdebes\b",
@@ -191,13 +208,17 @@ def _tiene_lineas(texto: str) -> bool:
     return "800 911 2000" in texto or "55 5259 8121" in texto
 
 
-def hechos_de_salida(texto: str, requiere_lineas: bool, breve: bool = False) -> set[str]:
+def hechos_de_salida(
+    texto: str, requiere_lineas: bool, breve: bool = False, entrada_negativa: bool = False
+) -> set[str]:
     if not texto or not texto.strip():
         return {"respuesta_vacia"}
-    plano = _normalizar(texto)
+    plano = _normalizar(texto).strip()
     hechos = {nombre for nombre, patrones in _PATRONES.items() if any(re.search(p, plano) for p in patrones)}
     if breve:
         hechos.add("solo_acompanar")
+    if entrada_negativa:
+        hechos.discard("supone_malestar")
     if clasificar_mensaje(texto).nivel == NIVEL_ALTO:
         hechos.add("salida_con_riesgo")
     if requiere_lineas:
@@ -210,7 +231,8 @@ def hechos_de_salida(texto: str, requiere_lineas: bool, breve: bool = False) -> 
 def _limpiar_formato(texto: str) -> str:
     # El modelo a veces responde con listas y **negritas** de Markdown, que
     # en la app se verían crudas (PSI-01 con Qwen 1.5B).
-    sin_listas = re.sub(r"(?m)^\s*(?:\d+[.)]|[-•*])\s+", "", texto)
+    # Semana 6: tambien el numero suelto al final («...\n\n1.»).
+    sin_listas = re.sub(r"(?m)^\s*(?:\d+[.)]|[-•*])(?:\s+|$)", "", texto)
     sin_marcas = re.sub(r"[*_#`]+", "", sin_listas)
     return re.sub(r"\s+", " ", sin_marcas).strip()
 
@@ -224,8 +246,12 @@ def _recortar(texto: str) -> str:
     return " ".join(o.strip() for o in usar[:MAX_ORACIONES]).strip()
 
 
-def aplicar_guardia(texto: str, requiere_lineas: bool, breve: bool = False) -> ResultadoGuardia:
-    hechos = frozenset(hechos_de_salida(texto, requiere_lineas, breve))
+def aplicar_guardia(
+    texto: str, requiere_lineas: bool, breve: bool = False, entrada_negativa: bool = False
+) -> ResultadoGuardia:
+    """entrada_negativa: el estudiante si conto un malestar; entonces Serena
+    puede reconocerlo («Entiendo que te sientes triste»)."""
+    hechos = frozenset(hechos_de_salida(texto, requiere_lineas, breve, entrada_negativa))
     decision = decidir(hechos, METAS_SALIDA, REGLAS_SALIDA)
     if decision.accion == ACCION_BLOQUEAR:
         segura = RESPUESTA_SEGURA_EXPLORAR if requiere_lineas else RESPUESTA_SEGURA

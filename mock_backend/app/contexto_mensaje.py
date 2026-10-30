@@ -94,10 +94,30 @@ _HABLA_DE_SI = (
     r"\ba\s+mi\s+me\b",
 )
 
+# Semana 6 (captura del asesor): pedir tecnicas o consejos para estar bien
+# («que tecnicas me recomiendas para sentirme mas feliz») no habla de un
+# malestar. Antes «sentirme» lo hacia «habla de si» y Serena contestaba
+# «Entiendo que te sientes triste».
+_PIDE_BIENESTAR = (
+    r"\b(?:tecnicas?|consejos?|tips?|recomendaciones?|recomiendas|ideas?|actividades?|ejercicios?|habitos?|"
+    r"conocimientos?|aprender|que\s+(?:puedo\s+)?hacer|como\s+(?:le\s+hago|puedo|hago)|"
+    r"que\s+(?:cosas\s+)?me\s+(?:ayud\w*|sirv\w*))\b.{0,60}?"
+    r"\b(?:feliz|felicidad|content\w*|alegr\w*|bienestar|buen\s+animo|animo|buen\s+dia|"
+    r"(?:sentirme|estar|vivir)\s+(?:mejor|bien|tranquil\w*))\b",
+    r"\bcomo\s+(?:puedo\s+|podria\s+)?(?:ser|estar|sentirme|vivir)\s+(?:mas\s+)?(?:feliz|content\w*|alegre)\b",
+)
+# Lo que se busca (sentirse bien) no cuenta como hablar de un malestar; lo
+# demas de _HABLA_DE_SI («me siento muy triste», «ya no aguanto») si.
+_ASPIRACION = (
+    r"\b(?:sentirme|sentirse|estar|ser|me\s+siento|estoy)\s+(?:mucho\s+|muy\s+|mas\s+|un\s+poco\s+mas\s+)?"
+    r"(?:feliz|mejor|bien|content\w*|alegre|tranquil\w*|de\s+buen\s+animo)\b"
+)
+
 TEMA_SUICIDIO = "suicidio"
 TEMA_AUTOLESION = "autolesion"
 TEMA_TRISTEZA = "tristeza"
 TEMA_DEPRESION = "depresion"
+TEMA_BIENESTAR = "bienestar"
 
 _TEMAS = (
     (TEMA_SUICIDIO, r"\b(?:suicid\w*|quitarse\s+la\s+vida)\b"),
@@ -135,9 +155,12 @@ def analizar_contexto(texto: str) -> ContextoMensaje:
         return ContextoMensaje(False, None, "vacio")
     plano = normalizar_chat(texto)
     tema = tema_de(texto)
-    personal = _alguno(_HABLA_DE_SI, plano)
+    bienestar = _alguno(_PIDE_BIENESTAR, plano)
+    personal = _alguno(_HABLA_DE_SI, re.sub(_ASPIRACION, " ", plano) if bienestar else plano)
     if personal:
         return ContextoMensaje(False, tema, "habla de si")
+    if bienestar:
+        return ContextoMensaje(True, TEMA_BIENESTAR, "pide bienestar")
     if _alguno(_PIDE_INFORMACION, plano):
         return ContextoMensaje(True, tema, "pide informacion")
     return ContextoMensaje(False, tema, "sin pedido de informacion")
