@@ -16,9 +16,13 @@ name: Publicar APTM para ml.izt.uam.mx
 #   - `publicar` corre en el entorno normal del runner, que sí las trae.
 # Hacer las dos cosas en el mismo trabajo dentro del contenedor falla al
 # publicar, porque ahí `gh` no existe.
+#
+# Semana 6 (asesor, 30 de octubre): producción sale de la rama `produccion`,
+# que solo recibe lo que el asesor libera (pull request desde la rama del
+# prototipo, con las pruebas en verde). Antes salía de `demo`.
 on:
   push:
-    branches: [demo]
+    branches: [produccion]
   workflow_dispatch:
 
 # Dos publicaciones seguidas no se pisan: la segunda espera a la primera.

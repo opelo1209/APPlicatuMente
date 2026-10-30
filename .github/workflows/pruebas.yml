@@ -5,8 +5,9 @@ name: Pruebas
 # llama antes de compilar: si una prueba falla, no se publica nada.
 on:
   push:
-    # En demo ya lo corre publicar.yml; aquí se correría dos veces.
-    branches-ignore: [demo]
+    # En produccion ya lo corre publicar.yml; aquí se correría dos veces
+    # (antes era demo; Semana 6).
+    branches-ignore: [produccion]
   pull_request:
   workflow_call:
 
