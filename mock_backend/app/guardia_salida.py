@@ -114,6 +114,9 @@ _PATRONES = {
         r"\bno\s+se\s+preocupe\b",
         r"\bcomo\s+se\s+siente\b",
         r"\b(?:digame|cuenteme|platiqueme)\b",
+
+        # Semana 6 (Qwen 1.5B a «hola»): «¿Como estuvo su dia?».
+        r"\bcomo\s+(?:estuvo|fue|le\s+fue|le\s+va)\s+(?:en\s+)?su\s+(?:dia|semana|tarde|manana|noche|clase|examen|escuela)\b",
     ],
     "confunde_papel": [
         # Se dirige a mama/papa o a la propia Serena, como si fuera el estudiante.
@@ -159,6 +162,10 @@ _PATRONES = {
         r"deprimid\w*|angusti\w*|estresad\w*|abrumad\w*|ansios\w*|frustrad\w*|dolid\w*|decaid\w*|aguitad\w*)\b",
         r"\b(?:estas|andas)\s+(?:pasando|atravesando|viviendo)\s+(?:por\s+)?(?:un|una)\s+"
         r"(?:\w+\s+)?(?:momento|etapa|dia|situacion|racha|epoca)\b",
+
+        # Kaggle (Qwen 7B): «Entiendo que sientes que no estas tan feliz».
+        r"\b(?:parece|veo|noto|entiendo|imagino|se\s+nota|se\s+ve)\s+que\b[^.!?]{0,40}?\bno\s+"
+        r"(?:estas|te\s+sientes|andas)\s+(?:tan\s+|muy\s+|del\s+todo\s+)?(?:feliz|bien|content\w*|alegre|tranquil\w*)\b",
     ],
     # Semana 6: a «Hola Serena» el modelo dijo «Estoy bien, gracias por
     # preguntar». Solo cuenta si no le preguntaron (pregunta_por_serena=False).
@@ -180,6 +187,8 @@ _PATRONES = {
     "aconseja": [
         r"\b(?:respira|inhala|exhala|sosten)\b",
         r"\b(?:te\s+sugiero|te\s+recomiendo|intenta|prueba\s+a|comienza\s+con|empieza\s+por)\b",
+        # Kaggle (Qwen 7B): «¿Podrias intentar respirar profundo...?».
+        r"\b(?:podrias|puedes|podrias\s+tratar\s+de)\s+(?:intentar|probar|tratar\s+de)\b",
         r"\b(?:sugerencias|estrategias|consejos|tecnicas)\s+que\b",
         r"\b\d+\s+(?:segundos|minutos)\b",
     ],
@@ -212,6 +221,53 @@ class ResultadoGuardia:
 
 def _tiene_lineas(texto: str) -> bool:
     return "800 911 2000" in texto or "55 5259 8121" in texto
+
+
+# Semana 6 (Kaggle): los 8 descartes de Qwen 7B fueron de genero («te
+# sientes nervioso»). Si el adjetivo tiene un sustantivo claro, la oracion
+# se reescribe en neutro («sientes nervios») en vez de tirarla; si no esta
+# aqui, S16 la sigue descartando. raiz -> (sustantivo, genero gramatical).
+_SUSTANTIVO_NEUTRO = {
+    "nervios": ("nervios", "mp"), "estresad": ("estrés", "m"), "frustrad": ("frustración", "f"),
+    "enojad": ("enojo", "m"), "enfadad": ("enojo", "m"), "molest": ("molestia", "f"),
+    "abrumad": ("agobio", "m"), "agobiad": ("agobio", "m"), "presionad": ("presión", "f"),
+    "sol": ("soledad", "f"), "aislad": ("soledad", "f"), "preocupad": ("preocupación", "f"),
+    "ansios": ("ansiedad", "f"), "cansad": ("cansancio", "m"), "agotad": ("cansancio", "m"),
+    "confundid": ("confusión", "f"), "asustad": ("miedo", "m"), "desanimad": ("desánimo", "m"),
+    "decepcionad": ("decepción", "f"), "avergonzad": ("vergüenza", "f"), "apenad": ("pena", "f"),
+    "emocionad": ("emoción", "f"), "aburrid": ("aburrimiento", "m"), "tranquil": ("calma", "f"),
+    "orgullos": ("orgullo", "m"), "rechazad": ("rechazo", "m"), "insegur": ("inseguridad", "f"),
+    "celos": ("celos", "mp"), "herid": ("dolor", "m"), "content": ("alegría", "f"),
+}
+_VERBO_NEUTRO = {"te sientes": "sientes", "te sientas": "sientas", "te sentiste": "sentiste",
+                 "te sentias": "sentías", "te sentías": "sentías", "sentirte": "sentir"}
+_GRADO_NEUTRO = {
+    "muy": {"m": "mucho", "f": "mucha", "mp": "muchos"},
+    "tan": {"m": "tanto", "f": "tanta", "mp": "tantos"},
+    "demasiado": {"m": "demasiado", "f": "demasiada", "mp": "demasiados"},
+    "bastante": {"m": "bastante", "f": "bastante", "mp": "bastantes"},
+    "un poco": {"m": "un poco de", "f": "un poco de", "mp": "un poco de"},
+    "algo": {"m": "algo de", "f": "algo de", "mp": "algo de"},
+}
+_NEUTRALIZABLE = re.compile(
+    r"\b(?P<verbo>te\s+sientes|te\s+sientas|te\s+sentiste|te\s+sent[ií]as|sentirte)\s+"
+    r"(?:(?P<grado>muy|tan|demasiado|bastante|un\s+poco|algo)\s+)?"
+    rf"(?P<raiz>{'|'.join(sorted(_SUSTANTIVO_NEUTRO, key=len, reverse=True))})[oa]s?(?:\s*/\s*as?|\s*\(as?\))?\b",
+    re.IGNORECASE,
+)
+
+
+def _a_neutro(m: re.Match) -> str:
+    verbo = _VERBO_NEUTRO[re.sub(r"\s+", " ", m["verbo"].lower())]
+    sustantivo, genero = _SUSTANTIVO_NEUTRO[m["raiz"].lower()]
+    grado = _GRADO_NEUTRO[re.sub(r"\s+", " ", m["grado"].lower())][genero] + " " if m["grado"] else ""
+    nuevo = f"{verbo} {grado}{sustantivo}"
+    return nuevo[0].upper() + nuevo[1:] if m["verbo"][0].isupper() else nuevo
+
+
+def neutralizar_genero(texto: str) -> str:
+    """«te sientes muy nervioso» -> «sientes muchos nervios»."""
+    return _NEUTRALIZABLE.sub(_a_neutro, texto)
 
 
 def hechos_de_salida(
@@ -267,7 +323,9 @@ def aplicar_guardia(
 ) -> ResultadoGuardia:
     """entrada_negativa: el estudiante si conto un malestar; entonces Serena
     puede reconocerlo («Entiendo que te sientes triste»).
-    pregunta_por_serena: le preguntaron como esta; entonces puede contestarlo."""
+    pregunta_por_serena: le preguntaron como esta; entonces puede contestarlo.
+    Antes de revisar, el genero se reescribe en neutro cuando se puede."""
+    texto = neutralizar_genero(texto)
     hechos = frozenset(hechos_de_salida(texto, requiere_lineas, breve, entrada_negativa, pregunta_por_serena))
     decision = decidir(hechos, METAS_SALIDA, REGLAS_SALIDA)
     if decision.accion == ACCION_BLOQUEAR:

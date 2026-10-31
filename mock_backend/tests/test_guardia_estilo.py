@@ -164,8 +164,9 @@ def test_s13_vocativo_en_cualquier_posicion(oracion):
 
 @_pytest.mark.parametrize(
     "oracion",
-    ["¿Te sientes cómoda con esa idea?", "Se nota que estás muy cansado.", "Entiendo que te sientas sola.",
-     "¿Estás segura de eso?"],
+    # «Entiendo que te sientas sola» ya no se descarta: se reescribe en
+    # neutro (Semana 6, test_serena_genero_s6.py).
+    ["¿Te sientes cómoda con esa idea?", "Se nota que estás muy cansado.", "¿Estás segura de eso?"],
 )
 def test_s16_supone_genero(oracion):
     assert _guardia(oracion, requiere_lineas=False, breve=True).reemplazada

@@ -148,6 +148,9 @@ PROMPT_SERENA = (
     + "\n- Responde en español de México, tuteando, en 2 o 3 oraciones, sin listas ni formato."
     + "\n- No digas datos médicos que no estén en el contenido aprobado; si no está, no lo digas."
     + "\n- Modismos: «jefa/jefe» es mamá/papá; «agüitado» es triste; «neta» es en serio."
+    # Semana 6 (Kaggle, corrida 2): con un ejemplo concreto («sientes nervios») el
+    # 7B lo copiaba aunque el estudiante hablara de soledad o de vapear. La
+    # reescritura neutra la hace la guardia (neutralizar_genero).
     + "\n- No supongas si es hombre o mujer: usa lenguaje neutro."
 )
 MAX_FRAGMENTOS = 2
@@ -563,7 +566,7 @@ def responder(
             return
         guardia = aplicar_guardia(oracion, requiere_lineas=False, breve=breve, entrada_negativa=malestar, pregunta_por_serena=le_preguntan)
         if al_avanzar is not None and guardia.mostrable:
-            al_avanzar(f"{_mayuscula(oracion)} {cuerpo}".strip())
+            al_avanzar(f"{_mayuscula(guardia.texto)} {cuerpo}".strip())
 
     # Semana 4 (prototipo11, en el servidor): en una consulta el modelo
     # seguia hablando del tema del mensaje anterior ("La tristeza es..." ante

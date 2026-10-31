@@ -94,8 +94,6 @@ SUPONEN_GENERO = [
     "Me alegra que estés tranquila.",
     "Me da gusto verte contento.",
     "Gracias por ser tan sincera.",
-    "¿Te sientes presionado por tus amigos?",
-    "Seguro te sentiste rechazada.",
     "Te has sentido muy sola.",
     "Pareces cansado.",
     "Bienvenida, cuéntame.",
@@ -119,6 +117,21 @@ NEUTRAS = [
     "Te doy la bienvenida al chat.",
     "Te sientes triste y eso está bien.",
 ]
+
+
+# Semana 6 (Kaggle): si el adjetivo tiene un sustantivo claro, la oracion ya
+# no se descarta: se reescribe en neutro (test_serena_genero_s6.py).
+SE_REESCRIBEN = [
+    ("¿Te sientes presionado por tus amigos?", "¿Sientes presión por tus amigos?"),
+    ("Seguro te sentiste rechazada.", "Seguro sentiste rechazo."),
+]
+
+
+@pytest.mark.parametrize("oracion,neutra", SE_REESCRIBEN)
+def test_si_hay_sustantivo_claro_se_reescribe(oracion, neutra):
+    assert "supone_genero" in hechos_de_salida(oracion, requiere_lineas=False, breve=True)
+    g = aplicar_guardia(oracion, requiere_lineas=False, breve=True)
+    assert g.mostrable and g.texto == neutra
 
 
 @pytest.mark.parametrize("oracion", SUPONEN_GENERO)
