@@ -97,6 +97,16 @@ _METODO_GENERAL = [
 ]
 
 
+# Semana 6 (prototipo18): «ayudame con mi tarea de matematicas» recibia
+# «Claro, estare encantada de ayudarte». Solo otras materias: una tarea
+# SOBRE salud mental («tarea sobre la depresion») es una consulta.
+_MATERIAS = r"(?:matematicas|mate|fisica|quimica|ingles|espanol|historia|geografia|civismo|algebra|geometria|calculo)"
+_TAREA = [
+    rf"\b(?:ayuda\w*|ayudas|resuelve\w*|haz|hazme|hacerme|me\s+haces)\b.{{0,25}}\b(?:tarea|ejercicio|problema|examen)s?\s+de\s+{_MATERIAS}\b",
+    r"\b(?:resuelve\w*|hazme|me\s+haces|haz)\s+(?:este|el|la|mi|esta)\s+(?:tarea|ejercicio|problema|ecuacion|operacion)\b",
+]
+
+
 def _hay(patrones: list[str], plano: str) -> bool:
     return any(re.search(p, plano) for p in patrones)
 
@@ -120,6 +130,8 @@ def hechos_de_limites(texto: str) -> set[str]:
         hechos.add("pide_metodo")
     elif _hay(_METODO_GENERAL, plano):
         hechos.add("pide_metodo_general")
+    if _hay(_TAREA, plano):
+        hechos.add("pide_tarea")
     if _coincidencias(PETICION_SECRETO, plano):
         hechos.add("peticion_secreto")
     return hechos

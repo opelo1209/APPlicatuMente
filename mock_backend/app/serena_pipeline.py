@@ -57,6 +57,7 @@ from .motor_wang import (
     ACCION_INFORMAR,
     ACCION_LIMITE_DIAGNOSTICO,
     ACCION_LIMITE_IDENTIDAD,
+    ACCION_LIMITE_TAREA,
     ACCION_LIMITE_MEDICACION,
     ACCION_LIMITE_METODO,
     ACCION_LIMITE_SECRETO,
@@ -105,7 +106,18 @@ RESPUESTAS_LIMITE = {
         "psicólogo ni a alguien de confianza, pero puedo escucharte y orientarte con información "
         "revisada. ¿En qué te puedo ayudar?"
     ),
+    ACCION_LIMITE_TAREA: (
+        "Con la tarea no te puedo ayudar: estoy aquí para platicar de cómo te sientes. Para resolverla, "
+        "tu maestra, tu maestro o alguien de tu salón te pueden apoyar. Si la tarea te está pesando o te "
+        "da estrés, cuéntame y lo platicamos."
+    ),
 }
+
+# Consulta sin ficha ni material, cuando el modelo no dio algo mostrable.
+APERTURA_SIN_INFORMACION = (
+    "Es una buena pregunta, pero todavía no tengo información revisada sobre eso. Un adulto de confianza "
+    "o orientación de tu escuela te pueden contar más. ¿Hay algo de cómo te sientes que quieras platicar?"
+)
 
 SIN_MODELO = "sin modelo (solo contenido aprobado)"
 SIN_MODELO_FICHA = "sin modelo (consulta con ficha)"
@@ -147,7 +159,7 @@ PROMPT_SERENA = (
     PROMPT_BASE
     + "\n- Responde en español de México, tuteando, en 2 o 3 oraciones, sin listas ni formato."
     + "\n- No digas datos médicos que no estén en el contenido aprobado; si no está, no lo digas."
-    + "\n- Modismos: «jefa/jefe» es mamá/papá; «agüitado» es triste; «neta» es en serio."
+    + "\n- Modismos: «jefa/jefe» es mamá/papá; «agüitado» es triste; «coraje» es enojo; «neta» es en serio."
     # Semana 6 (Kaggle, corrida 2): con un ejemplo concreto («sientes nervios») el
     # 7B lo copiaba aunque el estudiante hablara de soledad o de vapear. La
     # reescritura neutra la hace la guardia (neutralizar_genero).
@@ -545,8 +557,13 @@ def responder(
     necesarias = 1 if con_contenido else 2
     cuerpo = _cuerpo_breve(fragmentos, mensaje, invitar) if breve else ""
     if breve and informar:
-        cuerpo = " ".join(p for p in (cuerpo, ficha, CIERRE_INFORMATIVO) if p)
+        # Semana 6 (prototipo18): sin ficha ni material no hay «tema» que
+        # ofrecer: «¿Quieres saber algo mas del tema?» contradecia al modelo.
+        cierre = CIERRE_INFORMATIVO if con_contenido else ""
+        cuerpo = " ".join(p for p in (cuerpo, ficha, cierre) if p)
     apertura_fija = APERTURA_INFORMATIVA if informar else _apertura_fija(analisis)
+    if informar and not con_contenido:
+        apertura_fija = APERTURA_SIN_INFORMACION
     if not informar and not historial and _solo_saluda(mensaje, analisis):
         apertura_fija = APERTURA_SALUDO
     if breve and al_avanzar is not None and cuerpo:

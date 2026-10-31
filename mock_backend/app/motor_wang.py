@@ -403,6 +403,7 @@ REGLAS = (
     Regla("L2", "pide_medicacion -> limite_medicacion", "S3: no recomienda medicacion (LIM-02)."),
     Regla("L3", "peticion_secreto -> limite_secreto", "S4: no promete confidencialidad absoluta (LIM-03)."),
     Regla("L4", "pregunta_identidad -> limite_identidad", "S5: dice que no es una persona (LIM-04)."),
+    Regla("L5", "pide_tarea -> limite_tarea", "Semana 6: no resuelve tareas de otras materias; ofrece platicar del estres."),
 )
 
 REGLAS_RIESGO: tuple[Formula, ...] = tuple(r.formula for r in REGLAS)
@@ -425,6 +426,7 @@ HECHOS_VALIDOS = frozenset().union(*(atomos(f) for f in REGLAS_RIESGO)) | {
     "limite_medicacion",
     "limite_secreto",
     "limite_identidad",
+    "limite_tarea",
     "limite_metodo",
     "informar",
     "acompanar_crisis",
@@ -438,6 +440,7 @@ ACCION_LIMITE_DIAGNOSTICO = "limite_diagnostico"
 ACCION_LIMITE_MEDICACION = "limite_medicacion"
 ACCION_LIMITE_SECRETO = "limite_secreto"
 ACCION_LIMITE_IDENTIDAD = "limite_identidad"
+ACCION_LIMITE_TAREA = "limite_tarea"
 ACCION_APOYO_TERCERO = "apoyo_tercero"
 ACCION_ALERTA_PREVENTIVA = "alerta_preventiva"
 ACCION_APOYO_AUTOLESION = "apoyo_autolesion"
@@ -468,6 +471,7 @@ METAS_SERENA = (
     ("limite_medicacion", ACCION_LIMITE_MEDICACION),
     ("limite_secreto", ACCION_LIMITE_SECRETO),
     ("limite_identidad", ACCION_LIMITE_IDENTIDAD),
+    ("limite_tarea", ACCION_LIMITE_TAREA),
     ("alerta_preventiva", ACCION_ALERTA_PREVENTIVA),
     ("riesgo_ambiguo", ACCION_EXPLORAR),
     # Una senal ambigua gana a la consulta: "informar" va despues.
@@ -524,6 +528,11 @@ REGLAS_SALIDA = (
         "S18",
         "promete_lista -> reemplazar_apertura",
         "Semana 6: el modelo anuncio una lista y se corto (\"...para sentirte mas feliz: 1.\").",
+    ),
+    Regla(
+        "S20",
+        "se_niega -> reemplazar_apertura",
+        "Semana 6 (prototipo18): \"no puedo proporcionar informacion sobre la muerte\" y luego \"¿Quieres saber algo mas?\".",
     ),
     Regla(
         "S19",

@@ -21,7 +21,14 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import Iterable, Mapping
 
-from .contexto_mensaje import TEMA_AUTOLESION, TEMA_BIENESTAR, TEMA_DEPRESION, TEMA_SUICIDIO, TEMA_TRISTEZA
+from .contexto_mensaje import (
+    TEMA_AUTOLESION,
+    TEMA_BIENESTAR,
+    TEMA_DEPRESION,
+    TEMA_DUELO,
+    TEMA_SUICIDIO,
+    TEMA_TRISTEZA,
+)
 
 CRISIS_REPETIDA = (
     "Sigo aquí contigo y me importa que estés a salvo. ¿Estás en un lugar seguro ahorita? "
@@ -83,6 +90,15 @@ FICHAS_INFORMATIVAS: Mapping[str, str] = MappingProxyType(
             "(caminar, bailar o jugar), dormir lo suficiente y pasar tiempo con personas que te caen bien. "
             "También ayuda, antes de dormir, pensar en tres cosas buenas que pasaron en el día. Y cuando algo "
             "te preocupe, respira lento: inhala 4 segundos, sostén 4 y exhala 6."
+        ),
+        # Semana 6 (prototipo18): borrador para revision de psicologia.
+        TEMA_DUELO: (
+            "Hablar de la muerte o perder a alguien que queremos puede doler o dar miedo, y está bien "
+            "preguntar. Cuando muere alguien cercano es normal sentir tristeza, enojo, culpa o hasta no "
+            "sentir nada por un tiempo: a eso se le llama duelo, y cada persona lo vive a su ritmo. Ayuda "
+            "platicar de esa persona, recordar los buenos momentos y apoyarse en la familia o las amistades. "
+            "Si después de varias semanas la tristeza no te deja hacer lo de siempre, platícalo con un adulto "
+            "de confianza o con orientación de tu escuela."
         ),
         TEMA_AUTOLESION: (
             "La autolesión es hacerse daño a propósito, sin querer morir; muchas veces es una forma de aguantar "

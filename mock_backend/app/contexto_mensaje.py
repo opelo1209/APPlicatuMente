@@ -61,6 +61,9 @@ _PIDE_INFORMACION = (
     r"\bsolo\s+(?:quise|quiero|queria)\s+(?:consultar|saber|preguntar|informa\w*|leer)\b",
     r"\b(?:como|maneras?|formas?)\s+(?:de\s+|se\s+puede\s+)?(?:prevenir|evitar|detectar|identificar)\b",
     r"\bprevencion\b",
+    # Semana 6 (prototipo18): «¿que le pasa al cuerpo si vapeo?» es consulta.
+    r"\bque\s+(?:le\s+)?(?:pasa|sucede|hace)\s+(?:al|a\s+tu|a\s+mi|en\s+el)\s+(?:cuerpo|cerebro|organismo)\b",
+    r"\bque\s+(?:efectos?|danos?|consecuencias)\s+(?:tiene|tienen|causa|causan|hace|hacen|provoca|provocan)\b",
 )
 
 # Habla de si mismo: estado, deseo o conducta en primera persona. Con
@@ -118,10 +121,13 @@ TEMA_AUTOLESION = "autolesion"
 TEMA_TRISTEZA = "tristeza"
 TEMA_DEPRESION = "depresion"
 TEMA_BIENESTAR = "bienestar"
+# Semana 6 (preguntas en prototipo18): «dame informacion sobre la muerte».
+TEMA_DUELO = "duelo"
 
 _TEMAS = (
     (TEMA_SUICIDIO, r"\b(?:suicid\w*|quitarse\s+la\s+vida)\b"),
     (TEMA_AUTOLESION, r"\b(?:autoles\w*|cortarse|cutting|lastimarse|hacerse\s+dano)\b"),
+    (TEMA_DUELO, r"\b(?:muerte|muertes|morir|morirse|murio|murieron|fallec\w*|duelo|perdida\s+de\s+(?:un|una|alguien|mi)|perder\s+a\s+(?:alguien|un|una|mi))\b"),
     (TEMA_DEPRESION, r"\b(?:depresi\w*|deprimid\w*)\b"),
     (TEMA_TRISTEZA, r"\b(?:trist\w*|aguitad\w*)\b"),
 )

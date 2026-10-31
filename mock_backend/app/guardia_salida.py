@@ -137,6 +137,9 @@ _PATRONES = {
         # siento un poco triste». Serena habla de un malestar propio.
         r"\b(?:yo\s+)?me\s+siento\s+(?:(?:un\s+poco|muy|algo|tan|bastante)\s+)?"
         r"(?:trist\w*|mal|sol[oa]|cansad\w*|nervios\w*|ansios\w*|preocupad\w*|enojad\w*|deprimid\w*|agobiad\w*)\b",
+        # Prototipo18, a «ando bien agüitado»: «estoy sintiendo un poco triste».
+        r"\b(?:yo\s+)?estoy\s+sintiendo(?:me)?\s+(?:(?:un\s+poco|muy|algo|tan)\s+)?"
+        r"(?:trist\w*|aguitad\w*|mal|sol[oa]|deprimid\w*|desanimad\w*)\b",
     ],
     # Semana 4 (captura de prototipo11: «¿Te sientes cómoda con esa idea?»):
     # el prompt pide lenguaje neutro y el modelo supone el género. Semana 5
@@ -155,6 +158,8 @@ _PATRONES = {
         # «Bienvenida» como saludo; «te doy la bienvenida» es neutro.
         r"(?<!la\s)\bbienvenid[ao]s?\b",
         r"(?:^|[,¡!¿?.]\s*)(?:querid[ao]|amig[ao]|chic[ao]|nin[ao]|campeon|campeona)s?\s*[,.!?]",
+        # Semana 6 (prototipo18): «La confianza en ti misma es crucial».
+        r"\bti\s+mism[ao]s?\b",
     ],
     # Semana 6 (captura del asesor): el estudiante pidio tecnicas para estar
     # mas feliz y el modelo le dijo «Entiendo que te sientes triste» y
@@ -177,6 +182,13 @@ _PATRONES = {
     "habla_de_su_estado": [
         r"\b(?:yo\s+)?estoy\s+(?:muy\s+)?(?:bien|genial|excelente|de\s+maravilla)\b",
         r"\bgracias\s+por\s+preguntar\b",
+    ],
+    # Semana 6 (prototipo18): «Lo siento, pero no puedo proporcionar
+    # informacion sobre la muerte. ¿Quieres saber algo mas del tema?».
+    "se_niega": [
+        r"\bno\s+(?:puedo|podre|me\s+es\s+posible)\s+(?:proporcionar\w*|dar(?:te)?|brindar\w*|ofrecer\w*|compartir\w*)\b"
+        r"[^.!?]{0,30}\binformacion\b",
+        r"\blo\s+siento,?\s+(?:pero\s+)?no\s+puedo\b",
     ],
     # Semana 6: anuncia una lista y se queda sin tokens («...mas feliz: 1.»).
     # Una lista completa (modo completo) no cuenta: solo la que se corta.
@@ -270,6 +282,17 @@ def _a_neutro(m: re.Match) -> str:
     return nuevo[0].upper() + nuevo[1:] if m["verbo"][0].isupper() else nuevo
 
 
+_REDACCION = ((re.compile(r"\b([Cc])[oó]mo\s+est[aá]s\s+sintiendo\b"), r"\1ómo te estás sintiendo"),)
+
+
+def corregir_redaccion(texto: str) -> str:
+    """Errores de redaccion del modelo que no cambian el sentido (prototipo18:
+    «¿Como estas sintiendo ahora?»)."""
+    for patron, nuevo in _REDACCION:
+        texto = patron.sub(nuevo, texto)
+    return texto
+
+
 def neutralizar_genero(texto: str) -> str:
     """«te sientes muy nervioso» -> «sientes muchos nervios»."""
     return _NEUTRALIZABLE.sub(_a_neutro, texto)
@@ -330,7 +353,7 @@ def aplicar_guardia(
     puede reconocerlo («Entiendo que te sientes triste»).
     pregunta_por_serena: le preguntaron como esta; entonces puede contestarlo.
     Antes de revisar, el genero se reescribe en neutro cuando se puede."""
-    texto = neutralizar_genero(texto)
+    texto = corregir_redaccion(neutralizar_genero(texto))
     hechos = frozenset(hechos_de_salida(texto, requiere_lineas, breve, entrada_negativa, pregunta_por_serena))
     decision = decidir(hechos, METAS_SALIDA, REGLAS_SALIDA)
     if decision.accion == ACCION_BLOQUEAR:
