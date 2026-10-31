@@ -41,7 +41,7 @@ from .acompanamiento import (
 from .analizador_sentimiento import AnalizadorNoDisponible, AnalizadorSentimiento, ResultadoSentimiento
 from .clasificador_riesgo import clasificar_mensaje, combinar_con_nivel_cssrs, normalizar_chat
 from .evaluador_diario import UMBRAL_CONFIANZA
-from .contexto_mensaje import HECHO_CONSULTA, TEMAS_CON_LINEAS, analizar_contexto, pregunta_por_serena
+from .contexto_mensaje import HECHO_CONSULTA, TEMAS_CON_LINEAS, analizar_contexto, pregunta_por_serena, queja_de_la_app
 from .exploracion import lineas_para, pregunta_seguimiento
 from .generador_llm import GeneradorNoDisponible, GeneradorRespuesta
 from .guardia_salida import LINEAS_TEXTO, aplicar_guardia
@@ -430,6 +430,10 @@ def responder(
         # Semana 4: en una consulta la polaridad describe el TEMA ("tristeza")
         # y no a quien escribe; no cuenta como dia o mensaje negativo.
         hechos.add(HECHO_CONSULTA)
+        analisis = None
+    elif queja_de_la_app(mensaje) and not riesgo.categorias:
+        # Semana 6: una queja sobre la app («no veo completo el mensaje»)
+        # tampoco describe a quien escribe: no es malestar ni suma a la racha.
         analisis = None
     elif analisis is not None and analisis.probabilidad(analisis.polaridad) >= UMBRAL_CONFIANZA:
         hechos.add({"positivo": "polaridad_positiva", "neutro": "polaridad_neutra", "negativo": "polaridad_negativa"}[analisis.polaridad])

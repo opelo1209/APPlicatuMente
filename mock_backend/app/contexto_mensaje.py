@@ -150,6 +150,33 @@ def pregunta_por_serena(texto: str) -> bool:
     return bool(texto) and bool(_PREGUNTA_POR_SERENA.search(normalizar_chat(texto)))
 
 
+# Semana 6 (Kaggle, corrida 3): «No veo completo el mensaje» se leia como
+# negativo (0.73) y Serena podia suponer tristeza. Una queja sobre la app
+# describe a la app, no a quien escribe. Hace falta algo de la app Y una
+# falla; si ademas habla de si («estoy triste porque no carga»), no cuenta.
+_OBJETO_APP = (
+    r"\b(?:mensajes?|respuestas?|texto|pantalla|app|aplicacion|pagina|boton|chat|letras?|imagen|video|"
+    r"juegos?|cuestionario|diario|link|enlace|serena)\b"
+)
+_FALLA_APP = (
+    r"\bno\s+(?:se\s+)?(?:veo|ve|ven|aparece\w*|carga\w*|abre|abren|funciona\w*|sirve\w*|jala\w*|entiendo|"
+    r"leo|termina|completa|me\s+abre|me\s+deja\s+(?:entrar|ver|escribir))\b"
+    r"|\bse\s+(?:corto|corta|trabo|traba|congelo|congela|cerro|cierra|borro|borra)\b"
+    r"|\b(?:cortad[oa]|incomplet[oa]|falla|fallo|error|bug)\b"
+)
+
+
+def queja_de_la_app(texto: str) -> bool:
+    if not texto or not texto.strip():
+        return False
+    plano = normalizar_chat(texto)
+    return (
+        bool(re.search(_OBJETO_APP, plano))
+        and bool(re.search(_FALLA_APP, plano))
+        and not _alguno(_HABLA_DE_SI, plano)
+    )
+
+
 def _alguno(patrones: tuple[str, ...], plano: str) -> str | None:
     return next((p for p in patrones if re.search(p, plano)), None)
 

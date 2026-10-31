@@ -132,6 +132,11 @@ _PATRONES = {
         r"\b(?:puedas|podrias|puedes)\s+(?:compartirme|darme)\b.{0,20}\bconsejo",
         r"\bconsejo\b.{0,30}\b(?:puedas|podrias|puedes)\s+(?:compartirme|darme)\b",
         r"\bnecesito\s+(?:tu\s+)?consejo\b",
+
+        # Semana 6 (Qwen 1.5B a «No veo completo el mensaje»): «¡Hola! Me
+        # siento un poco triste». Serena habla de un malestar propio.
+        r"\b(?:yo\s+)?me\s+siento\s+(?:(?:un\s+poco|muy|algo|tan|bastante)\s+)?"
+        r"(?:trist\w*|mal|sol[oa]|cansad\w*|nervios\w*|ansios\w*|preocupad\w*|enojad\w*|deprimid\w*|agobiad\w*)\b",
     ],
     # Semana 4 (captura de prototipo11: «¿Te sientes cómoda con esa idea?»):
     # el prompt pide lenguaje neutro y el modelo supone el género. Semana 5
