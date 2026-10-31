@@ -111,14 +111,22 @@ def test_el_contexto_solo_lleva_lo_que_escribio_el_estudiante():
 # Semana 5: "como ayudo a un amigo que esta triste" ahora es una consulta y
 # se responde con la ficha fija de tristeza, sin llamar al modelo; ya no hay
 # texto del modelo que bloquear. Se prueba la guardia en los dos caminos que
-# si pasan por el modelo: un mensaje personal y una consulta sin ficha.
+# si pasan por el modelo: un mensaje personal y una consulta sin ficha ni
+# material (Semana 6: con material el modelo ya no redacta).
 @pytest.mark.parametrize(
-    "mensaje", ["me pongo triste cuando mi amigo no me habla", "cómo ayudo a un amigo que tiene ansiedad"]
+    "mensaje", ["me pongo triste cuando mi amigo no me habla", "dame información sobre los eclipses"]
 )
 def test_la_guardia_bloquea_material_inventado_por_el_modelo(mensaje):
     falso = GeneradorFalso("Entiendo. Del material del programa: La empatía es una habilidad.")
     r = responder(mensaje, AF, falso, modo="breve")
     assert r.tipo == "bloqueada"
+    assert "La empatía es una habilidad" not in r.texto
+
+
+def test_consulta_con_material_no_muestra_lo_que_invente_el_modelo():
+    falso = GeneradorFalso("Entiendo. Del material del programa: La empatía es una habilidad.")
+    r = responder("cómo ayudo a un amigo que tiene ansiedad", AF, falso, modo="breve")
+    assert r.fuentes
     assert "La empatía es una habilidad" not in r.texto
 
 

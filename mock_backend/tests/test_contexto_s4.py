@@ -250,8 +250,10 @@ def test_consulta_con_ficha_no_llama_al_modelo():
 def test_consulta_no_manda_mensajes_anteriores_al_modelo():
     g = GeneradorQueRepite()
     primero = responder("¿Qué es la tristeza?", AF, g)
+    vistos = len(g.vistos)
     r = responder("qué es la ansiedad", AF, g, historial=(primero.turno,))
-    assert g.vistos and "tristeza" not in g.vistos[-1]
+    # Semana 6: con material del programa ya no se llama al modelo.
+    assert len(g.vistos) == vistos or "tristeza" not in g.vistos[-1]
     assert "tristeza" not in r.texto.lower()
 
 

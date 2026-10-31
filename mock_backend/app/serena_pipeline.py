@@ -121,6 +121,7 @@ APERTURA_SIN_INFORMACION = (
 
 SIN_MODELO = "sin modelo (solo contenido aprobado)"
 SIN_MODELO_FICHA = "sin modelo (consulta con ficha)"
+SIN_MODELO_MATERIAL = "sin modelo (consulta con material)"
 
 log = logging.getLogger("aptm.serena")
 
@@ -379,6 +380,27 @@ def _componer_breve(texto_guardia: str, necesarias: int, cuerpo: str, apertura_f
     return f"{apertura} {cuerpo}".strip()
 
 
+def _sin_repetir(fuentes) -> tuple:
+    """Semana 6 (prototipo19): dos fragmentos del mismo modulo mostraban
+    dos veces «Modulo de Consumo de sustancias»."""
+    vistas: set[tuple[str, str]] = set()
+    unicas = []
+    for f in fuentes:
+        clave = (f["titulo"], f["categoria"])
+        if clave not in vistas:
+            vistas.add(clave)
+            unicas.append(f)
+    return tuple(unicas)
+
+
+def _sin_modelo(breve: bool, ficha, con_material: bool) -> str:
+    if breve and ficha:
+        return SIN_MODELO_FICHA
+    if breve and con_material:
+        return SIN_MODELO_MATERIAL
+    return SIN_MODELO
+
+
 def _oraciones_necesarias(fragmentos) -> int:
     return 1 if fragmentos else 2
 
@@ -529,7 +551,7 @@ def responder(
     # El corpus casi no tiene titulos (el titulo suele ser el modulo): se
     # muestra "Módulo de Ansiedad" en lugar de "Ansiedad - Ansiedad".
     # Cierre de la Semana 3: cada fuente dice si psicologia ya la reviso.
-    fuentes = tuple(
+    fuentes = _sin_repetir(
         MappingProxyType(
             {
                 **(
@@ -598,6 +620,11 @@ def responder(
     try:
         if breve and ficha:
             raise GeneradorNoDisponible("consulta con ficha: no hace falta el modelo")
+        if breve and informar and fragmentos:
+            # Semana 6 (prototipo19): ante «¿que le pasa al cuerpo si
+            # vapeo?» el modelo agrego «sensacion de calor». La guardia no
+            # revisa hechos: la respuesta es solo el material aprobado.
+            raise GeneradorNoDisponible("consulta con material: el modelo no agrega datos")
         if breve:
             crudo = _generar_hasta(
                 generador,
@@ -611,7 +638,7 @@ def responder(
         etapas["modelo"] = generador.nombre
     except GeneradorNoDisponible:
         crudo = apertura_fija if breve else _respuesta_sin_modelo(analisis, fragmentos)
-        etapas["modelo"] = SIN_MODELO_FICHA if breve and ficha else SIN_MODELO
+        etapas["modelo"] = _sin_modelo(breve, ficha, informar and bool(fragmentos))
     etapas["texto_modelo"] = crudo
     if historial:
         # Semana 6: «¡Hola!» a media conversacion (captura del asesor). Si
