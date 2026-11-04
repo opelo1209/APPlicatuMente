@@ -147,13 +147,27 @@ def fila_api(frase: dict, cliente, dormir=time.sleep) -> dict[str, Any]:
     }
 
 
+def iniciar_sesion(cliente: Any, usuario: str, clave: str) -> None:
+    """Inicia sesion como la app: sin espacios alrededor (login.dart usa .trim())."""
+    usuario = usuario.strip()
+    r = cliente.post("/auth/login", json={"username": usuario, "password": clave.strip()})
+    if r.status_code == 401:
+        raise SystemExit(
+            f"401 al iniciar sesion como {usuario!r}: el usuario o la contrasena no coinciden. "
+            "Prueba la misma cuenta en el navegador del prototipo."
+        )
+    if r.status_code == 429:
+        raise SystemExit(f"429 al iniciar sesion como {usuario!r}: demasiados intentos; espera 15 minutos.")
+    if r.status_code >= 400:
+        raise SystemExit(f"{r.status_code} al iniciar sesion como {usuario!r}.")
+    cliente.headers["Authorization"] = f"Bearer {r.json()['access_token']}"
+
+
 def correr_api(frases: Iterable[dict], url: str, usuario: str, clave: str) -> list[dict]:
     import httpx
 
     with httpx.Client(base_url=url.rstrip("/"), timeout=120) as cliente:
-        r = cliente.post("/auth/login", json={"username": usuario, "password": clave})
-        r.raise_for_status()
-        cliente.headers["Authorization"] = f"Bearer {r.json()['access_token']}"
+        iniciar_sesion(cliente, usuario, clave)
         filas = []
         for i, frase in enumerate(frases, 1):
             filas.append(fila_api(frase, cliente))
