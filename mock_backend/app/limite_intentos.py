@@ -42,6 +42,8 @@ LOGIN_IP = Limite("login-ip", 30, 15)
 DEMO_IP = Limite("demo-ip", 10, 15)
 RECUPERACION_CUENTA = Limite("recuperacion", 3, 60)
 RECUPERACION_IP = Limite("recuperacion-ip", 10, 60)
+# Semana 8: adivinar codigos o enlaces de recuperacion, por IP.
+RECUPERACION_CONFIRMAR_IP = Limite("recuperacion-confirmar-ip", 10, 60)
 # Un mensaje de Serena tarda ~13 s en el prototipo; 15 por minuto solo se
 # alcanza con un programa, no escribiendo.
 CHAT_USUARIO = Limite("chat", 15, 1)

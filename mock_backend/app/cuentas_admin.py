@@ -38,6 +38,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from . import limite_intentos as limite
+from . import recuperacion_contrasena as recuperacion
 
 log = logging.getLogger(__name__)
 
@@ -186,5 +187,24 @@ def crear_router_cuentas(
         # Sin datos de la cuenta borrada: solo el perfil y quien la borro.
         log.warning("cuenta de %s borrada por el administrador %s", perfil, user["id_usuario"])
         return {"borrada": True, "filas": filas}
+
+    @router.post("/admin/usuarios/{perfil}/{id_usuario}/codigo-recuperacion")
+    def codigo_recuperacion(perfil: str, id_usuario: int, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+        """Semana 8 (asesor): cuando no hay correo, el administrador genera un
+        codigo de un solo uso y se lo da al estudiante o al tutor. Solo se
+        muestra esta vez; en la base queda su SHA-256."""
+        _solo_admin(user)
+        if perfil not in TABLAS:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Solo cuentas de estudiante o de tutor.")
+        with db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(f"SELECT 1 FROM {TABLAS[perfil]} WHERE id_usuario = %s", (id_usuario,))
+                if cur.fetchone() is None:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La cuenta no existe.")
+                codigo = recuperacion.crear_codigo(cur, perfil, id_usuario)
+            conn.commit()
+        # Sin el codigo: solo quien lo genero y para que perfil.
+        log.warning("codigo de recuperacion para una cuenta de %s generado por el administrador %s", perfil, user["id_usuario"])
+        return {"codigo": codigo, "vigencia_horas": recuperacion.VIGENCIA_CODIGO_HORAS}
 
     return router

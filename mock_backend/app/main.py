@@ -900,7 +900,7 @@ MENSAJE_RECUPERACION = (
 )
 MENSAJE_SIN_CORREO = (
     "La recuperación por correo todavía no está disponible. Pide al "
-    "administrador de tu escuela que te ayude a restablecer tu contraseña."
+    "administrador de tu escuela un código para restablecer tu contraseña."
 )
 
 
@@ -939,16 +939,21 @@ def password_reset_request(payload: PasswordResetRequest, request: Request) -> d
 
 
 @app.post("/auth/password-reset-confirm")
-def password_reset_confirm(payload: PasswordResetConfirm) -> dict[str, Any]:
+def password_reset_confirm(payload: PasswordResetConfirm, request: Request) -> dict[str, Any]:
     validar_password(payload.new_password)
+    ip = ip_de(request)
     with db_conn() as conn:
         with conn.cursor() as cur:
-            dueno = recuperacion.consumir(cur, payload.token)
+            # Semana 8: con el codigo del administrador (8 letras) adivinar
+            # deja de ser imposible en teoria; se limita por IP.
+            limite.exigir(cur, (limite.RECUPERACION_CONFIRMAR_IP, ip))
+            dueno = recuperacion.consumir_token_o_codigo(cur, payload.token)
             if dueno is None:
+                limite.registrar(cur, limite.RECUPERACION_CONFIRMAR_IP, ip)
                 conn.commit()  # un token vencido tambien se borra
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="El enlace no es válido o ya venció. Solicita uno nuevo.",
+                    detail="El enlace o el código no es válido o ya venció. Solicita uno nuevo.",
                 )
             table = PROFILE_TABLES[dueno.perfil_tipo]
             cur.execute(
