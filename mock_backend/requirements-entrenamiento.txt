@@ -1,0 +1,8 @@
+# Semana 8: reentrenamiento del analizador (mock_backend/entrenamiento/).
+# Solo para el servidor donde se entrena; la app no las necesita.
+pysentimiento==0.7.3
+torch>=2.2
+transformers>=4.40
+scikit-learn==1.5.2
+# Opcional, para `alterno --embeddings`:
+# sentence-transformers>=3.0

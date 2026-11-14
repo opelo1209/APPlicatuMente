@@ -87,3 +87,9 @@ mock_backend/app/datos/revision_clinica.json
 # Semana 5: salida de la bateria del analizador (python -m bateria.ejecutar)
 mock_backend/bateria_resultado.json
 mock_backend/tablero_bateria.html
+
+# Semana 8: datos de REDCap y modelos del reentrenamiento nunca van a git.
+mock_backend/entrenamiento/**/*.jsonl
+mock_backend/entrenamiento/**/*.csv
+mock_backend/entrenamiento/modelos/
+*.safetensors
