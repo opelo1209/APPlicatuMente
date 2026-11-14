@@ -58,6 +58,20 @@ sudo -n -l 2>&1 | head -20
 getenforce 2>/dev/null && echo "  (SELinux: si es Enforcing, nginx necesita permisos para hablar con el backend)"
 systemctl is-active firewalld 2>/dev/null && firewall-cmd --list-all 2>/dev/null
 
+seccion "RED LOCAL"
+# Semana 8 (servidor en casa del asesor): una IP privada (192.168.x, 10.x,
+# 172.16-31.x) quiere decir que está detrás del módem; para que lo vean de
+# fuera hace falta un túnel (Tailscale o Cloudflare Tunnel) y no abrir puertos.
+ip -4 route get 1.1.1.1 2>/dev/null | head -1 || hostname -I
+ip -4 -brief addr 2>/dev/null | grep -v '^lo'
+
+seccion "ENERGÍA Y ENCENDIDO"
+# Si se va a prender solo en cierto horario: ¿arranca solo al volver la luz y
+# levantan solos los servicios?
+systemctl is-enabled postgresql 2>/dev/null | sed 's/^/  postgresql al arrancar: /'
+cat /sys/class/rtc/rtc0/wakealarm 2>/dev/null && echo "  (rtcwake disponible para encender a una hora)"
+uptime -s 2>/dev/null | sed 's/^/  encendido desde: /'
+
 seccion "SALIDA A INTERNET"
 # pip, Hugging Face (pysentimiento y Qwen) y GitHub (actualizador automático).
 for u in https://pypi.org https://huggingface.co https://github.com https://api.github.com; do
