@@ -120,7 +120,11 @@ class _CuentasAdminState extends State<CuentasAdmin> {
 }
 
 class TarjetaCuenta extends StatelessWidget {
-  const TarjetaCuenta({super.key, required this.cuenta, required this.onCambio});
+  const TarjetaCuenta({
+    super.key,
+    required this.cuenta,
+    required this.onCambio,
+  });
   final Map<dynamic, dynamic> cuenta;
   final VoidCallback onCambio;
 
@@ -348,7 +352,7 @@ class DialogoCodigoRecuperacion extends StatelessWidget {
           Text(
             'Dáselo en persona o a través de la escuela. Sirve una sola vez y '
             'vence en $horas horas. Se escribe en «¿Olvidaste tu contraseña?» '
-            '→ «Tengo un código del administrador». No se vuelve a mostrar.',
+            '→ «Tengo un código». No se vuelve a mostrar.',
             style: const TextStyle(height: 1.4),
           ),
         ],
