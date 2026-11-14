@@ -41,7 +41,11 @@ class ServicioPrototipo {
       final uri = Uri.parse(url);
       final respuesta = await switch (metodo) {
         'GET' => http.get(uri, headers: headers),
-        'PUT' => http.put(uri, headers: headers, body: jsonEncode(cuerpo ?? {})),
+        'PUT' => http.put(
+          uri,
+          headers: headers,
+          body: jsonEncode(cuerpo ?? {}),
+        ),
         _ => http.post(uri, headers: headers, body: jsonEncode(cuerpo ?? {})),
       }.timeout(_espera);
       final texto = utf8.decode(respuesta.bodyBytes);
@@ -190,4 +194,9 @@ class ServicioPrototipo {
   ) => _llamar('POST', Peticiones.adminBorrarUsuario(perfil, id), {
     'confirmacion': confirmacion,
   });
+
+  /// Semana 8: código de un solo uso para restablecer la contraseña cuando
+  /// no hay correo. El servidor solo lo muestra esta vez.
+  static Future<RespuestaApi> codigoRecuperacion(String perfil, int id) =>
+      _llamar('POST', Peticiones.adminCodigoRecuperacion(perfil, id));
 }

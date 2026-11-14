@@ -1,8 +1,8 @@
 // PROTOTIPO (Semana 2): alertas de riesgo para el administrador.
 //
-// Cada alerta trae qué reglas se cumplieron, la frase exacta que generó
-// cada hecho y la prueba del motor de Wang. No trae el texto completo del
-// diario ni de la conversación (ver reporte, privacidad).
+// Cada alerta trae qué reglas se cumplieron, el tipo de señal y la prueba
+// del motor de Wang. Desde la Semana 8 (pregunta 5 de la Dra.) ya no trae
+// ninguna frase de lo que escribió el estudiante.
 import 'package:flutter/material.dart';
 
 import '../servicios/servicio_prototipo.dart';
@@ -102,6 +102,8 @@ String _origen(String? origen) => switch (origen) {
   'chat_acumulado' => 'Chat con Serena: señales repetidas',
   'chat_autolesion' => 'Chat con Serena: autolesión',
   'chat_metodo' => 'Chat con Serena: preguntó por métodos',
+  // Semana 8 (pregunta 11 de la Dra.): duración o afectación tras una crisis.
+  'chat_cronicidad' => 'Chat con Serena: duración o afectación',
   'diario' => 'Diario',
   _ => 'Diario',
 };
@@ -137,7 +139,9 @@ class _TarjetaAlerta extends StatelessWidget {
       alerta['fecha'] as String? ?? '',
     )?.toLocal();
     final reglas = (alerta['reglas'] as List? ?? const []).cast<Object>();
-    final evidencia = (alerta['evidencia'] as List? ?? const []).cast<Object>();
+    // Semana 8 (pregunta 5 de la Dra.): solo el tipo de señal, nunca lo que
+    // escribió el estudiante.
+    final senales = (alerta['senales'] as List? ?? const []).cast<Object>();
     final prueba = (alerta['prueba'] as List? ?? const []).cast<Object>();
     final atendida = alerta['atendida'] == true;
     return Card(
@@ -183,18 +187,18 @@ class _TarjetaAlerta extends StatelessWidget {
             spacing: 6,
             children: [for (final r in reglas) Chip(label: Text('Regla $r'))],
           ),
-          // Semana 4: R16 (método en general) no trae frases; sin ellas no
+          // Semana 4: R16 (método en general) no trae señal; sin ella no
           // se muestra el título vacío.
-          if (evidencia.isNotEmpty) ...[
+          if (senales.isNotEmpty) ...[
             const SizedBox(height: 8),
             const Text(
-              'Frases que coincidieron',
+              'Tipo de señal',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
-            for (final e in evidencia)
+            for (final senal in senales)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text('• ${e.toString().replaceFirst(':', ': «')}»'),
+                child: Text('• $senal'),
               ),
           ],
           if (alerta['perfil_tipo'] == 'estudiante' &&

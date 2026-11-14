@@ -64,6 +64,9 @@ class Peticiones {
       '$baseUrl/admin/usuarios/$perfil/$id/activo';
   static String adminBorrarUsuario(String perfil, int id) =>
       '$baseUrl/admin/usuarios/$perfil/$id/borrar';
+  // Semana 8: código de recuperación de un solo uso.
+  static String adminCodigoRecuperacion(String perfil, int id) =>
+      '$baseUrl/admin/usuarios/$perfil/$id/codigo-recuperacion';
 
   // Password recovery
   static const String passwordResetRequest =
@@ -76,6 +79,10 @@ class Peticiones {
   static const String padresAlertas = '$baseUrl/users/padres/alertas';
   static String padreAlertaVista(int idAlerta) =>
       '$baseUrl/users/padres/alertas/$idAlerta/vista';
+  // Semana 8 (pregunta 6 de la Dra.): resumen mensual del diario.
+  static String padresResumenMensual(String? mes) =>
+      '$baseUrl/users/padres/resumen-mensual'
+      '${mes == null ? '' : '?mes=${Uri.encodeQueryComponent(mes)}'}';
 
   // Análisis médico — endpoint externo
   static const String postCuestionario = '$baseUrl/users/cuestionario';

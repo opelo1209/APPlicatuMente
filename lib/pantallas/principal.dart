@@ -12,6 +12,7 @@ import 'admin/cuentas_admin.dart';
 import 'diario/diario_flujo.dart';
 import 'vinculacion/vinculacion_estudiante.dart';
 import 'vinculacion/vinculacion_tutor.dart';
+import 'vinculacion/resumen_mensual_tutor.dart';
 import 'juegos/tcg_flame_screen.dart';
 import 'modulos/selector_modulo_crisis.dart';
 import 'modulos/chatbot_serena.dart';
@@ -778,7 +779,7 @@ class _PrincipalState extends State<Principal>
           context,
           imagePath: 'assets/imagenes/quetzal_4.png',
           title: "Alertas de riesgo",
-          subtitle: "Diario y chat: reglas, frase y prueba de cada alerta",
+          subtitle: "Diario y chat: tipo de señal, reglas y prueba de cada alerta",
           color: const Color(0xFFC62828),
           onTap: () {
             Navigator.push(
@@ -889,6 +890,20 @@ class _PrincipalState extends State<Principal>
           color: const Color(0xFF42A5F5),
           badgeCount: _unreadAlerts,
           onTap: _showMailbox,
+        ),
+      );
+      // Semana 8 (pregunta 6 de la Dra.): resumen mensual del diario.
+      cards.add(
+        _buildOptionCard(
+          context,
+          imagePath: 'assets/imagenes/quetzal_2.png',
+          title: "Resumen del mes",
+          subtitle: "Días buenos, regulares y difíciles",
+          color: const Color(0xFF43A047),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ResumenMensualTutor()),
+          ),
         ),
       );
     }

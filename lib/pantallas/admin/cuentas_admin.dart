@@ -6,6 +6,7 @@
 // datos (derecho de cancelación del aviso de privacidad). Borrar pide
 // escribir el nombre de usuario: no tiene vuelta atrás.
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../servicios/servicio_prototipo.dart';
 
@@ -160,6 +161,25 @@ class TarjetaCuenta extends StatelessWidget {
     await _avisar(context, r, 'Cuenta borrada.');
   }
 
+  // Semana 8 (asesor): sin correo, el administrador da un código.
+  Future<void> _codigo(BuildContext context) async {
+    final r = await ServicioPrototipo.codigoRecuperacion(_perfil, _id);
+    if (!context.mounted) return;
+    final codigo = r.datos?['codigo'] as String?;
+    if (codigo == null) {
+      await _avisar(context, r, '');
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (_) => DialogoCodigoRecuperacion(
+        usuario: _usuario,
+        codigo: codigo,
+        horas: (r.datos?['vigencia_horas'] as num?)?.toInt() ?? 24,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final activo = cuenta['activo'] == true;
@@ -214,6 +234,11 @@ class TarjetaCuenta extends StatelessWidget {
                   onPressed: () => _cambiarActivo(context, !activo),
                   icon: Icon(activo ? Icons.block : Icons.check_circle_outline),
                   label: Text(activo ? 'Desactivar' : 'Reactivar'),
+                ),
+                TextButton.icon(
+                  onPressed: activo ? () => _codigo(context) : null,
+                  icon: const Icon(Icons.key_outlined),
+                  label: const Text('Código'),
                 ),
                 TextButton.icon(
                   onPressed: () => _borrar(context),
@@ -279,6 +304,64 @@ class _DialogoBorrarCuentaState extends State<DialogoBorrarCuenta> {
           ),
           onPressed: puede ? () => Navigator.of(context).pop(true) : null,
           child: const Text('Borrar'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Semana 8: muestra una sola vez el código para restablecer la contraseña.
+class DialogoCodigoRecuperacion extends StatelessWidget {
+  const DialogoCodigoRecuperacion({
+    super.key,
+    required this.usuario,
+    required this.codigo,
+    required this.horas,
+  });
+
+  final String usuario;
+  final String codigo;
+  final int horas;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Código para restablecer la contraseña'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Cuenta: $usuario'),
+          const SizedBox(height: 12),
+          Center(
+            child: SelectableText(
+              codigo,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 3,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Dáselo en persona o a través de la escuela. Sirve una sola vez y '
+            'vence en $horas horas. Se escribe en «¿Olvidaste tu contraseña?» '
+            '→ «Tengo un código del administrador». No se vuelve a mostrar.',
+            style: const TextStyle(height: 1.4),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton.icon(
+          onPressed: () => Clipboard.setData(ClipboardData(text: codigo)),
+          icon: const Icon(Icons.copy_rounded),
+          label: const Text('Copiar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Listo'),
         ),
       ],
     );

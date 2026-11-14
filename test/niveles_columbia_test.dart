@@ -42,4 +42,50 @@ void main() {
       contains('Se ha detectado alto riesgo'),
     );
   });
+
+  // Semana 8 (pregunta 14 de la Dra. González).
+  group('respuestas de la Dra. (Semana 8)', () {
+    test('PHQ-9 de 10 o más sin Columbia va al centro comunitario', () {
+      expect(
+        nivelAtencion(NivelColumbia.sinRiesgo, phq9: 10),
+        NivelColumbia.comunitario,
+      );
+      expect(
+        nivelAtencion(NivelColumbia.sinRiesgo, phq9: 9),
+        NivelColumbia.sinRiesgo,
+      );
+    });
+
+    test('con ideación y PHQ-9 alto tampoco baja de comunitario', () {
+      expect(
+        nivelAtencion(NivelColumbia.seguimiento, phq9: 15),
+        NivelColumbia.comunitario,
+      );
+      expect(
+        nivelAtencion(NivelColumbia.seguimiento, phq9: 4),
+        NivelColumbia.seguimiento,
+      );
+      expect(
+        nivelAtencion(NivelColumbia.urgente, phq9: 20),
+        NivelColumbia.urgente,
+      );
+    });
+
+    test('el nivel comunitario nombra los CECOSAMA', () {
+      final texto = NivelColumbia.comunitario.mensajeEstudiante;
+      expect(
+        texto,
+        contains('Centro Comunitario de Salud Mental y Adicciones'),
+      );
+      expect(texto, contains('CECOSAMA'));
+      expect(texto, contains('800 911 2000'));
+    });
+
+    test('en seguimiento la escuela está informada', () {
+      expect(
+        NivelColumbia.seguimiento.mensajeEstudiante,
+        contains('tu escuela estará informada'),
+      );
+    });
+  });
 }

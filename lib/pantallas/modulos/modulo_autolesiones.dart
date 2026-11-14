@@ -5,6 +5,7 @@ import '../servicios/personalizacion.dart';
 import '../servicios/user.dart';
 import 'parent_triptych.dart';
 import 'teen_info_carousel.dart';
+import 'textos_retirados.dart';
 
 class ModuloAutolesiones extends StatefulWidget {
   const ModuloAutolesiones({super.key});
@@ -84,50 +85,71 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
         ? 'Pedir ayuda es el acto más grande de valentía. Hablar con alguien de confianza puede cambiarlo todo.'
         : 'Abordar el tema con empatía, contención y sin juicios de valor, es el primer paso vital para su recuperación.';
 
-    final List<TeenInfoCardData> teenCards = [
-      TeenInfoCardData(
-        title: '¿Qué es y qué no es?',
-        body: '',
-        icon: Icons.info_outline_rounded,
-        color: teenPalette[0],
-        imagePath: 'assets/imagenes/autolesiones/1-que_es.png',
+    final aud = audiencia(paraAdolescentes: _isForTeens);
+
+    // Semana 8: sin los textos que rechazó la Dra. (textos_retirados.dart).
+    final List<TeenInfoCardData> teenCards = sinRetirados([
+      (
+        'autolesiones.teenImgQueEs.$aud',
+        TeenInfoCardData(
+          title: '¿Qué es y qué no es?',
+          body: '',
+          icon: Icons.info_outline_rounded,
+          color: teenPalette[0],
+          imagePath: 'assets/imagenes/autolesiones/1-que_es.png',
+        ),
       ),
-      TeenInfoCardData(
-        title: 'Dato importante',
-        body: '',
-        icon: Icons.warning_amber_rounded,
-        color: Colors.orange,
-        imagePath: 'assets/imagenes/autolesiones/2-advertencia.png',
+      (
+        'autolesiones.teenImgAdvertencia.$aud',
+        TeenInfoCardData(
+          title: 'Dato importante',
+          body: '',
+          icon: Icons.warning_amber_rounded,
+          color: Colors.orange,
+          imagePath: 'assets/imagenes/autolesiones/2-advertencia.png',
+        ),
       ),
-      TeenInfoCardData(
-        title: pkTitle,
-        body: '',
-        icon: Icons.psychology_alt_rounded,
-        color: teenPalette[1],
-        imagePath: 'assets/imagenes/autolesiones/3-por_que.png',
+      (
+        'autolesiones.teenImgPorQue.$aud',
+        TeenInfoCardData(
+          title: pkTitle,
+          body: '',
+          icon: Icons.psychology_alt_rounded,
+          color: teenPalette[1],
+          imagePath: 'assets/imagenes/autolesiones/3-por_que.png',
+        ),
       ),
-      TeenInfoCardData(
-        title: 'Situaciones de riesgo',
-        body: '',
-        icon: Icons.report_problem_rounded,
-        color: Colors.deepOrange,
-        imagePath: 'assets/imagenes/autolesiones/4-situaciones_de_riesgo.png',
+      (
+        'autolesiones.teenImgRiesgo.$aud',
+        TeenInfoCardData(
+          title: 'Situaciones de riesgo',
+          body: '',
+          icon: Icons.report_problem_rounded,
+          color: Colors.deepOrange,
+          imagePath: 'assets/imagenes/autolesiones/4-situaciones_de_riesgo.png',
+        ),
       ),
-      TeenInfoCardData(
-        title: actionTitle,
-        body: '',
-        icon: Icons.favorite_border_rounded,
-        color: teenPalette[4],
-        imagePath: 'assets/imagenes/autolesiones/5-que_hacer.png',
+      (
+        'autolesiones.teenImgQueHacer.$aud',
+        TeenInfoCardData(
+          title: actionTitle,
+          body: '',
+          icon: Icons.favorite_border_rounded,
+          color: teenPalette[4],
+          imagePath: 'assets/imagenes/autolesiones/5-que_hacer.png',
+        ),
       ),
-      TeenInfoCardData(
-        title: footerTitle,
-        body: '',
-        icon: Icons.volunteer_activism_rounded,
-        color: teenPalette[0],
-        imagePath: 'assets/imagenes/autolesiones/6-ayuda.png',
+      (
+        'autolesiones.teenImgAyuda.$aud',
+        TeenInfoCardData(
+          title: footerTitle,
+          body: '',
+          icon: Icons.volunteer_activism_rounded,
+          color: teenPalette[0],
+          imagePath: 'assets/imagenes/autolesiones/6-ayuda.png',
+        ),
       ),
-    ];
+    ]);
 
     final List<ParentTriptychPanel> parentPanels = [
       ParentTriptychPanel(
@@ -147,7 +169,10 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
       ParentTriptychPanel(
         title: 'Acompañar',
         subtitle: 'Cómo responder desde casa',
-        body: '$actionContent\n\n$footerMsg',
+        body: unirVisibles([
+          ('autolesiones.actionContent.$aud', actionContent),
+          ('autolesiones.footerMsg.$aud', footerMsg),
+        ]),
         icon: Icons.family_restroom_rounded,
         color: Colors.indigo,
       ),
@@ -188,10 +213,9 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: (_isForTeens
-                              ? _accentColor
-                              : const Color(0xFF00897B))
-                          .withValues(alpha: 0.3),
+                      color:
+                          (_isForTeens ? _accentColor : const Color(0xFF00897B))
+                              .withValues(alpha: 0.3),
                       blurRadius: 15,
                       offset: const Offset(0, 8),
                     ),
@@ -288,8 +312,9 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _isForTeens ? _accentColor : const Color(0xFF00897B),
+                    backgroundColor: _isForTeens
+                        ? _accentColor
+                        : const Color(0xFF00897B),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),

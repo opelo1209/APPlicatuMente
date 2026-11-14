@@ -8,19 +8,26 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const String claveAvisoConfianza = 'avisoConfianzaVisto_v1';
+// Semana 8: v2 por el texto que pidió la Dra. González; quien vio el aviso
+// anterior lo vuelve a ver una vez.
+const String claveAvisoConfianza = 'avisoConfianzaVisto_v2';
 
 const String tituloAvisoConfianza = 'Así cuidamos lo que escribes';
 
+// Semana 8, respuestas de la Dra. González a la consulta de la Semana 5:
+// pregunta 3 («tu vida, tu salud o tu seguridad» y sin el ejemplo de las
+// palabras altisonantes), 4b (también recibe el aviso el Hospital Infantil)
+// y 6 (el resumen es mensual y solo cuenta días).
 const List<String> puntosAvisoConfianza = [
   'Lo que escribes en tu diario y en el chat con Serena es tuyo. Tus papás '
       'o tutores no leen tus palabras.',
-  'Ellos reciben solo un resumen general de cómo te has sentido, por '
-      'ejemplo: «esta semana hubo más días difíciles» o «aparecieron algunas '
-      'palabras altisonantes». Nunca se copia lo que escribiste.',
+  'Ellos reciben cada mes solo un resumen general de cómo te has sentido, '
+      'por ejemplo: «este mes hubo más días difíciles que buenos». Nunca se '
+      'copia lo que escribiste.',
   'Hay una excepción, para cuidarte: si escribes algo que muestre que tu '
-      'vida o tu seguridad están en riesgo, el equipo de apoyo de tu escuela '
-      'recibe un aviso para poder ayudarte.',
+      'vida, tu salud o tu seguridad están en riesgo, el equipo de apoyo de '
+      'tu escuela y el equipo de salud mental del Hospital Infantil de México '
+      'Federico Gómez reciben un aviso para poder ayudarte.',
   'La idea es acompañarte, como en una terapia: lo que cuentas solo sirve '
       'para apoyarte mejor.',
 ];
@@ -62,7 +69,11 @@ class AvisoConfianzaDialogo extends StatelessWidget {
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(top: 6, right: 8),
-                      child: Icon(Icons.circle, size: 6, color: esquema.primary),
+                      child: Icon(
+                        Icons.circle,
+                        size: 6,
+                        color: esquema.primary,
+                      ),
                     ),
                     Expanded(child: Text(punto)),
                   ],

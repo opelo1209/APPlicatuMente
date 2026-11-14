@@ -5,6 +5,7 @@ import '../servicios/personalizacion.dart';
 import '../servicios/user.dart';
 import 'parent_triptych.dart';
 import 'teen_info_carousel.dart';
+import 'textos_retirados.dart';
 
 class ModuloSuicidio extends StatefulWidget {
   const ModuloSuicidio({super.key});
@@ -90,64 +91,91 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
         ? 'No tienes que cargar esto solo.\n\nHabla con alguien de confianza o con un profesional. Pedir ayuda cuenta.'
         : 'La evaluación temprana orienta el apoyo. Escuchar, creer y actuar a tiempo puede marcar la diferencia.';
 
-    final List<TeenInfoCardData> teenCards = [
-      TeenInfoCardData(
-        title: bloque1Title,
-        body: '',
-        icon: Icons.quiz_rounded,
-        color: teenPalette[0],
-        imagePath: 'assets/imagenes/suicidio/1-bloque_1.png',
+    final aud = audiencia(paraAdolescentes: _isForTeens);
+
+    // Semana 8: sin los textos que rechazó la Dra. (textos_retirados.dart).
+    final List<TeenInfoCardData> teenCards = sinRetirados([
+      (
+        'suicidio.teenImgBloque1.$aud',
+        TeenInfoCardData(
+          title: bloque1Title,
+          body: '',
+          icon: Icons.quiz_rounded,
+          color: teenPalette[0],
+          imagePath: 'assets/imagenes/suicidio/1-bloque_1.png',
+        ),
       ),
-      TeenInfoCardData(
-        title: bloque2Title,
-        body: '',
-        icon: Icons.fact_check_rounded,
-        color: Colors.deepOrange,
-        imagePath: 'assets/imagenes/suicidio/2-bloque_2.png',
+      (
+        'suicidio.teenImgBloque2.$aud',
+        TeenInfoCardData(
+          title: bloque2Title,
+          body: '',
+          icon: Icons.fact_check_rounded,
+          color: Colors.deepOrange,
+          imagePath: 'assets/imagenes/suicidio/2-bloque_2.png',
+        ),
       ),
-      TeenInfoCardData(
-        title: devCerebralTitle,
-        body: '',
-        icon: Icons.psychology_rounded,
-        color: teenPalette[1],
-        imagePath: 'assets/imagenes/suicidio/3-desarrollo_cerebro.png',
+      (
+        'suicidio.teenImgDesarrollo.$aud',
+        TeenInfoCardData(
+          title: devCerebralTitle,
+          body: '',
+          icon: Icons.psychology_rounded,
+          color: teenPalette[1],
+          imagePath: 'assets/imagenes/suicidio/3-desarrollo_cerebro.png',
+        ),
       ),
-      TeenInfoCardData(
-        title: quimicaTitle,
-        body: '',
-        icon: Icons.science_rounded,
-        color: teenPalette[2],
-        imagePath: 'assets/imagenes/suicidio/4-quimica_cerebro.png',
+      (
+        'suicidio.teenImgQuimicaCerebro.$aud',
+        TeenInfoCardData(
+          title: quimicaTitle,
+          body: '',
+          icon: Icons.science_rounded,
+          color: teenPalette[2],
+          imagePath: 'assets/imagenes/suicidio/4-quimica_cerebro.png',
+        ),
       ),
-      TeenInfoCardData(
-        title: estresTitle,
-        body: '',
-        icon: Icons.monitor_heart_rounded,
-        color: teenPalette[3],
-        imagePath: 'assets/imagenes/suicidio/5-estrés.png',
+      (
+        'suicidio.teenImgEstres.$aud',
+        TeenInfoCardData(
+          title: estresTitle,
+          body: '',
+          icon: Icons.monitor_heart_rounded,
+          color: teenPalette[3],
+          imagePath: 'assets/imagenes/suicidio/5-estrés.png',
+        ),
       ),
-      TeenInfoCardData(
-        title: 'Hay ayuda disponible',
-        body: '',
-        icon: Icons.volunteer_activism_rounded,
-        color: teenPalette[0],
-        imagePath: 'assets/imagenes/suicidio/6-carga.png',
+      (
+        'suicidio.teenImgAyuda.$aud',
+        TeenInfoCardData(
+          title: 'Hay ayuda disponible',
+          body: '',
+          icon: Icons.volunteer_activism_rounded,
+          color: teenPalette[0],
+          imagePath: 'assets/imagenes/suicidio/6-carga.png',
+        ),
       ),
-    ];
+    ]);
 
     final List<ParentTriptychPanel> parentPanels = [
       ParentTriptychPanel(
         title: 'Evaluar',
         subtitle: 'Qué revisa el cuestionario',
-        body: '$bloque1Content\n\n$bloque2Content',
+        body: unirVisibles([
+          ('suicidio.bloque1Content.$aud', bloque1Content),
+          ('suicidio.bloque2Content.$aud', bloque2Content),
+        ]),
         icon: Icons.fact_check_rounded,
         color: Colors.indigo,
       ),
       ParentTriptychPanel(
         title: 'Factores',
         subtitle: 'Qué puede estar pasando en cuerpo y mente',
-        body:
-            '$devCerebralDesc\n\n$quimicaDesc\n\n$estresDesc',
+        body: unirVisibles([
+          ('suicidio.devCerebralDesc.$aud', devCerebralDesc),
+          ('suicidio.quimicaDesc.$aud', quimicaDesc),
+          ('suicidio.estresDesc.$aud', estresDesc),
+        ]),
         icon: Icons.psychology_rounded,
         color: Colors.purple,
       ),
@@ -291,10 +319,9 @@ class _ModuloSuicidioState extends State<ModuloSuicidio> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: (_isForTeens
-                              ? _accentColor
-                              : const Color(0xFFE53935))
-                          .withValues(alpha: 0.3),
+                      color:
+                          (_isForTeens ? _accentColor : const Color(0xFFE53935))
+                              .withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),

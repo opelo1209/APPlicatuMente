@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'restablecer_contrasena.dart';
 import 'servicios/auth.dart';
 
 class RecuperarContrasena extends StatefulWidget {
@@ -158,6 +159,19 @@ class _RecuperarContrasenaState extends State<RecuperarContrasena> {
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                   ),
           ),
+        ),
+        // Semana 8 (asesor): sin correo, con el código del administrador.
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: _cargando
+              ? null
+              : () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const RestablecerContrasena(),
+                  ),
+                ),
+          child: const Text('Tengo un código del administrador'),
         ),
       ],
     );

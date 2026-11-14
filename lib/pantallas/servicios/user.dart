@@ -531,6 +531,34 @@ class User {
     }
   }
 
+  // Semana 8: GET /users/padres/resumen-mensual - días buenos, regulares y
+  // difíciles de cada estudiante vinculado (nunca lo que escribió).
+  Future<Map<String, dynamic>> getResumenMensual({String? mes}) async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        return {'success': false, 'message': 'No hay token de autenticación'};
+      }
+      final response = await http.get(
+        Uri.parse(Peticiones.padresResumenMensual(mes)),
+        headers: Peticiones.getAuthHeaders(token),
+      );
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': jsonDecode(response.body)};
+      }
+      return {
+        'success': false,
+        'message': 'No se pudo cargar el resumen del mes.',
+      };
+    } on Exception catch (e) {
+      debugPrint('Error en getResumenMensual: $e');
+      return {
+        'success': false,
+        'message': 'Sin conexión. Intenta de nuevo en un momento.',
+      };
+    }
+  }
+
   // PUT /users/padres/alertas/{id}/vista - Marcar alerta como vista
   Future<Map<String, dynamic>> marcarAlertaVista(int idAlerta) async {
     try {

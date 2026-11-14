@@ -10,6 +10,7 @@ import '../servicios/personalizacion.dart';
 import '../servicios/prototipo.dart';
 import '../servicios/servicio_serena.dart';
 import '../theme_provider.dart';
+import 'envio_con_enter.dart';
 
 // PROTOTIPO Semana 5 (reunión con el asesor): la invitación a platicarlo con
 // un adulto va una sola vez, al abrir el chat, y no al final de cada
@@ -48,7 +49,6 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
 
   Color get _accentColor => widget.accentColor ?? _verde;
   Color get _accentDark => AppPersonalizacion.darken(_accentColor, 0.22);
-
 
   static const List<String> _recomendaciones = [
     'Como calmar la ansiedad',
@@ -92,7 +92,9 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
     if (!mounted) return;
     setState(() {
       _conectado = ok;
-      _mensajes.add(MensajeSerena(texto: mensajeBienvenidaSerena, esUsuario: false));
+      _mensajes.add(
+        MensajeSerena(texto: mensajeBienvenidaSerena, esUsuario: false),
+      );
     });
     _irAlFinal();
     await mostrarAvisoConfianzaSiHaceFalta(context);
@@ -211,7 +213,10 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                 _mensajes.clear();
                 _huboCrisis = false;
                 _mensajes.add(
-                  MensajeSerena(texto: mensajeBienvenidaSerena, esUsuario: false),
+                  MensajeSerena(
+                    texto: mensajeBienvenidaSerena,
+                    esUsuario: false,
+                  ),
                 );
                 _cargando = false;
               });
@@ -425,17 +430,22 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
     );
   }
 
+  // Semana 8: los mensajes se pueden seleccionar y copiar (con el mouse en
+  // web o dejando el dedo presionado en el celular), para poder compartir
+  // lo que respondió Serena al revisarla.
   Widget _listaMensajes(bool isDark) {
-    return ListView.builder(
-      controller: _scroll,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      itemCount: _mensajes.length + (_cargando ? 1 : 0),
-      itemBuilder: (_, i) {
-        if (i == _mensajes.length) {
-          return _indicadorEscribiendo(isDark, parcial: _parcial);
-        }
-        return _burbuja(_mensajes[i], isDark);
-      },
+    return SelectionArea(
+      child: ListView.builder(
+        controller: _scroll,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        itemCount: _mensajes.length + (_cargando ? 1 : 0),
+        itemBuilder: (_, i) {
+          if (i == _mensajes.length) {
+            return _indicadorEscribiendo(isDark, parcial: _parcial);
+          }
+          return _burbuja(_mensajes[i], isDark);
+        },
+      ),
     );
   }
 
@@ -859,38 +869,42 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: TextField(
-                controller: _ctrl,
-                enabled: !_cargando,
-                maxLines: 4,
-                minLines: 1,
-                textInputAction: TextInputAction.send,
-                onSubmitted: _enviar,
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black87,
-                  fontSize: 14,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Cuéntame cómo te sientes...',
-                  hintStyle: TextStyle(
-                    color: isDark ? Colors.grey[600] : Colors.grey[400],
+              child: EnvioConEnter(
+                onEnviar: () => _enviar(_ctrl.text),
+                child: TextField(
+                  controller: _ctrl,
+                  enabled: !_cargando,
+                  maxLines: 4,
+                  minLines: 1,
+                  // Semana 8: varias líneas (Shift+Enter); Enter envía.
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black87,
                     fontSize: 14,
                   ),
-                  filled: true,
-                  fillColor: isDark
-                      ? const Color(0xFF2C2C2C)
-                      : const Color(0xFFF0F2F5),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide(color: _accentColor, width: 1.5),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
+                  decoration: InputDecoration(
+                    hintText: 'Cuéntame cómo te sientes...',
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.grey[600] : Colors.grey[400],
+                      fontSize: 14,
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? const Color(0xFF2C2C2C)
+                        : const Color(0xFFF0F2F5),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide(color: _accentColor, width: 1.5),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                   ),
                 ),
               ),

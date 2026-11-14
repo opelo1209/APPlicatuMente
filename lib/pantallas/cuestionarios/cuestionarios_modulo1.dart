@@ -441,11 +441,13 @@ class _CuestionarioState extends State<Cuestionario> {
               color: nivelCssrs.color,
               isDark: isDark,
             ),
-            // Semana 4: qué hacer según el nivel de Columbia.
-            if (nivelCssrs != NivelColumbia.sinRiesgo) ...[
+            // Semana 4: qué hacer según el nivel de Columbia. Semana 8: con
+            // el PHQ-9 de 10 o más también (pregunta 14d de la Dra.).
+            if (nivelAtencion(nivelCssrs, phq9: phq9Score) !=
+                NivelColumbia.sinRiesgo) ...[
               const SizedBox(height: 14),
               Text(
-                nivelCssrs.mensajeEstudiante,
+                nivelAtencion(nivelCssrs, phq9: phq9Score).mensajeEstudiante,
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.4,

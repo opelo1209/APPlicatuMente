@@ -26,6 +26,20 @@ NivelColumbia nivelColumbia(bool Function(String id) endosado) {
   return NivelColumbia.sinRiesgo;
 }
 
+/// Semana 8 (pregunta 14d de la Dra. González): un PHQ-9 de 10 o más manda
+/// al centro comunitario aunque no haya respuestas de Columbia. Con ideación
+/// además tampoco baja de comunitario. Igual que nivel_atencion en el
+/// servidor (mock_backend/app/niveles_columbia.py).
+const int umbralPhq9Comunitario = 10;
+
+NivelColumbia nivelAtencion(NivelColumbia nivelCssrs, {required int phq9}) {
+  if (phq9 >= umbralPhq9Comunitario &&
+      nivelCssrs.index < NivelColumbia.comunitario.index) {
+    return NivelColumbia.comunitario;
+  }
+  return nivelCssrs;
+}
+
 extension NivelColumbiaUi on NivelColumbia {
   String get etiqueta => switch (this) {
     NivelColumbia.sinRiesgo => 'Sin indicadores',
@@ -45,14 +59,17 @@ extension NivelColumbiaUi on NivelColumbia {
   String get mensajeEstudiante => switch (this) {
     NivelColumbia.sinRiesgo =>
       'Gracias por contestar. No identificamos señales de riesgo.',
+    // Semana 8 (pregunta 14c de la Dra.): la escuela está informada.
     NivelColumbia.seguimiento =>
       'Gracias por contestar con sinceridad. Seguiremos acompañándote en la '
-          'app, y la orientación de tu escuela también está para apoyarte.',
+          'app, y tu escuela estará informada para poder apoyarte.',
+    // Semana 8 (pregunta 14a): los CECOSAMA, antes CAPA.
     NivelColumbia.comunitario =>
       'Lo que contestaste nos importa. Te recomendamos platicar pronto con '
-          'alguien de un centro comunitario de salud mental; tu escuela y tu '
-          'tutor te pueden ayudar a encontrarlo. Si lo necesitas ahora, llama '
-          'a la Línea de la Vida: 800 911 2000 (24 horas, gratuita).',
+          'alguien de un Centro Comunitario de Salud Mental y Adicciones '
+          '(CECOSAMA); hay 32 en la Ciudad de México, y tu escuela y tu tutor '
+          'te pueden ayudar a encontrar el más cercano. Si lo necesitas ahora, '
+          'llama a la Línea de la Vida: 800 911 2000 (24 horas, gratuita).',
     NivelColumbia.urgente =>
       'Se ha detectado alto riesgo. Por favor, contacta a un especialista '
           'para una evaluación más detallada; vamos a avisar a tu tutor para '

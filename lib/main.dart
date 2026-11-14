@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'pantallas/login.dart';
+import 'pantallas/restablecer_contrasena.dart';
 import 'pantallas/servicios/prototipo.dart';
 import 'pantallas/theme_provider.dart';
 
@@ -15,13 +16,17 @@ void main() async {
     ChangeNotifierProvider(
       create: (_) =>
           ThemeProvider(modoOscuro: ThemeProvider.preferenciaGuardada(prefs)),
-      child: const MyApp(),
+      // Semana 8: el enlace del correo de recuperación abre directo la
+      // pantalla para poner la contraseña nueva.
+      child: MyApp(tokenRecuperacion: tokenDeEnlace(Uri.base)),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.tokenRecuperacion});
+
+  final String? tokenRecuperacion;
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +51,9 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: const Login(),
+      home: tokenRecuperacion == null
+          ? const Login()
+          : RestablecerContrasena(token: tokenRecuperacion),
     );
   }
 
