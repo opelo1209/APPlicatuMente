@@ -36,6 +36,7 @@ from typing import Iterable, Mapping, Sequence
 REGLA_EN_PALABRAS: Mapping[str, str] = {
     "R1": "expresó deseo de morir",
     "R2": "habló de un plan o de la intención de hacerse daño",
+    "R19": "contó un intento de suicidio anterior",
     "R3": "contó que se lastimó a propósito",
     "R3b": "contó que se lastimó, junto con otras ideas negativas",
     "R4": "escribió algo parecido a una despedida",
@@ -54,6 +55,7 @@ ORIGEN_EN_PALABRAS: Mapping[str, str] = {
     "chat": "en el chat con Serena",
     "chat_acumulado": "en el chat con Serena",
     "chat_autolesion": "en el chat con Serena",
+    "chat_cronicidad": "en el chat con Serena",
     "chat_metodo": "en el chat con Serena",
     "chat_salida": "en el chat con Serena",
     "diario": "en su diario",
@@ -126,7 +128,15 @@ def _renglon(alerta: Alerta) -> str:
     return f"- {_dia(alerta.fecha)}, {donde}. {tipo}: {_lista(_frases(alerta))} ({estado})."
 
 
-def resumir(alertas: Sequence[Alerta], nombre: str = "el estudiante") -> Resumen:
+# Inicio del texto al tutor: el resumen de alertas habla de dias recientes;
+# el resumen mensual (Semana 8) pasa CUANDO_MES.
+CUANDO_RECIENTE = "En los últimos días"
+CUANDO_MES = "En este mes"
+
+
+def resumir(
+    alertas: Sequence[Alerta], nombre: str = "el estudiante", cuando: str = CUANDO_RECIENTE
+) -> Resumen:
     """Las alertas de UN estudiante, de la mas antigua a la mas reciente."""
     ordenadas = sorted(alertas, key=lambda a: a.fecha)
     crisis = sum(a.es_crisis for a in ordenadas)
@@ -148,11 +158,11 @@ def resumir(alertas: Sequence[Alerta], nombre: str = "el estudiante") -> Resumen
             "Este resumen se arma con las reglas que se activaron; no incluye lo que escribió el estudiante.",
         ]
     )
-    tutor = _resumen_tutor(nombre, crisis > 0)
+    tutor = _resumen_tutor(nombre, crisis > 0, cuando)
     return Resumen(administrador, tutor, crisis, preventivas, pendientes)
 
 
-def _resumen_tutor(nombre: str, hubo_crisis: bool) -> str:
+def _resumen_tutor(nombre: str, hubo_crisis: bool, cuando: str) -> str:
     # Sin detalles de lo que escribio: solo que hubo senales y que hacer.
     gravedad = (
         f"la app detectó señales de que {nombre} está pasando por un momento muy difícil"
@@ -160,7 +170,7 @@ def _resumen_tutor(nombre: str, hubo_crisis: bool) -> str:
         else f"la app detectó algunas señales de malestar en {nombre}"
     )
     return (
-        f"En los últimos días {gravedad}. Le sugerimos buscar un momento tranquilo para platicar, "
+        f"{cuando} {gravedad}. Le sugerimos buscar un momento tranquilo para platicar, "
         "escuchar sin juzgar y preguntarle directamente cómo está. "
         "Si cree que su seguridad está en peligro, llame al 911. "
         "También pueden llamar juntos a la Línea de la Vida (800 911 2000, 24 horas, gratuita)."

@@ -75,6 +75,8 @@ ANTECEDENTE_ANTES = "¿Te había pasado antes sentirte así? ¿Alguna vez te has
 ANTECEDENTE_SUSTANCIAS = (
     "A veces la gente usa alcohol u otras cosas para sentirse mejor un rato. ¿A ti te ha pasado?"
 )
+# Semana 8 (pregunta 14f de la Dra. González): antecedentes familiares.
+ANTECEDENTE_FAMILIAR = "¿Tus papás están enfermos de algo?"
 
 PREGUNTAS_GENERALES = (
     "Gracias por decírmelo; me importa cómo estás. ¿Quieres contarme un poco más de lo que te está pasando?",
@@ -92,7 +94,7 @@ def secuencia_seguimiento(categorias: Iterable[str]) -> tuple[str, ...]:
     propias = PREGUNTAS_SEGUIMIENTO[categoria] if categoria else PREGUNTAS_GENERALES
     # Con autolesion ya se sabe que se lastimo: no se pregunta otra vez.
     antes = () if categoria == "autolesion_ocurrida" else (ANTECEDENTE_ANTES,)
-    return (*propias, *FUNCIONAMIENTO, *antes, ANTECEDENTE_SUSTANCIAS)
+    return (*propias, *FUNCIONAMIENTO, *antes, ANTECEDENTE_FAMILIAR, ANTECEDENTE_SUSTANCIAS)
 
 
 def pregunta_seguimiento(categorias: Iterable[str], respuestas_previas: Iterable[str] = ()) -> str:

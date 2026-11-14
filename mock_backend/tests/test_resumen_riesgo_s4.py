@@ -63,3 +63,14 @@ def test_fila_de_la_base():
 def test_singular_y_plural():
     r = resumir([ALERTAS[0], ALERTAS[1]], "Ana")
     assert "1 crisis y 1 aviso preventivo;" in r.administrador
+
+
+def test_el_resumen_mensual_dice_en_este_mes():
+    # Semana 8: dentro del resumen mensual el texto no habla de "los ultimos dias".
+    from app.resumen_riesgo import CUANDO_MES
+
+    reciente = resumir(ALERTAS, "Ana").tutor
+    mensual = resumir(ALERTAS, "Ana", CUANDO_MES).tutor
+    assert reciente.startswith("En los últimos días la app detectó")
+    assert mensual.startswith("En este mes la app detectó")
+    assert "últimos días" not in mensual

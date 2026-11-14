@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Callable, Mapping
 
+from .cronicidad import senales_cronicidad
 from .acompanamiento import (
     ACOMPANAR_CRISIS,
     APERTURA_INFORMATIVA,
@@ -256,11 +257,61 @@ def _mensajes(
     )
 
 
+APERTURA_NEGATIVA = "Gracias por contármelo; suena a que no ha sido fácil."
+APERTURA_POSITIVA = "¡Qué bueno leerte así!"
+APERTURA_NEUTRA = "Gracias por escribirme."
+
+# Semana 8, pregunta 9 de la Dra. Gonzalez: apertura neutra salvo que el
+# mensaje sea claramente negativo. La polaridad sola no basta: el analizador
+# daba 0.95 de negativo a «Me dormí tarde y ando un poco cansado». Con las 120
+# frases de la bateria, exigir ademas una emocion negativa deja en 0 los dias
+# neutros con apertura negativa (antes 8 de 20 en s5).
+UMBRAL_CLARAMENTE_NEGATIVO = 0.6
+EMOCIONES_NEGATIVAS = frozenset({"tristeza", "enojo", "miedo", "asco"})
+
+
+def claramente_negativo(analisis) -> bool:
+    if analisis is None or getattr(analisis, "polaridad", None) != "negativo":
+        return False
+    if analisis.probabilidad("negativo") < UMBRAL_CLARAMENTE_NEGATIVO:
+        return False
+    return analisis.emocion_principal() in EMOCIONES_NEGATIVAS
+
+
+# Semana 8 (prueba de 90 mensajes): el analizador leyo «Hoy es mi ultimo dia,
+# ya lo tengo decidido» como positivo (0.55) y las cervezas de un menor como
+# positivo (0.76). Serena solo celebra si el mensaje es CLARAMENTE positivo:
+# con 0.85 o mas, o con alegria. Medido con esos mensajes; POR CONFIRMAR con
+# la bateria de 120 frases.
+UMBRAL_CLARAMENTE_POSITIVO = 0.85
+EMOCION_POSITIVA = "alegria"
+
+
+def claramente_positivo(analisis) -> bool:
+    if analisis is None or getattr(analisis, "polaridad", None) != "positivo":
+        return False
+    if analisis.emocion_principal() == EMOCION_POSITIVA:
+        return True
+    return analisis.probabilidad("positivo") >= UMBRAL_CLARAMENTE_POSITIVO
+
+
+def _alarma_cronicidad(mensaje: str, historial, entrada) -> dict | None:
+    """Semana 8 (pregunta 11 de la Dra.): despues de una crisis, si lo siente
+    desde hace mas de 6 meses, a diario o ya le afecta la vida diaria, el
+    equipo de apoyo recibe una alarma. Una sola vez por conversacion."""
+    senales = senales_cronicidad(mensaje)
+    if not senales or any(senales_cronicidad(t.texto) for t in historial):
+        return None
+    return {"tipo": "cronicidad_tras_crisis", "nivel": "preventivo", "reglas": list(entrada.reglas_usadas),
+            "evidencia": list(senales), "prueba": list(entrada.prueba.pasos)}
+
+
 def _apertura_fija(analisis) -> str:
-    return {
-        "negativo": "Gracias por contármelo; suena a que no ha sido fácil.",
-        "positivo": "¡Qué bueno leerte así!",
-    }.get(getattr(analisis, "polaridad", ""), "Gracias por escribirme.")
+    if claramente_negativo(analisis):
+        return APERTURA_NEGATIVA
+    if claramente_positivo(analisis):
+        return APERTURA_POSITIVA
+    return APERTURA_NEUTRA
 
 
 _ORACION = re.compile(r"[^.!?¿¡]*[¿¡]?[^.!?]+[.!?]+")
@@ -374,9 +425,18 @@ def _cuerpo_breve(fragmentos, mensaje: str, invitar: bool = True) -> str:
     return " ".join(partes)
 
 
+# Semana 8 (prueba de 90 mensajes): si la guardia descartaba la oracion del
+# modelo y no habia material, la respuesta entera era «Gracias por
+# escribirme.» (ante «Mi tio me toca...» o un embarazo). Serena siempre deja
+# la puerta abierta, sin suponer que paso algo malo.
+PREGUNTA_SEGUIR = "¿Quieres contarme un poco más?"
+
+
 def _componer_breve(texto_guardia: str, necesarias: int, cuerpo: str, apertura_fija: str) -> str:
     oraciones = _oraciones(texto_guardia)
     apertura = _mayuscula(" ".join(oraciones[:necesarias]) or apertura_fija)
+    if not cuerpo and apertura == _mayuscula(apertura_fija) and not apertura.rstrip().endswith("?"):
+        apertura = f"{apertura} {PREGUNTA_SEGUIR}"
     return f"{apertura} {cuerpo}".strip()
 
 
@@ -538,7 +598,8 @@ def responder(
     if entrada.accion == ACCION_ACOMPANAR_CRISIS:
         # R18: despues de una crisis. Texto fijo: con el modelo pequeno no se
         # deja redactar en este momento (ver reporte, Semana 3).
-        return cerrar(sin_repetir(ACOMPANAR_CRISIS, previas), "explorar")
+        return cerrar(sin_repetir(ACOMPANAR_CRISIS, previas), "explorar",
+                      alerta=_alarma_cronicidad(mensaje, historial, entrada))
     if entrada.accion == ACCION_EXPLORAR:
         # Señal ambigua de riesgo (R9): texto fijo que explora con cuidado.
         # Con el modelo pequeño, en el servidor, la respuesta no exploraba o
@@ -600,6 +661,8 @@ def responder(
     malestar = bool(riesgo.categorias) or getattr(analisis, "polaridad", None) == "negativo" or "racha_negativa" in hechos
     # Y solo dice como esta si se lo preguntaron (S19).
     le_preguntan = pregunta_por_serena(mensaje)
+    # Semana 8: y solo celebra si el mensaje fue claramente positivo (S21).
+    positiva = claramente_positivo(analisis) and not malestar
 
     def avisar_oracion(oracion: str) -> None:
         # Solo se muestra lo que pasa la guardia de salida, arriba de lo que
@@ -607,7 +670,7 @@ def responder(
         oracion = _sin_saludo(oracion) if historial else oracion
         if not oracion:
             return
-        guardia = aplicar_guardia(oracion, requiere_lineas=False, breve=breve, entrada_negativa=malestar, pregunta_por_serena=le_preguntan)
+        guardia = aplicar_guardia(oracion, requiere_lineas=False, breve=breve, entrada_negativa=malestar, pregunta_por_serena=le_preguntan, entrada_positiva=positiva)
         if al_avanzar is not None and guardia.mostrable:
             al_avanzar(f"{_mayuscula(guardia.texto)} {cuerpo}".strip())
 
@@ -651,12 +714,12 @@ def responder(
     explorar = entrada.accion in (ACCION_EXPLORAR, ACCION_SUGERIR_APOYO)
     # En modo breve la guardia revisa SOLO lo que escribio el modelo; el
     # material aprobado y la invitacion son texto fijo.
-    guardia = aplicar_guardia(crudo, requiere_lineas=explorar and not breve, breve=breve, entrada_negativa=malestar, pregunta_por_serena=le_preguntan)
+    guardia = aplicar_guardia(crudo, requiere_lineas=explorar and not breve, breve=breve, entrada_negativa=malestar, pregunta_por_serena=le_preguntan, entrada_positiva=positiva)
     if breve and not guardia.bloqueada:
         # Lo peligroso (bloquear) se revisa en TODO lo que escribio el
         # modelo; el estilo (S12-S15), solo en las oraciones que se muestran.
         usadas = " ".join(_oraciones(crudo)[:necesarias])
-        guardia = aplicar_guardia(usadas or crudo, requiere_lineas=False, breve=True, entrada_negativa=malestar, pregunta_por_serena=le_preguntan)
+        guardia = aplicar_guardia(usadas or crudo, requiere_lineas=False, breve=True, entrada_negativa=malestar, pregunta_por_serena=le_preguntan, entrada_positiva=positiva)
     etapas["salida"] = _decision_dict(guardia.decision)
     if guardia.bloqueada:
         alerta = {"tipo": "respuesta_bloqueada", "nivel": "salida", "reglas": list(guardia.decision.reglas_usadas),

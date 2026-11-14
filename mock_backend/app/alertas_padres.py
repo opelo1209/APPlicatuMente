@@ -9,7 +9,14 @@ from __future__ import annotations
 from typing import Any
 
 from .niveles_columbia import COMUNITARIO as NIVEL_COMUNITARIO
-from .niveles_columbia import RECURSO_COMUNITARIO, RECURSO_URGENTE, nivel_columbia
+from .niveles_columbia import (
+    DIRECTORIO_CECOSAMA,
+    RECURSO_COMUNITARIO,
+    RECURSO_URGENTE,
+    contacto_urgente,
+    nivel_atencion,
+    nivel_columbia,
+)
 from .niveles_columbia import SEGUIMIENTO as NIVEL_SEGUIMIENTO
 from .niveles_columbia import URGENTE as NIVEL_URGENTE
 from .perfiles import serialize, user_to_dict
@@ -37,6 +44,13 @@ def _block_score(respuestas: dict[str, Any], block_key: str) -> int:
     return 0
 
 
+def _recurso_urgente() -> str:
+    """Semana 8 (pregunta 14b de la Dra.): con el contacto del piloto si el
+    servidor lo tiene configurado."""
+    contacto = contacto_urgente()
+    return f"{RECURSO_URGENTE}: {contacto}" if contacto else f"{RECURSO_URGENTE} en el piloto"
+
+
 def build_parent_alert(session: dict[str, Any], student: dict[str, Any]) -> dict[str, str]:
     respuestas = session.get("respuestas")
     if not isinstance(respuestas, dict):
@@ -52,7 +66,9 @@ def build_parent_alert(session: dict[str, Any], student: dict[str, Any]) -> dict
         # alto» con cualquier «sí» o PHQ-9 >= 10 (cerca del 19 % de los
         # estudiantes). Ahora solo el plan es urgente; la intención va a lo
         # comunitario; lo demás se sigue en la app y en la escuela.
-        nivel = nivel_columbia(respuestas)
+        # Semana 8 (pregunta 14d de la Dra.): un PHQ-9 de 10 o más también
+        # manda al centro comunitario.
+        nivel = nivel_atencion(respuestas)
         if nivel == NIVEL_URGENTE:
             return {
                 "tipo": "riesgo_alto",
@@ -62,31 +78,36 @@ def build_parent_alert(session: dict[str, Any], student: dict[str, Any]) -> dict
                     "Se ha detectado alto riesgo: por favor contacte a un especialista para una evaluación más detallada."
                 ),
                 "recomendacion": (
-                    f"Busque hoy la evaluación con un especialista ({RECURSO_URGENTE} en el piloto). "
+                    f"Busque hoy la evaluación con un especialista ({_recurso_urgente()}). "
                     "No le deje solo/a, retire medios con los que pudiera hacerse daño y hable con calma y sin regaños. "
                     "Si hay peligro inmediato, llame al 911 o a la Línea de la Vida (800 911 2000, 24 horas)."
                 ),
             }
         if nivel == NIVEL_COMUNITARIO:
+            por_intencion = nivel_columbia(respuestas) == NIVEL_COMUNITARIO
             return {
                 "tipo": "riesgo_comunitario",
                 "titulo": "Señales de riesgo: busque apoyo en su comunidad",
                 "mensaje": (
                     f"{nombre} respondió el cuestionario de riesgo y sus respuestas indican que ha tenido la intención "
                     "de hacerse daño. Es importante que reciba apoyo profesional pronto."
+                    if por_intencion
+                    else f"{nombre} respondió el cuestionario de depresión y sus respuestas indican síntomas que "
+                    "conviene atender. Es importante que reciba apoyo profesional pronto."
                 ),
                 "recomendacion": (
-                    f"Acérquese con su hijo/a a {RECURSO_COMUNITARIO} cercano; la escuela puede ayudarle a encontrarlo. "
+                    f"Acérquese con su hijo/a a {RECURSO_COMUNITARIO} cercano (directorio: {DIRECTORIO_CECOSAMA}); "
+                    "la escuela puede ayudarle a encontrarlo. "
                     "Pregúntele directamente cómo está, escuche sin juzgar y no minimice lo que siente. "
                     "Si cree que su seguridad está en peligro, llame al 911 o a la Línea de la Vida (800 911 2000)."
                 ),
             }
-        seguimiento = nivel == NIVEL_SEGUIMIENTO or phq9_score >= 10
+        seguimiento = nivel == NIVEL_SEGUIMIENTO
         return {
             "tipo": "cuestionario_completado",
             "titulo": "Cuestionario de riesgo completado",
             "mensaje": f"{nombre} completó el cuestionario de depresión/riesgo. PHQ-9: {phq9_score}; C-SSRS: {cssrs_score}."
-            + (" La app y la escuela le darán seguimiento." if seguimiento else ""),
+            + (" La app le dará seguimiento y la escuela estará informada de la atención." if seguimiento else ""),
             "recomendacion": (
                 "Como padre/madre/tutor: reconozca el esfuerzo de responder, mantenga una conversación abierta, "
                 "observe cambios de ánimo, sueño, apetito o aislamiento, y ofrezca apoyo sin minimizar lo que siente."

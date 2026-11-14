@@ -172,6 +172,32 @@ PLANEACION_O_INTENCION = [
     r"\bno\s+voy\s+a\s+llegar\s+a\s+(?:fin|final|mi\s+cumple\w*|la\s+otra\s+semana)\b",
     r"\b(?:esta\s+es|sera)\s+la\s+ultima\s+vez\s+que\s+(?:te|les|nos|me)\b",
     r"\bya\s+no\s+voy\s+a\s+(?:ser\s+(?:un\s+problema|una\s+carga|un\s+estorbo)|molestar)\b",
+    # Semana 8 (prueba de 90 mensajes): planes y preparativos sin palabras
+    # como "morir" pasaban como charla ("Hoy es mi ultimo dia, ya lo tengo
+    # decidido" -> "¡Felicidades por tu decision!"). "Mi ultimo dia" solo
+    # cuenta con la decision o "de vida": "mi ultimo dia de clases" no.
+    r"\bmi\s+ultimo\s+dia\b.{0,40}\b(?:ya\s+lo\s+(?:tengo\s+)?decid\w*|ya\s+decidi|lo\s+tengo\s+decidido|no\s+hay\s+vuelta\s+atras)\b",
+    r"\b(?:ya\s+lo\s+tengo\s+decidido|ya\s+lo\s+decidi)\b.{0,40}\bmi\s+ultimo\s+dia\b",
+    r"\bmi\s+ultimo\s+dia\s+(?:de\s+vida|vivo|con\s+vida|en\s+este\s+mundo|en\s+la\s+tierra)\b",
+    # La carta: "carta de despedida", o "ya (escribi|deje) mi carta" sin una
+    # fecha que la explique (cumpleanos, dia de las madres, Navidad...).
+    r"\bcarta\s+de\s+despedida\b",
+    r"\bya\s+(?:escribi|deje|termine|tengo\s+lista)\s+mi\s+carta\b"
+    r"(?!.{0,40}\b(?:cumple\w*|madres|padres|10\s+de\s+mayo|navidad|santa|reyes|aniversario|valentin|14\s+de\s+febrero|"
+    r"beca|tarea|escuela|clase|motivos|presentacion)\b)",
+    # Un medio a la mano, guardado o escondido (la cuerda para saltar no).
+    r"\b(?:tengo|guarde|escondi|junte|compre|consegui)\s+(?:una?\s+|unas?\s+|las?\s+|el\s+|mis\s+)?"
+    r"(?:cuerda|soga|pastillas|navaja|cuchilla|veneno|pistola|arma)s?\b.{0,25}\b(?:guardad\w*|escondid\w*|list[oa]s?|"
+    r"para\s+cuando\s+ya\s+no|para\s+(?:hacerlo|acabar|terminar))\b",
+    r"\b(?:estoy\s+juntando|he\s+juntado|llevo\s+juntando)\s+(?:\w+\s+){0,2}?(?:pastillas|navajas?|cuchillas?|veneno)\b",
+]
+
+# Semana 8 (prueba de 90 mensajes): "El ano pasado intente suicidarme y
+# nadie se entero" no generaba alerta. Un intento anterior es el factor de
+# riesgo mas fuerte; nivel POR CONFIRMAR con la Dra. (hallazgos_serena_s8).
+INTENTO_PREVIO = [
+    r"\b(?:intente|trate\s+de|quise)\s+(?:suicidarme|matarme|quitarme\s+la\s+vida|ahorcarme|envenenarme|aventarme|tirarme)\b",
+    r"\b(?:tuve|he\s+tenido)\s+(?:un|algun|varios)\s+intentos?\s+(?:de\s+suicidio|suicidas?)\b",
 ]
 
 # Autolesion ya ocurrida o en curso, sin que la persona pida ayuda
@@ -244,6 +270,12 @@ AUTOLESION_OCURRIDA = [
     # como marcador de que la persona las nota como algo reciente/propio.
     r"\btengo\s+cicatrices\s+nuev[oa]s\b",
     r"\bme\s+hice\s+cortes\b",
+    # Semana 8 (prueba de 90 mensajes): las ganas de hacerlo ("tengo ganas de
+    # cortarme otra vez") no se detectaban. Se tratan como la autolesion:
+    # Serena pregunta, da las lineas y avisa al administrador (R3).
+    rf"\b(?:tengo\s+(?:muchas\s+)?ganas\s+de|me\s+dan\s+ganas\s+de|quiero|voy\s+a)\s+(?:volver\s+a\s+)?"
+    rf"(?:cortarme|lastimarme|quemarme|hacerme\s+dano|rasgunarme){_NO_AUTOLESION}\b",
+    rf"\bme\s+quiero\s+(?:volver\s+a\s+)?(?:cortar|lastimar|quemar){_NO_AUTOLESION}\b",
 ]
 
 # Desesperanza extrema: no es ideacion suicida por si sola, pero combinada
@@ -387,6 +419,7 @@ INTENCION_SIN_OBJETO = [
 _CATEGORIAS: dict[str, list[str]] = {
     "ideacion_directa": IDEACION_DIRECTA,
     "planeacion_o_intencion": PLANEACION_O_INTENCION,
+    "intento_previo": INTENTO_PREVIO,
     "autolesion_ocurrida": AUTOLESION_OCURRIDA,
     "desesperanza_extrema": DESESPERANZA_EXTREMA,
     "despedida": DESPEDIDA,
@@ -406,6 +439,7 @@ _CATEGORIAS_SOLO_CONTEXTO = {"intencion_sin_objeto"}
 _CATEGORIAS_ALTO_POR_SI_SOLAS = {
     "ideacion_directa",
     "planeacion_o_intencion",
+    "intento_previo",
     "autolesion_ocurrida",
     "despedida",
 }
@@ -460,6 +494,21 @@ def _coincidencias(patrones: list[str], texto_normalizado: str) -> list[str]:
     return encontrados
 
 
+# Semana 8 (prueba de 90 mensajes): «No quiero morir, solo estoy cansado»
+# disparaba el guion de crisis y una alerta de riesgo alto. Se quita SOLO la
+# mencion negada de morir o hacerse dano; el resto del mensaje se sigue
+# revisando («no quiero morir pero ya pense en como hacerlo» es crisis). «Ya
+# no quiero vivir» no se toca: niega vivir, no morir. POR CONFIRMAR con la Dra.
+_NEGACION_MUERTE = re.compile(
+    r"\b(?:no|nunca|jamas)\s+(?:me\s+)?(?:(?:quiero|pienso|voy\s+a|planeo|haria|podria|deseo)\s+(?:me\s+)?)?"
+    r"(?:morir\w*|matar\w*|suicidar\w*|lastimar\w*|hacer\w*\s+dano|dano|quitar\w*\s+la\s+vida)\b"
+)
+
+
+def quitar_negaciones(plano: str) -> str:
+    return _NEGACION_MUERTE.sub(" ", plano)
+
+
 def clasificar_mensaje(texto: str) -> ResultadoClasificacion:
     """Clasifica un unico mensaje del estudiante. No usa historial de
     conversacion todavia -eso es una mejora futura documentada al final del
@@ -467,7 +516,7 @@ def clasificar_mensaje(texto: str) -> ResultadoClasificacion:
     if not texto or not texto.strip():
         return ResultadoClasificacion(nivel=NIVEL_NINGUNO)
 
-    plano = normalizar_chat(texto)
+    plano = quitar_negaciones(normalizar_chat(texto))
     categorias_encontradas: dict[str, list[str]] = {}
     for nombre, patrones in _CATEGORIAS.items():
         coincidencias = _coincidencias(patrones, plano)

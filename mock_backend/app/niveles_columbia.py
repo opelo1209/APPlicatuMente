@@ -15,13 +15,22 @@ Dra. González (n = 1 389), por la capacidad del sistema de salud:
 Antes, la alerta a padres era «riesgo alto» con cualquier «sí» (cerca del
 19 % de los estudiantes con estos datos).
 
-ESTADO: los textos son BORRADORES. Falta confirmar el recurso comunitario
-(el asesor escribió «ecossamas»; probablemente los CECOSAMA de la CDMX) y
-el contacto del Hospital Infantil para el piloto.
+Semana 8 (respuestas de la Dra. González a la consulta de la Semana 5,
+pregunta 14):
+  - el recurso comunitario son los CECOSAMA (Centros Comunitarios de Salud
+    Mental y Adicciones, antes CAPA; 32 en la CDMX), con el directorio de
+    CONASAMA;
+  - el contacto urgente del piloto es ella, en el Hospital Infantil. Su
+    teléfono va solo en la configuración del servidor
+    (CONTACTO_URGENTE_PILOTO en /etc/aptm/*.env), nunca en el código;
+  - un PHQ-9 de 10 o más sin respuestas de Columbia va al centro comunitario
+    (antes quedaba en seguimiento). Con ideación además tampoco baja de
+    comunitario: contestar «sí» no puede llevar a una atención menor.
 """
 
 from __future__ import annotations
 
+import os
 from typing import Any, Mapping
 
 URGENTE = "urgente"
@@ -45,7 +54,20 @@ _NIVEL_DE_APP = {
 }
 
 RECURSO_URGENTE = "Hospital Infantil de México Federico Gómez"
-RECURSO_COMUNITARIO = "un centro comunitario de salud mental"
+RECURSO_COMUNITARIO = (
+    "un Centro Comunitario de Salud Mental y Adicciones (CECOSAMA, antes CAPA)"
+)
+DIRECTORIO_CECOSAMA = "https://www.conasama.salud.gob.mx/directorio/"
+UMBRAL_PHQ9_COMUNITARIO = 10
+_MAX_CONTACTO = 160
+_ORDEN = (SIN_RIESGO, SEGUIMIENTO, COMUNITARIO, URGENTE)
+
+
+def contacto_urgente() -> str | None:
+    """Nombre y teléfono del contacto urgente del piloto, si el servidor lo
+    tiene configurado."""
+    valor = " ".join(os.getenv("CONTACTO_URGENTE_PILOTO", "").split())
+    return valor[:_MAX_CONTACTO] or None
 
 
 def _valor(v: Any) -> int:
@@ -93,3 +115,26 @@ def nivel_columbia(respuestas: Mapping[str, Any]) -> str:
     if str(respuestas.get("cssrs_nivel_dominio", "")) == "planeacion":
         return COMUNITARIO
     return SEGUIMIENTO if _valor(respuestas.get("cssrs_score")) > 0 else SIN_RIESGO
+
+
+def _phq9(respuestas: Mapping[str, Any]) -> int:
+    total = _valor(respuestas.get("phq9_score"))
+    if total:
+        return total
+    for bloque in respuestas.get("bloques", []) or []:
+        if isinstance(bloque, Mapping) and bloque.get("bloque") == "PHQ9":
+            return _valor(bloque.get("puntuacion_total"))
+    return 0
+
+
+def phq9_alto(respuestas: Mapping[str, Any]) -> bool:
+    return _phq9(respuestas) >= UMBRAL_PHQ9_COMUNITARIO
+
+
+def nivel_atencion(respuestas: Mapping[str, Any]) -> str:
+    """Semana 8 (pregunta 14d de la Dra.): el nivel de Columbia, subido al
+    menos a comunitario cuando el PHQ-9 es de 10 o más."""
+    nivel = nivel_columbia(respuestas)
+    if phq9_alto(respuestas) and _ORDEN.index(nivel) < _ORDEN.index(COMUNITARIO):
+        return COMUNITARIO
+    return nivel

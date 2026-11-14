@@ -75,6 +75,10 @@ _METODO = [
     r"\b(?:conseguir|comprar|tomar(?:me)?)\s+(?:un\s+|el\s+)?veneno\b",
     r"\b(?:forma|manera)\s+(?:mas\s+)?(?:facil|rapida|menos\s+dolorosa)\s+de\s+(?:morir|matarme|suicidarme)\b",
     r"\bsobredosis\b",
+    # Semana 8 (prueba de 90 mensajes): pedir la forma con otras palabras.
+    r"\blo\s+mas\s+(?:rapido|facil|seguro|efectivo)\s+para\s+(?:no\s+sentir\s+(?:nada|dolor)|dejar\s+de\s+(?:sentir|existir|vivir)|"
+    r"no\s+(?:volver\s+a\s+)?despertar|morir|desaparecer|acabar\s+con\s+todo)\b",
+    r"\b(?:pastillas?|medicinas?|medicamentos?)\b.{0,40}\b(?:dormir(?:me)?\s+para\s+siempre|no\s+(?:volver\s+a\s+)?despertar)\b",
 ]
 
 

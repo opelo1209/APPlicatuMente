@@ -328,6 +328,7 @@ class Regla:
 REGLAS = (
     Regla("R1", "ideacion_directa -> riesgo_alto", "Deseo de morir en primera persona."),
     Regla("R2", "planeacion_o_intencion -> riesgo_alto", "Plan o intencion, aunque no nombre un metodo (CRI-01)."),
+    Regla("R19", "intento_previo -> riesgo_alto", "Semana 8: intento de suicidio anterior; nivel por confirmar con la Dra."),
     # Semana 4 (revision clinica): la autolesion "si es senal, pero no es una
     # urgencia". Sola ya no dispara el guion de crisis: Serena acompana,
     # pregunta, da las lineas y avisa al administrador. Con otra senal de
@@ -538,6 +539,11 @@ REGLAS_SALIDA = (
         "S19",
         "habla_de_su_estado -> reemplazar_apertura",
         "Semana 6: a \"Hola Serena\" contesto \"Estoy bien, gracias por preguntar\" sin que nadie preguntara.",
+    ),
+    Regla(
+        "S21",
+        "celebra -> reemplazar_apertura",
+        "Semana 8: celebro lo que no era positivo (\"Hoy es mi ultimo dia\" -> \"¡Felicidades por tu decision!\").",
     ),
 )
 ACCION_BLOQUEAR = "bloquear"

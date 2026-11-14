@@ -60,7 +60,7 @@ def test_plan_es_urgente_con_hospital_infantil():
 def test_intencion_va_a_lo_comunitario():
     a = alerta(respuestas("intencion_llevarlo"))
     assert a["tipo"] == "riesgo_comunitario"
-    assert "comunitario" in a["recomendacion"]
+    assert "comunitario" in a["recomendacion"].lower()
 
 
 @pytest.mark.parametrize("si", [("desear_muerto",), ("idea_suicidarse",), ("como_lo_haria",)])
@@ -70,9 +70,11 @@ def test_los_demas_ya_no_son_riesgo_alto_para_los_padres(si):
     assert "seguimiento" in a["mensaje"]
 
 
-def test_phq9_alto_sin_columbia_es_seguimiento_no_riesgo_alto():
+def test_phq9_alto_sin_columbia_no_es_riesgo_alto():
+    # Semana 8 (pregunta 14d de la Dra.): ya no es seguimiento, sino centro
+    # comunitario (ver test_columbia_s8.py). Sigue sin ser riesgo alto.
     a = alerta(respuestas(phq9=15))
-    assert a["tipo"] == "cuestionario_completado" and "seguimiento" in a["mensaje"]
+    assert a["tipo"] == "riesgo_comunitario"
 
 
 def test_sin_reactivos_usa_el_nivel_de_la_app_o_el_total():

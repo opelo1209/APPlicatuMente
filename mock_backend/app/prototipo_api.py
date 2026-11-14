@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import queue
+import re
 import threading
 from datetime import date, datetime, timezone
 from typing import Any, Callable
@@ -29,8 +30,9 @@ from .evaluador_diario import EntradaDiario, evaluar_entrada, resultado_a_dict
 from .generador_llm import GeneradorAislado
 from .memoria_sesion import MemoriaSesiones
 from .respuesta_chat import respuesta_estudiante, traza_decision
-from .resumen_riesgo import alerta_de_fila, resumir
-from .resumen_tutor import dia_de_fila, resumir_diario
+from .alerta_privada import SQL_LIMPIAR_FRAGMENTOS, etiqueta_senal, tipos_de_senal
+from .resumen_riesgo import CUANDO_MES, alerta_de_fila, resumir
+from .resumen_tutor import dia_de_fila, mes_anterior, nombre_mes, resumir_diario
 from .serena_pipeline import responder
 from .vinculacion_bidireccional import (
     ESTADO_PENDIENTE_ESTUDIANTE,
@@ -114,6 +116,8 @@ def crear_tablas_prototipo(cur: Any) -> None:
         "nota_atencion TEXT",
     ):
         cur.execute(f"ALTER TABLE alertas_riesgo ADD COLUMN IF NOT EXISTS {columna}")
+    # Semana 8: las alertas guardadas antes pierden el fragmento.
+    cur.execute(SQL_LIMPIAR_FRAGMENTOS)
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS vinculacion_solicitudes (
@@ -235,7 +239,8 @@ def _registrar_alerta(cur: Any, user: dict[str, Any], origen: str, alerta: Any) 
             origen,
             alerta["nivel"],
             json.dumps(list(alerta["reglas"])),
-            json.dumps(list(alerta["evidencia"]), ensure_ascii=False),
+            # Semana 8 (pregunta 5 de la Dra.): solo el tipo de senal, sin el fragmento.
+            json.dumps(tipos_de_senal(alerta["evidencia"]), ensure_ascii=False),
             json.dumps(list(alerta["prueba"]), ensure_ascii=False),
         ),
     )
@@ -246,6 +251,63 @@ def _registrar_alerta(cur: Any, user: dict[str, Any], origen: str, alerta: Any) 
 # --------------------------------------------------------------------------
 # Router
 # --------------------------------------------------------------------------
+
+
+MESES_ATRAS = 24
+_MES = re.compile(r"(\d{4})-(\d{2})")
+
+
+def _mes_pedido(mes: str | None, hoy: date | None = None) -> tuple[int, int]:
+    """Semana 8: el resumen es de un mes completo; por omisión, el pasado.
+    Solo meses completos de los últimos dos años."""
+    ultimo = mes_anterior(hoy or date.today())
+    if mes is None:
+        return ultimo
+    coincide = _MES.fullmatch(mes.strip())
+    if coincide is None or not 1 <= int(coincide.group(2)) <= 12:
+        raise HTTPException(status_code=422, detail="El mes debe tener la forma AAAA-MM.")
+    pedido = (int(coincide.group(1)), int(coincide.group(2)))
+    total = ultimo[0] * 12 + ultimo[1] - 1
+    primero = divmod(total - (MESES_ATRAS - 1), 12)
+    if not (primero[0], primero[1] + 1) <= pedido <= ultimo:
+        raise HTTPException(status_code=422, detail="Solo hay resúmenes de meses completos de los últimos dos años.")
+    return pedido
+
+
+def _resumen_mensual(cur: Any, id_estudiante: int, nombres: str | None, anio: int, mes: int) -> dict[str, Any]:
+    """Solo fecha y polaridad: el texto del diario no se lee."""
+    cur.execute(
+        """
+        SELECT fecha, polaridad FROM diario_entradas
+        WHERE id_estudiante = %s AND fecha >= make_date(%s, %s, 1)
+          AND fecha < make_date(%s, %s, 1) + INTERVAL '1 month'
+        ORDER BY fecha
+        """,
+        (id_estudiante, anio, mes, anio, mes),
+    )
+    diario = [dia_de_fila(f) for f in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT origen, nivel, reglas, atendida, fecha_creacion FROM alertas_riesgo
+        WHERE perfil_tipo = 'estudiante' AND id_usuario = %s
+          AND fecha_creacion >= make_date(%s, %s, 1)
+          AND fecha_creacion < make_date(%s, %s, 1) + INTERVAL '1 month'
+        """,
+        (id_estudiante, anio, mes, anio, mes),
+    )
+    alertas = [alerta_de_fila(f) for f in cur.fetchall()]
+    nombre = nombres or "su hijo o hija"
+    r = resumir_diario(diario, nombre, nombre_mes(anio, mes))
+    senales = resumir(alertas, nombre, CUANDO_MES).tutor if alertas else ""
+    return {
+        "texto": " ".join(t for t in (r.texto, senales) if t),
+        "mes": f"{anio:04d}-{mes:02d}",
+        "dias_con_registro": r.dias_con_registro,
+        "positivos": r.positivos,
+        "neutros": r.neutros,
+        "dificiles": r.dificiles,
+        "alertas": len(alertas),
+    }
 
 
 def _alerta_admin(f: dict[str, Any]) -> dict[str, Any]:
@@ -261,6 +323,8 @@ def _alerta_admin(f: dict[str, Any]) -> dict[str, Any]:
         "nivel": f["nivel"],
         "reglas": f["reglas"],
         "evidencia": f["evidencia"],
+        # Semana 8: lo que ve el equipo de apoyo, sin lo que escribio el estudiante.
+        "senales": [etiqueta_senal(t) for t in tipos_de_senal(f["evidencia"] or [])],
         "prueba": f["prueba"],
         "atendida": f["atendida"],
         "atendida_por": f.get("atendida_por"),
@@ -388,6 +452,9 @@ def crear_router(
                 origen = "chat_autolesion"
             elif r.alerta.get("tipo") == "metodo_en_chat":
                 origen = "chat_metodo"
+            elif r.alerta.get("tipo") == "cronicidad_tras_crisis":
+                # Semana 8 (pregunta 11): duracion o afectacion tras una crisis.
+                origen = "chat_cronicidad"
             with db_conn() as conn:
                 with conn.cursor() as cur:
                     _registrar_alerta(cur, user, origen, r.alerta)
@@ -552,51 +619,49 @@ def crear_router(
     @router.get("/admin/resumen-tutor/{id_usuario}")
     def resumen_para_tutor(
         id_usuario: int,
-        dias: int = Query(default=7, ge=1, le=90),
+        mes: str | None = Query(default=None, description="AAAA-MM; por omisión, el mes pasado"),
         user: dict[str, Any] = Depends(current_user),
     ) -> dict[str, Any]:
-        """Semana 5 (asesor): lo que recibiria el tutor, como un terapeuta
-        que da un resumen y no lo que dijo el adolescente. BORRADOR: solo lo
-        ve el administrador hasta que psicologia y el asesor lo aprueben.
-        El texto del diario se lee aqui solo para saber si hubo groserias."""
+        """Semana 5 (asesor): lo que recibe el tutor, como un terapeuta que da
+        un resumen y no lo que dijo el adolescente. Semana 8: es mensual y es
+        exactamente lo que ve el tutor en su cuenta (pregunta 6 de la Dra.)."""
         _solo(user, "administrador")
+        anio, num = _mes_pedido(mes)
         with db_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT nombres FROM usuarios_estudiantes WHERE id_usuario = %s", (id_usuario,))
                 estudiante = cur.fetchone()
                 if estudiante is None:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Estudiante no encontrado")
+                return _resumen_mensual(cur, id_usuario, estudiante["nombres"], anio, num)
+
+    @router.get("/users/padres/resumen-mensual")
+    def resumen_mensual_tutor(
+        mes: str | None = Query(default=None, description="AAAA-MM; por omisión, el mes pasado"),
+        user: dict[str, Any] = Depends(current_user),
+    ) -> dict[str, Any]:
+        """Semana 8 (pregunta 6 de la Dra.): el tutor recibe en su cuenta, cada
+        mes, cuántos días fueron buenos, regulares y difíciles de cada
+        estudiante vinculado. Nunca lo que escribió."""
+        _solo(user, "padre")
+        anio, num = _mes_pedido(mes)
+        with db_conn() as conn:
+            with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT fecha, polaridad, emociones, texto FROM diario_entradas
-                    WHERE id_estudiante = %s AND fecha > CURRENT_DATE - %s
-                    ORDER BY fecha
+                    SELECT e.id_usuario, e.nombres FROM padre_estudiante pe
+                    JOIN usuarios_estudiantes e ON e.id_usuario = pe.id_estudiante
+                    WHERE pe.id_padre = %s AND e.activo
+                    ORDER BY e.nombres
                     """,
-                    (id_usuario, dias),
+                    (user["id_usuario"],),
                 )
-                diario = [dia_de_fila(f) for f in cur.fetchall()]
-                cur.execute(
-                    """
-                    SELECT origen, nivel, reglas, atendida, fecha_creacion FROM alertas_riesgo
-                    WHERE perfil_tipo = 'estudiante' AND id_usuario = %s
-                      AND fecha_creacion > NOW() - make_interval(days => %s)
-                    """,
-                    (id_usuario, dias),
-                )
-                alertas = [alerta_de_fila(f) for f in cur.fetchall()]
-        nombre = estudiante["nombres"] or "su hijo o hija"
-        r = resumir_diario(diario, nombre, dias)
-        senales = resumir(alertas, nombre).tutor if alertas else ""
-        return {
-            "borrador": " ".join(t for t in (r.texto, senales) if t),
-            "dias": dias,
-            "dias_con_registro": r.dias_con_registro,
-            "positivos": r.positivos,
-            "neutros": r.neutros,
-            "dificiles": r.dificiles,
-            "dias_altisonantes": r.dias_altisonantes,
-            "alertas": len(alertas),
-        }
+                estudiantes = cur.fetchall()
+                resumenes = [
+                    {"estudiante": e["nombres"] or "", **_resumen_mensual(cur, e["id_usuario"], e["nombres"], anio, num)}
+                    for e in estudiantes
+                ]
+        return {"mes": f"{anio:04d}-{num:02d}", "periodo": nombre_mes(anio, num), "resumenes": resumenes}
 
     # ----------------------- Vinculacion: estudiante ------------------------
 
