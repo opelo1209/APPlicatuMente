@@ -56,6 +56,40 @@ class Revision:
 
 SIN_REVISION = Revision(ESTADO_PENDIENTE)
 
+# Semana 9: la Dra. reviso los 10 textos que habia rechazado
+# (Revision_para_la_Dra_Gonzalez.pdf, Anexo A, devuelto el 17 nov). Cuatro se
+# quedan y seis cambian; el texto nuevo ya esta en la app y en
+# datos/corpus_serena.json. Va en el codigo y no en revision_clinica.json
+# porque ese archivo es privado y esta decision tambien debe valer en GitHub.
+REVISOR_SEMANA_9 = "Nadia Gonzalez"
+FECHA_SEMANA_9 = "2026-11-17"
+REVISADOS_SEMANA_9 = frozenset({
+    "autolesiones.actionContent.adolescente",  # 1: se queda, ayuda profesional primero
+    "autolesiones.actionContent.familia",  # 2: se queda
+    "suicidio.bloque1Content.adolescente",  # 3: se queda
+    "suicidio.quimicaDesc.adolescente",  # 4: texto nuevo
+    "suicidio.quimicaDesc.familia",  # 5: «sustancias quimicas» por «neurotransmisores»
+    "suicidio.estresDesc.familia",  # 6: sin «trauma»
+    "autolesiones.teenImgAdvertencia.adolescente",  # 7: texto nuevo
+    "autolesiones.teenImgQueHacer.adolescente",  # 8: se queda
+    "suicidio.teenImgQuimicaCerebro.adolescente",  # 9: texto nuevo
+    "suicidio.teenImgEstres.adolescente",  # 10: texto nuevo
+})
+
+
+def _con_semana_9(revisiones: Mapping[str, Revision]) -> Mapping[str, Revision]:
+    """Los 10 textos de la Semana 9 quedan aprobados, con su referencia."""
+    aprobados = {
+        id_texto: Revision(
+            estado=ESTADO_APROBADO,
+            revisor=REVISOR_SEMANA_9,
+            fecha=FECHA_SEMANA_9,
+            referencia=revisiones.get(id_texto, SIN_REVISION).referencia,
+        )
+        for id_texto in REVISADOS_SEMANA_9
+    }
+    return MappingProxyType({**revisiones, **aprobados})
+
 
 @lru_cache(maxsize=1)
 def _revisiones(ruta: str = str(RUTA_REVISION)) -> Mapping[str, Revision]:
@@ -65,7 +99,7 @@ def _revisiones(ruta: str = str(RUTA_REVISION)) -> Mapping[str, Revision]:
         # Semana 5: el archivo es privado (no esta en el repositorio). Sin el,
         # todo queda «pendiente» y no se descarta lo rechazado: que se note.
         log.warning("sin revision clinica en %s: todos los textos quedan pendientes", ruta)
-        return MappingProxyType({})
+        return _con_semana_9({})
     revisor, fecha = datos.get("revisor"), datos.get("fecha")
     resultado: dict[str, Revision] = {}
     for item in datos.get("contenido", []):
@@ -81,7 +115,7 @@ def _revisiones(ruta: str = str(RUTA_REVISION)) -> Mapping[str, Revision]:
             referencia=item.get("referencia"),
             texto_corregido=corregido,
         )
-    return MappingProxyType(resultado)
+    return _con_semana_9(resultado)
 
 
 def revision_de(id_texto: str) -> Revision:

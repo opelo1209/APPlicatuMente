@@ -18,8 +18,10 @@ import pytest
 import app.main as main_mod
 from app import resumen_tutor as rt
 from app.resumen_tutor import (
-    UMBRAL_PLATICAR,
+    DIAS_DIFICILES_PARA_PLATICAR,
     DiaDiario,
+    dias_dificiles_seguidos,
+    fin_de_mes,
     dia_de_fila,
     mes_anterior,
     nombre_mes,
@@ -54,14 +56,57 @@ def test_de_la_fila_no_queda_el_texto():
     assert not hasattr(d, "texto") and not hasattr(d, "altisonantes")
 
 
-def test_sugiere_platicar_desde_el_60_por_ciento_de_dias_dificiles():
-    # Pregunta 6d: anotó «más de 60 días»; con un resumen mensual se toma
-    # como el 60 % de los días con registro mientras ella lo confirma.
-    assert UMBRAL_PLATICAR == 0.6
+# Semana 9: la Dra. aclaró la pregunta 6: «Cuando el alumno lleve 60 días
+# reportando días difíciles». Ya no es el 60 % del mes.
+
+
+def _d(fecha, polaridad):
+    return DiaDiario(fecha, polaridad)
+
+
+def test_un_mes_casi_todo_dificil_ya_no_basta_para_sugerir_platicar():
+    assert DIAS_DIFICILES_PARA_PLATICAR == 60
     tres_de_cinco = [dia(1, "negativo"), dia(2, "negativo"), dia(3, "negativo"), dia(4, "positivo"), dia(5, "neutro")]
-    dos_de_cinco = [dia(1, "negativo"), dia(2, "negativo"), dia(3, "positivo"), dia(4, "positivo"), dia(5, "neutro")]
-    assert "platicar" in resumir_diario(tres_de_cinco, "Ana", "octubre").texto
-    assert "platicar" not in resumir_diario(dos_de_cinco, "Ana", "octubre").texto
+    assert "platicar" not in resumir_diario(tres_de_cinco, "Ana", "octubre").texto
+
+
+def test_sugiere_platicar_desde_60_dias_seguidos_de_dias_dificiles():
+    mes = [dia(5, "negativo"), dia(20, "negativo")]
+    r = resumir_diario(mes, "Ana", "octubre de 2026", dificiles_seguidos=60)
+    assert "Desde hace 60 días, los días que registra son difíciles." in r.texto
+    assert "platicar" in r.texto
+    assert "platicar" not in resumir_diario(mes, "Ana", "octubre de 2026", dificiles_seguidos=59).texto
+
+
+def test_la_racha_se_cuenta_en_dias_de_calendario_hasta_fin_de_mes():
+    fin = fin_de_mes(2026, 10)
+    assert fin == date(2026, 10, 31)
+    historial = [_d(date(2026, 9, 1), "negativo"), _d(date(2026, 9, 20), "negativo"), _d(date(2026, 10, 30), "negativo")]
+    # Del 1 de septiembre al 31 de octubre: 61 días, aunque solo escribió 3.
+    assert dias_dificiles_seguidos(historial, fin) == 61
+
+
+def test_un_dia_regular_o_bueno_reinicia_la_racha():
+    fin = date(2026, 10, 31)
+    historial = [
+        _d(date(2026, 8, 1), "negativo"),
+        _d(date(2026, 9, 10), "neutro"),
+        _d(date(2026, 9, 11), "negativo"),
+        _d(date(2026, 10, 25), "negativo"),
+    ]
+    assert dias_dificiles_seguidos(historial, fin) == 51  # desde el 11 de septiembre
+    assert dias_dificiles_seguidos([*historial, _d(date(2026, 10, 30), "positivo")], fin) == 0
+
+
+def test_la_racha_no_mira_despues_del_mes_resumido():
+    historial = [_d(date(2026, 8, 1), "negativo"), _d(date(2026, 11, 2), "positivo")]
+    assert dias_dificiles_seguidos(historial, date(2026, 10, 31)) == 92
+    assert dias_dificiles_seguidos([], date(2026, 10, 31)) == 0
+
+
+def test_fin_de_mes_en_diciembre_y_febrero():
+    assert fin_de_mes(2026, 12) == date(2026, 12, 31)
+    assert fin_de_mes(2028, 2) == date(2028, 2, 29)
 
 
 def test_sin_entradas_no_alarma():
@@ -157,7 +202,8 @@ def test_el_tutor_vinculado_recibe_el_resumen_mensual(cliente, estudiante_con_di
         resumen = cuerpo["resumenes"][0]
         assert resumen["dias_con_registro"] == 3  # el día de este mes no cuenta
         assert "2 difíciles" in resumen["texto"]
-        assert "platicar" in resumen["texto"]  # 2 de 3 = 67 %
+        # Semana 9: 2 de 3 días difíciles ya no basta; el último fue regular.
+        assert "platicar" not in resumen["texto"]
         assert "pinche" not in json.dumps(cuerpo, ensure_ascii=False)
     finally:
         with main_mod.db_conn() as conn:
@@ -204,3 +250,39 @@ def test_un_estudiante_no_puede_pedir_el_resumen_del_admin(cliente):  # noqa: F8
 
 def test_estudiante_inexistente(cliente, admin):  # noqa: F811
     assert cliente.get("/admin/resumen-tutor/999999999", headers=admin).status_code == 404
+
+
+def test_el_tutor_recibe_la_sugerencia_si_la_racha_empezo_antes_del_mes(cliente):  # noqa: F811
+    # Semana 9: dos días difíciles, uno hace 70 días y otro el mes pasado.
+    estudiante = _crear_usuario("usuarios_estudiantes", "est_s9")
+    padre = _crear_usuario("usuarios_padres", "tutor_s9")
+    with main_mod.db_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id_usuario FROM usuarios_estudiantes WHERE nombre_usuario = %s", (estudiante,))
+            id_estudiante = cur.fetchone()["id_usuario"]
+            for dias_antes in (70, 5):
+                cur.execute(
+                    """
+                    INSERT INTO diario_entradas (id_estudiante, fecha, polaridad, emociones, texto, resultado, accion)
+                    VALUES (%s, (date_trunc('month', CURRENT_DATE) - make_interval(days => %s))::date,
+                            'negativo', '[]', 'triste', '{}', 'normal')
+                    """,
+                    (id_estudiante, dias_antes),
+                )
+        conn.commit()
+    _vincular(_id_padre(padre), id_estudiante)
+    try:
+        r = cliente.get("/users/padres/resumen-mensual", headers=_token(cliente, padre))
+        assert r.status_code == 200, r.text
+        resumen = r.json()["resumenes"][0]
+        assert resumen["dias_con_registro"] == 1  # solo uno cae en el mes pasado
+        assert "los días que registra son difíciles" in resumen["texto"]
+        assert "platicar" in resumen["texto"]
+        assert "triste" not in resumen["texto"]
+    finally:
+        with main_mod.db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM usuarios_padres WHERE nombre_usuario = %s", (padre,))
+                cur.execute("DELETE FROM diario_entradas WHERE id_estudiante = %s", (id_estudiante,))
+                cur.execute("DELETE FROM usuarios_estudiantes WHERE id_usuario = %s", (id_estudiante,))
+            conn.commit()

@@ -475,9 +475,12 @@ METAS_SERENA = (
     ("limite_tarea", ACCION_LIMITE_TAREA),
     ("alerta_preventiva", ACCION_ALERTA_PREVENTIVA),
     ("riesgo_ambiguo", ACCION_EXPLORAR),
+    # Semana 9 (Dra. Gonzalez, pregunta nueva 2): despues de una crisis
+    # «deberian seguir con acompanamiento», aunque el estudiante haga una
+    # consulta (bienestar, «que es la ansiedad»). Antes, la consulta ganaba.
+    ("acompanar_crisis", ACCION_ACOMPANAR_CRISIS),
     # Una senal ambigua gana a la consulta: "informar" va despues.
     ("informar", ACCION_INFORMAR),
-    ("acompanar_crisis", ACCION_ACOMPANAR_CRISIS),
     ("sugerir_apoyo", ACCION_SUGERIR_APOYO),
 )
 

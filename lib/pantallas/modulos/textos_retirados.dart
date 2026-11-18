@@ -1,21 +1,13 @@
 // PROTOTIPO Semana 8 (pregunta 13 de la Dra. González): los 10 textos que
-// rechazó en su revisión del material salen de la app hasta tener una
-// versión corregida. Serena ya no los citaba (revision_clinica.py); ahora
-// tampoco los muestran los módulos. Los identificadores son los mismos de la
-// revisión clínica (textos_rechazados.pdf, Semana 7).
+// rechazó en su revisión del material salieron de la app hasta tener una
+// versión corregida. Los identificadores son los mismos de la revisión
+// clínica (textos_rechazados.pdf, Semana 7).
+//
+// Semana 9: la Dra. revisó los 10 (Anexo A, 17 de noviembre). Cuatro se
+// quedan y seis cambian de texto (textos_revision_dra.dart), así que ya no
+// hay ninguno retirado. El mecanismo se conserva para la próxima revisión.
 
-const Set<String> textosRetirados = {
-  'autolesiones.actionContent.adolescente',
-  'autolesiones.actionContent.familia',
-  'suicidio.bloque1Content.adolescente',
-  'suicidio.quimicaDesc.adolescente',
-  'suicidio.quimicaDesc.familia',
-  'suicidio.estresDesc.familia',
-  'autolesiones.teenImgAdvertencia.adolescente',
-  'autolesiones.teenImgQueHacer.adolescente',
-  'suicidio.teenImgQuimicaCerebro.adolescente',
-  'suicidio.teenImgEstres.adolescente',
-};
+const Set<String> textosRetirados = {};
 
 bool estaRetirado(String id) => textosRetirados.contains(id);
 

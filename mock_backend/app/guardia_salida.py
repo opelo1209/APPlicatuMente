@@ -104,6 +104,10 @@ _PATRONES = {
         r"\bno\s+es\s+para\s+tanto\b",
         r"\btodo\s+pasa\s+por\s+algo\b",
         r"\bno\s+exageres\b",
+        # Semana 9 (Dra. Gonzalez, pregunta nueva 5): «¿Antes de esta
+        # respuesta se valida la emocion?». Serena solo valida antes cuando el
+        # mensaje es claramente negativo; para no minimizar, no se muestra.
+        r"\bno\s+te\s+preocupes\b",
     ],
     # Solo cuenta si la entrada fue una señal ambigua (regla S10): en
     # psicoeducación "es normal que te tiemble la voz" puede ser correcto.

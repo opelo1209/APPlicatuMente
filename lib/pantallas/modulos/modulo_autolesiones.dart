@@ -6,6 +6,7 @@ import '../servicios/user.dart';
 import 'parent_triptych.dart';
 import 'teen_info_carousel.dart';
 import 'textos_retirados.dart';
+import 'textos_revision_dra.dart';
 
 class ModuloAutolesiones extends StatefulWidget {
   const ModuloAutolesiones({super.key});
@@ -74,8 +75,10 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
     final String actionTitle = _isForTeens
         ? '¿Qué más puedo hacer?'
         : '¿Cómo puedo ayudar?';
+    // Semana 9 (revisión de la Dra. González, texto 1): se queda, con la
+    // ayuda profesional primero.
     final String actionContent = _isForTeens
-        ? 'Prueba algo más seguro:\n\n• Habla con alguien de confianza.\n• Escribe o dibuja lo que sientes.\n• Muévete, respira o escucha música.\n• Pide ayuda profesional si vuelve a pasar.'
+        ? 'Prueba algo más seguro:\n\n• Pide ayuda profesional si vuelve a pasar.\n• Habla con alguien de confianza.\n• Escribe o dibuja lo que sientes.\n• Muévete, respira o escucha música.'
         : 'Cómo responder:\n\n• Mantener la calma.\n• Escuchar sin regaños ni juicio.\n• Validar el dolor sin justificar la lesión.\n• Buscar apoyo profesional.';
 
     final String footerTitle = _isForTeens
@@ -103,10 +106,10 @@ class _ModuloAutolesionesState extends State<ModuloAutolesiones> {
         'autolesiones.teenImgAdvertencia.$aud',
         TeenInfoCardData(
           title: 'Dato importante',
-          body: '',
+          // Semana 9 (texto 7): la ilustración tenía el texto anterior.
+          body: textoAdvertenciaAutolesion,
           icon: Icons.warning_amber_rounded,
           color: Colors.orange,
-          imagePath: 'assets/imagenes/autolesiones/2-advertencia.png',
         ),
       ),
       (

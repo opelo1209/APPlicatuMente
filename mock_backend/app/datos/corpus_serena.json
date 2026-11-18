@@ -296,7 +296,7 @@
   "origen": "lib/pantallas/modulos/modulo_autolesiones.dart",
   "fuente_tipo": "texto de la app",
   "titulo": null,
-  "texto": "Prueba algo más seguro:\n\n• Habla con alguien de confianza.\n• Escribe o dibuja lo que sientes.\n• Muévete, respira o escucha música.\n• Pide ayuda profesional si vuelve a pasar.",
+  "texto": "Prueba algo más seguro:\n\n• Pide ayuda profesional si vuelve a pasar.\n• Habla con alguien de confianza.\n• Escribe o dibuja lo que sientes.\n• Muévete, respira o escucha música.",
   "bloqueada": false,
   "nivel_actual": "ninguno"
  },
@@ -442,7 +442,7 @@
   "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
   "fuente_tipo": "texto de la app",
   "titulo": null,
-  "texto": "Sustancias como serotonina y dopamina influyen en tu ánimo. Si se desbalancean, el dolor emocional puede sentirse más fuerte.",
+  "texto": "Tu cerebro produce unas sustancias químicas, como la serotonina y la dopamina, que ayudan a controlar cómo te sientes. Cuando no están equilibradas, la tristeza o el dolor emocional pueden sentirse más intensos.",
   "bloqueada": false,
   "nivel_actual": "ninguno",
   "avisos": [
@@ -459,7 +459,7 @@
   "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
   "fuente_tipo": "texto de la app",
   "titulo": null,
-  "texto": "Cambios en neurotransmisores pueden intensificar el dolor emocional y alterar la percepción del problema.",
+  "texto": "Cambios en las sustancias químicas que produce el cerebro pueden intensificar el dolor emocional y alterar la percepción del problema.",
   "bloqueada": false,
   "nivel_actual": "ninguno",
   "avisos": [
@@ -493,7 +493,7 @@
   "origen": "lib/pantallas/modulos/modulo_suicidio.dart",
   "fuente_tipo": "texto de la app",
   "titulo": null,
-  "texto": "Estrés prolongado o trauma puede agotar la capacidad del cuerpo para regularse.",
+  "texto": "Estrés prolongado puede agotar la capacidad del cuerpo para regularse.",
   "bloqueada": false,
   "nivel_actual": "ninguno",
   "avisos": [
@@ -883,7 +883,7 @@
   "origen": "assets/imagenes/autolesiones/2-advertencia.png",
   "fuente_tipo": "tarjeta (imagen)",
   "titulo": "Dato importante",
-  "texto": "Aunque no es para morir, hacerlo mucho sí aumenta el riesgo de tener pensamientos o conductas mucho más peligrosas. Tu vida importa.",
+  "texto": "Aunque quien lo hace no busque hacerse un daño grave, repetirlo muchas veces aumenta el riesgo de llegar a pensamientos o acciones mucho más peligrosas. Tu vida importa.",
   "bloqueada": true,
   "nivel_actual": null
  },
@@ -983,7 +983,7 @@
   "origen": "assets/imagenes/suicidio/4-quimica_cerebro.png",
   "fuente_tipo": "tarjeta (imagen)",
   "titulo": "Química del cerebro",
-  "texto": "Sustancias como serotonina y dopamina influyen en tu ánimo. Si se desbalancean, el dolor emocional puede sentirse más fuerte.",
+  "texto": "Tu cerebro produce unas sustancias químicas, como la serotonina y la dopamina, que ayudan a controlar cómo te sientes. Cuando no están equilibradas, la tristeza o el dolor emocional pueden sentirse más intensos.",
   "bloqueada": false,
   "nivel_actual": "ninguno",
   "avisos": [
@@ -1000,7 +1000,7 @@
   "origen": "assets/imagenes/suicidio/5-estrés.png",
   "fuente_tipo": "tarjeta (imagen)",
   "titulo": "Estrés y sobrecarga",
-  "texto": "Mucho estrés por mucho tiempo cansa al cuerpo y vuelve más difícil manejar lo que sientes.",
+  "texto": "El estrés es lo que siente tu cuerpo y tu mente cuando algo te preocupa, te presiona o te parece difícil de manejar.\n\nMucho estrés por mucho tiempo cansa al cuerpo y vuelve más difícil manejar lo que sientes.",
   "bloqueada": false,
   "nivel_actual": "ninguno",
   "avisos": [

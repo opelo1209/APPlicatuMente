@@ -32,7 +32,14 @@ from .memoria_sesion import MemoriaSesiones
 from .respuesta_chat import respuesta_estudiante, traza_decision
 from .alerta_privada import SQL_LIMPIAR_FRAGMENTOS, etiqueta_senal, tipos_de_senal
 from .resumen_riesgo import CUANDO_MES, alerta_de_fila, resumir
-from .resumen_tutor import dia_de_fila, mes_anterior, nombre_mes, resumir_diario
+from .resumen_tutor import (
+    dia_de_fila,
+    dias_dificiles_seguidos,
+    fin_de_mes,
+    mes_anterior,
+    nombre_mes,
+    resumir_diario,
+)
 from .serena_pipeline import responder
 from .vinculacion_bidireccional import (
     ESTADO_PENDIENTE_ESTUDIANTE,
@@ -286,6 +293,17 @@ def _resumen_mensual(cur: Any, id_estudiante: int, nombres: str | None, anio: in
         (id_estudiante, anio, mes, anio, mes),
     )
     diario = [dia_de_fila(f) for f in cur.fetchall()]
+    # Semana 9 (Dra., pregunta 6): la racha de días difíciles puede empezar
+    # antes del mes; también aquí se leen solo fecha y polaridad.
+    cur.execute(
+        """
+        SELECT fecha, polaridad FROM diario_entradas
+        WHERE id_estudiante = %s AND fecha < make_date(%s, %s, 1) + INTERVAL '1 month'
+        ORDER BY fecha
+        """,
+        (id_estudiante, anio, mes),
+    )
+    seguidos = dias_dificiles_seguidos([dia_de_fila(f) for f in cur.fetchall()], fin_de_mes(anio, mes))
     cur.execute(
         """
         SELECT origen, nivel, reglas, atendida, fecha_creacion FROM alertas_riesgo
@@ -297,7 +315,7 @@ def _resumen_mensual(cur: Any, id_estudiante: int, nombres: str | None, anio: in
     )
     alertas = [alerta_de_fila(f) for f in cur.fetchall()]
     nombre = nombres or "su hijo o hija"
-    r = resumir_diario(diario, nombre, nombre_mes(anio, mes))
+    r = resumir_diario(diario, nombre, nombre_mes(anio, mes), seguidos)
     senales = resumir(alertas, nombre, CUANDO_MES).tutor if alertas else ""
     return {
         "texto": " ".join(t for t in (r.texto, senales) if t),

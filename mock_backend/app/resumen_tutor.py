@@ -10,8 +10,13 @@ preguntas 6 y 7):
     nombra emociones ni la tendencia;
   - no menciona palabras altisonantes. Por eso el texto del diario ya ni se
     lee para armarlo: solo la fecha y la polaridad que marco el estudiante;
-  - sugiere platicar desde el 60 % de dias dificiles. Ella anoto «mas de 60
-    dias», que no cabe en un mes; se toma como 60 % mientras lo confirma.
+  - (Semana 8) sugeria platicar desde el 60 % de dias dificiles del mes.
+
+Semana 9 (la Dra. aclaro la pregunta 6, 17 nov): «Cuando el alumno lleve 60
+dias reportando dias dificiles». Ya no es un porcentaje del mes: se sugiere
+platicar cuando las entradas mas recientes del diario son todas dificiles y
+esa racha abarca al menos 60 dias de calendario hasta el fin del mes. Los
+dias sin entrada no rompen la racha; un dia regular o bueno, si.
 
 Cada frase sale de una plantilla, no de un modelo, asi que no inventa nada.
 """
@@ -20,12 +25,12 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from typing import Mapping, Sequence
 
 from .emociones_catalogo import POLARIDAD_NEGATIVA, POLARIDAD_NEUTRA, POLARIDAD_POSITIVA
 
-UMBRAL_PLATICAR = 0.6
+DIAS_DIFICILES_PARA_PLATICAR = 60
 
 _MESES = (
     "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -71,9 +76,32 @@ def _plural(n: int, singular: str, plural: str) -> str:
     return f"{n} {singular if n == 1 else plural}"
 
 
-def resumir_diario(dias: Sequence[DiaDiario], nombre: str = "su hijo o hija", periodo: str = "este mes") -> ResumenTutor:
+def dias_dificiles_seguidos(historial: Sequence[DiaDiario], hasta: date) -> int:
+    """Dias de calendario que lleva registrando solo dias dificiles, contados
+    hasta `hasta`. Cero si la ultima entrada (hasta esa fecha) no fue dificil."""
+    previas = sorted((d for d in historial if d.fecha <= hasta), key=lambda d: d.fecha)
+    inicio = None
+    for d in reversed(previas):
+        if d.polaridad != POLARIDAD_NEGATIVA:
+            break
+        inicio = d.fecha
+    return 0 if inicio is None else (hasta - inicio).days + 1
+
+
+def fin_de_mes(anio: int, mes: int) -> date:
+    siguiente = date(anio + 1, 1, 1) if mes == 12 else date(anio, mes + 1, 1)
+    return siguiente - timedelta(days=1)
+
+
+def resumir_diario(
+    dias: Sequence[DiaDiario],
+    nombre: str = "su hijo o hija",
+    periodo: str = "este mes",
+    dificiles_seguidos: int = 0,
+) -> ResumenTutor:
     """`periodo` completa la frase «En {periodo} ...», por ejemplo
-    «octubre de 2026»."""
+    «octubre de 2026». `dificiles_seguidos` sale de dias_dificiles_seguidos()
+    con el historial del diario hasta el fin del mes."""
     conteo = Counter(d.polaridad for d in dias)
     pos, neu, neg = conteo[POLARIDAD_POSITIVA], conteo[POLARIDAD_NEUTRA], conteo[POLARIDAD_NEGATIVA]
     total = len(dias)
@@ -89,10 +117,10 @@ def resumir_diario(dias: Sequence[DiaDiario], nombre: str = "su hijo o hija", pe
         f"{_plural(pos, 'bueno', 'buenos')}, {_plural(neu, 'regular', 'regulares')} y "
         f"{_plural(neg, 'difícil', 'difíciles')}.",
     ]
-    if neg / total >= UMBRAL_PLATICAR:
+    if dificiles_seguidos >= DIAS_DIFICILES_PARA_PLATICAR:
         frases.append(
-            "Hubo varios días difíciles. Le sugerimos buscar un momento tranquilo para platicar y "
-            "escuchar sin juzgar."
+            f"Desde hace {dificiles_seguidos} días, los días que registra son difíciles. "
+            "Le sugerimos buscar un momento tranquilo para platicar y escuchar sin juzgar."
         )
     frases.append("Este resumen no incluye lo que escribió: solo cómo dijo sentirse.")
     return ResumenTutor(" ".join(frases), total, pos, neu, neg)

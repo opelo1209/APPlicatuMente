@@ -22,6 +22,7 @@ from app.revision_clinica import (  # noqa: E402
     ESTADO_CORREGIDO,
     ESTADO_PENDIENTE,
     ESTADO_RECHAZADO,
+    REVISADOS_SEMANA_9,
     RUTA_REVISION,
     revision_de,
 )
@@ -41,26 +42,48 @@ def test_estados_tomados_de_la_revision():
     assert revision_de("ansiedad.teenImgAdvertencia.adolescente").estado == ESTADO_CAMBIOS
     assert revision_de("sustancias.brainContent.adolescente").estado == ESTADO_APROBADO
     assert revision_de("ansiedad.teenImgDiagnostico.adolescente").estado == ESTADO_PENDIENTE
-    assert revision_de("suicidio.quimicaDesc.adolescente").estado == ESTADO_RECHAZADO
+    # Semana 9: la Dra. reviso los 10 textos que habia rechazado.
+    assert revision_de("suicidio.quimicaDesc.adolescente").estado == ESTADO_APROBADO
 
 
 def test_un_texto_rechazado_no_lleva_texto_corregido():
     assert revision_de("autolesiones.teenImgQueHacer.adolescente").texto_corregido is None
 
 
-@requiere_revision
-def test_serena_nunca_cita_un_texto_rechazado(monkeypatch):
-    # Hoy los modulos de suicidio y autolesion no se usan en el chat; aunque
-    # se incluyeran, un texto que psicologia rechazo no se puede citar.
+def test_semana_9_los_10_textos_revisados_vuelven_al_indice_con_su_texto_nuevo():
+    # Corre siempre: la decision de la Semana 9 esta en el codigo, no en el
+    # archivo privado. Los modulos de suicidio y autolesion siguen fuera del
+    # chat (MODULOS_EXCLUIDOS_CHAT); aqui solo se revisa el indice.
     from app import recuperador_corpus
 
     recuperador_corpus._indice.cache_clear()
     try:
-        ids = {d["id"] for d in recuperador_corpus._indice().documentos}
+        docs = {d["id"]: d["texto"] for d in recuperador_corpus._indice().documentos}
     finally:
         recuperador_corpus._indice.cache_clear()
-    rechazados = {"suicidio.quimicaDesc.adolescente", "autolesiones.actionContent.adolescente"}
-    assert not ids & rechazados
+    # Los que no estan bloqueados por otra razon (las ilustraciones de
+    # autolesion siguen bloqueadas en el corpus) vuelven al indice.
+    assert {
+        "autolesiones.actionContent.adolescente",
+        "autolesiones.actionContent.familia",
+        "suicidio.quimicaDesc.adolescente",
+        "suicidio.quimicaDesc.familia",
+        "suicidio.teenImgQuimicaCerebro.adolescente",
+        "suicidio.teenImgEstres.adolescente",
+    } <= docs.keys()
+    assert docs["suicidio.teenImgEstres.adolescente"].startswith("El estrés es lo que siente")
+    assert docs["suicidio.quimicaDesc.adolescente"].startswith("Tu cerebro produce unas sustancias")
+    assert "neurotransmisores" not in docs["suicidio.quimicaDesc.familia"]
+    assert docs["autolesiones.actionContent.adolescente"].index("Pide ayuda profesional") < docs[
+        "autolesiones.actionContent.adolescente"
+    ].index("Habla con alguien")
+
+
+def test_semana_9_los_10_textos_quedan_aprobados_por_la_dra():
+    for id_texto in REVISADOS_SEMANA_9:
+        r = revision_de(id_texto)
+        assert (r.estado, r.revisor, r.fecha) == (ESTADO_APROBADO, "Nadia Gonzalez", "2026-11-17"), id_texto
+    assert len(REVISADOS_SEMANA_9) == 10
 
 
 def test_un_texto_que_no_esta_en_la_revision_queda_pendiente():
@@ -171,5 +194,7 @@ def test_sin_el_archivo_se_avisa_en_el_registro(tmp_path, caplog):
     from app.revision_clinica import _revisiones
 
     with caplog.at_level("WARNING"):
-        assert _revisiones(str(tmp_path / "no_existe.json")) == {}
+        revisiones = _revisiones(str(tmp_path / "no_existe.json"))
+    # Sin el archivo solo quedan los 10 textos que la Dra. reviso en la Semana 9.
+    assert set(revisiones) == REVISADOS_SEMANA_9
     assert "sin revision clinica" in caplog.text

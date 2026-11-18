@@ -185,10 +185,18 @@ def test_crisis_repetida_no_repite_el_guion_completo():
     assert r[1].alerta is not None, "cada crisis avisa al administrador"
 
 
-def test_despues_de_una_crisis_se_puede_pedir_informacion():
+def test_despues_de_una_crisis_una_consulta_sigue_en_acompanamiento():
+    # Semana 9 (Dra. Gonzalez): despues de una crisis se sigue acompanando;
+    # antes la consulta recibia informacion (Semana 4).
     r = _conversar(["me quiero morir", "qué es la ansiedad"])
-    assert r[1].etapas["entrada"]["accion"] == ACCION_INFORMAR
+    assert r[1].etapas["entrada"]["accion"] == ACCION_ACOMPANAR_CRISIS
+    assert r[1].texto in ACOMPANAR_CRISIS
     assert r[1].lineas, "las lineas siguen a la vista"
+
+
+def test_sin_crisis_previa_la_consulta_sigue_informando():
+    r = _conversar(["qué es la ansiedad"])
+    assert r[0].etapas["entrada"]["accion"] == ACCION_INFORMAR
 
 
 def test_sin_repetir_vuelve_a_la_mas_antigua():

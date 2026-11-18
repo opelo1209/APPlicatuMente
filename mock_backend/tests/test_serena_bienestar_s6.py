@@ -164,3 +164,21 @@ def test_si_el_modelo_solo_saluda_no_se_bloquea_ni_avisa():
     r = responder("bien, aquí en la casa", NEUTRO, GeneradorFalso("¡Hola!"), historial=(primero.turno,))
     assert r.tipo == "normal" and r.alerta is None
     assert r.texto
+
+
+def test_semana_9_pedir_bienestar_despues_de_una_crisis_recibe_acompanamiento():
+    # Pregunta nueva 2 de la Dra. Gonzalez (17 nov): «Deberían seguir con
+    # acompañamiento». La ficha de bienestar ya no sale después de una crisis.
+    from app.acompanamiento import ACOMPANAR_CRISIS
+
+    salidas = _conversacion(
+        [
+            ("ya no quiero vivir", "x"),
+            ("dame consejos para sentirme mejor", "Claro, aquí tienes algunos consejos."),
+        ]
+    )
+    assert salidas[0].tipo == "crisis"
+    despues = salidas[1]
+    assert despues.texto in ACOMPANAR_CRISIS
+    assert FICHAS_INFORMATIVAS[TEMA_BIENESTAR] not in despues.texto
+    assert despues.lineas, "las líneas de ayuda siguen a la vista"
