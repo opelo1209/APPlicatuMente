@@ -329,228 +329,230 @@ class _LoginState extends State<Login> {
                   right: 30,
                   bottom: 20,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Encabezado
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Hola,",
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.onSurface,
-                              ),
-                            ),
-                            Text(
-                              "¡Bienvenido de nuevo!",
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 
-                                  0.6,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Encabezado
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Hola,",
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSurface,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                            color: primaryGreen,
+                              Text(
+                                "¡Bienvenido de nuevo!",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 
+                                    0.6,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          onPressed: () =>
-                              themeProvider.toogleTheme(!isDarkMode),
-                        ),
-                      ],
-                    ),
-
-                    const Spacer(flex: 2),
-
-                    // Input Usuario
-                    _buildModernInput(
-                      theme,
-                      isDarkMode,
-                      label: "Usuario",
-                      icon: Icons.person_outline,
-                      accentColor: primaryGreen,
-                      controller: _usernameController,
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // Input Contraseña
-                    _buildModernInput(
-                      theme,
-                      isDarkMode,
-                      label: "Contraseña",
-                      icon: Icons.lock_outline,
-                      isPassword: true,
-                      isObscure: _obscurePassword,
-                      accentColor: primaryGreen,
-                      controller: _passwordController,
-                      onToggleVisibility: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-
-                    // Olvidaste contraseña
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const RecuperarContrasena(),
-                            ),
-                          ),
-                          child: Text(
-                            "¿Olvidaste tu contraseña?",
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
+                          IconButton(
+                            icon: Icon(
+                              isDarkMode ? Icons.light_mode : Icons.dark_mode,
                               color: primaryGreen,
                             ),
+                            onPressed: () =>
+                                themeProvider.toogleTheme(!isDarkMode),
                           ),
-                        ),
+                        ],
                       ),
-                    ),
 
-                    const Spacer(flex: 1),
+                      const SizedBox(height: 20),
 
-                    // Botón Principal
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _handleLogin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: buttonColor,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 55),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        elevation: 8,
-                        shadowColor: buttonColor.withValues(alpha: 0.5),
+                      // Input Usuario
+                      _buildModernInput(
+                        theme,
+                        isDarkMode,
+                        label: "Usuario",
+                        icon: Icons.person_outline,
+                        accentColor: primaryGreen,
+                        controller: _usernameController,
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text(
-                              "Iniciar Sesión",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                    ),
 
-                    const Spacer(flex: 1),
+                      const SizedBox(height: 15),
 
-                    // Separador
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Divider(
-                            color: isDarkMode
-                                ? Colors.white.withValues(alpha: 0.12)
-                                : Colors.grey[300],
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: Text(
-                            "o inicia con",
-                            style: TextStyle(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 
-                                0.55,
-                              ),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Divider(
-                            color: isDarkMode
-                                ? Colors.white.withValues(alpha: 0.12)
-                                : Colors.grey[300],
-                          ),
-                        ),
-                      ],
-                    ),
+                      // Input Contraseña
+                      _buildModernInput(
+                        theme,
+                        isDarkMode,
+                        label: "Contraseña",
+                        icon: Icons.lock_outline,
+                        isPassword: true,
+                        isObscure: _obscurePassword,
+                        accentColor: primaryGreen,
+                        controller: _passwordController,
+                        onToggleVisibility: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
 
-                    const SizedBox(height: 15),
-
-                    // Redes Sociales
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (kIsWeb && _googleWebButton != null)
-                          SizedBox(
-                            width: 48,
-                            height: 48,
-                            child: _googleWebButton,
-                          )
-                        else if (!kIsWeb)
-                          _socialButton(
-                            icon: FontAwesomeIcons.google,
-                            color: const Color(0xFFDB4437),
-                            isDarkMode: isDarkMode,
-                            onTap: _handleGoogleLogin,
-                          ),
-                      ],
-                    ),
-
-                    const Spacer(flex: 2),
-
-                    // Registro
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "¿No tienes cuenta? ",
-                          style: TextStyle(color: theme.colorScheme.onSurface),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
+                      // Olvidaste contraseña
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const Registro(),
+                                builder: (_) => const RecuperarContrasena(),
                               ),
-                            );
-                          },
-                          child: Text(
-                            "Regístrate",
-                            style: TextStyle(
-                              color: primaryGreen,
-                              fontWeight: FontWeight.bold,
+                            ),
+                            child: Text(
+                              "¿Olvidaste tu contraseña?",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: primaryGreen,
+                              ),
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
+                      ),
 
-                    // Instalación como PWA. El widget se oculta solo en las
-                    // compilaciones nativas y cuando ya está instalada.
-                    const Center(child: BotonInstalarApp()),
+                      const SizedBox(height: 10),
 
-                    const SizedBox(height: 10),
-                  ],
+                      // Botón Principal
+                      ElevatedButton(
+                        onPressed: _isLoading ? null : _handleLogin,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: buttonColor,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 55),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          elevation: 8,
+                          shadowColor: buttonColor.withValues(alpha: 0.5),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                "Iniciar Sesión",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // Separador
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Divider(
+                              color: isDarkMode
+                                  ? Colors.white.withValues(alpha: 0.12)
+                                  : Colors.grey[300],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Text(
+                              "o inicia con",
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 
+                                  0.55,
+                                ),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(
+                              color: isDarkMode
+                                  ? Colors.white.withValues(alpha: 0.12)
+                                  : Colors.grey[300],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      // Redes Sociales
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (kIsWeb && _googleWebButton != null)
+                            SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: _googleWebButton,
+                            )
+                          else if (!kIsWeb)
+                            _socialButton(
+                              icon: FontAwesomeIcons.google,
+                              color: const Color(0xFFDB4437),
+                              isDarkMode: isDarkMode,
+                              onTap: _handleGoogleLogin,
+                            ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Registro
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "¿No tienes cuenta? ",
+                            style: TextStyle(color: theme.colorScheme.onSurface),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const Registro(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              "Regístrate",
+                              style: TextStyle(
+                                color: primaryGreen,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Instalación como PWA. El widget se oculta solo en las
+                      // compilaciones nativas y cuando ya está instalada.
+                      const Center(child: BotonInstalarApp()),
+
+                      const SizedBox(height: 10),
+                    ],
+                  ),
                 ),
               ),
             ),

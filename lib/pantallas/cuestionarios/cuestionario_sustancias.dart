@@ -196,14 +196,14 @@ class _CuestionarioSustanciasState
                         <String, dynamic>{};
             final bloque = raw['bloque']?.toString() ??
                           base['bloque']?.toString() ??
-                          'PreguntasBloque1';
+                          '';
             final bloqueNombre = raw['bloque_nombre']?.toString() ??
                                   base['bloque_nombre']?.toString() ??
                                   nombresBloques[bloque] ??
                                   bloque;
             final tipo = raw['tipo_respuesta']?.toString() ??
                           base['tipo']?.toString() ??
-                          'RespuestasB1';
+                          '';
 
             final pregunta = raw['pregunta']?.toString() ??
                             base['pregunta']?.toString() ??
@@ -502,7 +502,6 @@ class _CuestionarioSustanciasState
       final Map<String, int> puntajes = {};
 
       for (final sustancia in sustancias) {
-        final id = sustancia['id']!;
         final nombre = sustancia['nombre']!;
         puntajes[nombre] = 0;
       }
@@ -843,285 +842,274 @@ class _CuestionarioSustanciasState
         [];
 
       return Scaffold(
-        backgroundColor:
-          isDark
-            ? const Color(0xFF121212)
-            : Colors.white,
+        backgroundColor: isDark
+          ? const Color(0xFF121212)
+          : Colors.white,
         appBar: AppBar(
-          title: Text(
-            'Uso de sustancias',
-            style: TextStyle(
-              color: isDark
-                ? Colors.white
-                : Colors.black87,
-              fontWeight:
-                FontWeight.bold,
-            ),
-          ),
-          backgroundColor:
-            isDark
-              ? const Color(0xFF1E1E1E)
-              : Colors.white,
-          foregroundColor:
-            isDark
-              ? Colors.white
-              : Colors.black87,
+          backgroundColor: Colors.transparent,
           elevation: 0,
-        ),
 
-        body: SafeArea(
-          child: Column(
+          // ========================================================
+          // Título del módulo y contador de preguntas
+          // ========================================================
+          title: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Padding(
-                padding:
-                    const EdgeInsets.fromLTRB(
-                  20,
-                  16,
-                  20,
-                  8,
-                ),
-                child: Column(crossAxisAlignment:CrossAxisAlignment.stretch,
-
-                  //Nombre del bloque
-                  children: [
-                    Text(
-                      _nombreBloqueActual,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight:
-                          FontWeight.bold,
-                        color: isDark
-                          ? Colors.white
-                          : Colors.black87,
-                      ),
-                    ),
-                    Text(
-                      pregunta['pregunta'] ?.toString() ?? '',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight:
-                          FontWeight.bold,
-                        color: isDark
-                          ? Colors.white
-                          : Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 6, ),
-
-                    Text(
-                      'Bloque ${_bloqueActual + 1} de ${_bloques.length}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isDark
-                          ? Colors.white60
-                          : Colors.black54,
-                      ),
-                    ),
-
-                    const SizedBox(height: 12,),
-
-                    LinearProgressIndicator(
-                      value:_bloques.isEmpty? 0: (_bloqueActual +1) /_bloques.length,
-                      minHeight: 6,
-                      borderRadius:
-                          BorderRadius.circular(10,),
-                    ),
-                  ],
+              Text(
+                'Uso de sustancias',
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
                 ),
               ),
-
-              Expanded(
-                child: ListView(
-                  padding:
-                      const EdgeInsets.fromLTRB(
-                    20,
-                    10,
-                    20,
-                    20,
-                  ),
-                  children: [
-                    if (preguntas.isNotEmpty)
-                      Container(
-                        margin:
-                          const EdgeInsets.only(
-                          bottom: 20,
-                        ),
-                        padding: const EdgeInsets.all(16,),
-                        decoration:
-                          BoxDecoration(
-                            color: isDark
-                              ? const Color( 0xFF1E1E1E, )
-                              : const Color( 0xFFF5F5F5, ),
-                            borderRadius:
-                              BorderRadius.circular(14,),
-                          ),
-                          child: Column(
-                        
-                            crossAxisAlignment: CrossAxisAlignment.start, 
-                            children: [
-                            const SizedBox(height: 20,), 
-
-                            ...sustancias.map(
-                              (sustancia) {
-                                final sustanciaId =sustancia['id']!;
-                                final respuestaId = '${preguntaId}_$sustanciaId';
-                                final respuestaActual = _respuestas[respuestaId] ? ['respuesta_valor'];
-                                return Container(
-                                  margin: const EdgeInsets.only( bottom: 18,),
-                                  padding: const EdgeInsets.all(12,),
-                                  decoration:
-                                    BoxDecoration(color: isDark
-                                      ? const Color(0xFF292929,)
-                                      : Colors.white,
-                                      borderRadius: BorderRadius .circular(12,
-                                    ),
-                                  ),
-
-                                  child: Column(crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        sustancia['nombre']!,
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                          color: isDark
-                                            ? Colors
-                                              .white
-                                            : Colors
-                                              .black87,
-                                        ),
-                                      ),
-
-                                      const SizedBox( height: 8,),
-
-                                      ...opciones.map(
-                                        (opcion) {
-                                          final valor = opcion['valor'] as int;
-                                          final etiqueta = opcion[ 'etiqueta'] as String;
-                                          final color = opcion[ 'color'] as Color;
-                                          return RadioListTile<int>(
-                                            contentPadding: EdgeInsets.zero,
-                                            dense: true,
-                                            activeColor:color,
-                                            title:Text(etiqueta,
-                                              style:
-                                                TextStyle(
-                                              color: isDark 
-                                                ? Colors.white
-                                                : Colors.black87,
-                                              ),
-                                            ),
-                                            value:valor,
-                                            groupValue:respuestaActual,
-                                            onChanged:(valorSeleccionado) {
-                                              if (valorSeleccionado == null) {
-                                                return;
-                                              }
-                                              _guardarRespuesta(
-                                                preguntaId,
-                                                pregunta,
-                                                sustancia,
-                                                valorSeleccionado,
-                                                etiqueta,
-                                              );
-                                            },
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.fromLTRB(
-                  20,
-                  12,
-                  20,
-                  20,
-                ),
-                decoration:
-                    BoxDecoration(
-                  color: isDark
-                      ? const Color(
-                          0xFF1E1E1E,
-                        )
-                      : Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      blurRadius: 10,
-                      offset:
-                          const Offset(0, -2),
-                      color:
-                          Colors.black.withValues(
-                        alpha: 0.08,
-                      ),
-                    ),
-                  ],
-                ),
-                // BOTONES PARA AVANZAR Y RETROCEDER *~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-                child: Row(
-                  children: [
-                    /*
-                      if (_bloqueActual > 0)
-                      Expanded(
-                        child:
-                            OutlinedButton(
-                          onPressed:
-                              _enviando
-                                  ? null
-                                  : _retrocederBloque,
-                          child:
-                              const Text(
-                            'Atrás',
-                          ),
-                        ),
-                      ),
-                    */
-                    if (_bloqueActual > 0)
-                      const SizedBox( width: 12,),
-
-                    Expanded(
-                      flex: 2,
-                      child:
-                          ElevatedButton(
-                        onPressed:
-                            _enviando
-                                ? null
-                                : _avanzarBloque,
-                        child: _enviando
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child:
-                                    CircularProgressIndicator(
-                                  strokeWidth:
-                                      2,
-                                ),
-                              )
-                            : Text(
-                                esUltimoBloque
-                                    ? 'Finalizar'
-                                    : 'Avanzar',
-                              ),
-                      ),
-                    ),
-                  ],
+              Text(
+                'Pregunta ${_bloqueActual + 1} de ${_preguntas.length}: $_nombreBloqueActual',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black54,
+                  fontWeight: FontWeight.normal,
+                  fontSize: 13,
                 ),
               ),
             ],
           ),
         ),
-      );
-    }
+
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ========================================================
+            // Barra de progreso
+            // ========================================================
+            LinearProgressIndicator(
+              value: (_bloqueActual + 1) / _preguntas.length,
+              backgroundColor:
+                  isDark ? Colors.white12 : Colors.black12,
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF43A047),
+              ),
+              minHeight: 4,
+
+            ),
+
+            // ========================================================
+            // Despliegue de pregunta
+            // ========================================================
+            Padding(
+              padding:
+                const EdgeInsets.fromLTRB( 20,16,20,8,),
+              child: Column(crossAxisAlignment:CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    pregunta['pregunta'] ?.toString() ?? '',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark
+                        ? Colors.white
+                        : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6, ),
+                ],
+              ),
+            ),
+
+            // ========================================================
+            // Lista de sustancias
+            // ========================================================
+            Expanded(
+              child: ListView(
+                padding:
+                    const EdgeInsets.fromLTRB(20,10,20,20,),
+                children: [
+                  if (preguntas.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(12,),
+                      decoration:
+                        BoxDecoration(
+                          color: isDark
+                            ? const Color( 0xFF1E1E1E, )
+                            : const Color( 0xFFF5F5F5, ),
+                          borderRadius: BorderRadius.circular(10,), 
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start, 
+                          children: [
+                          const SizedBox(height: 20,), 
+
+                          ...sustancias.map(
+                            (sustancia) {
+                              final sustanciaId =sustancia['id']!;
+                              final respuestaId = '${preguntaId}_$sustanciaId';
+                              final respuestaActual = _respuestas[respuestaId] ? ['respuesta_valor'];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 5),
+                                child: Material(
+                                  color: isDark
+                                      ? const Color.fromARGB(255, 128, 128, 128)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          sustancia['nombre']!,
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDark
+                                                ? Colors.white
+                                                : Colors.black87,
+                                          ),
+                                        ),
+
+                                        const SizedBox(height: 8),
+
+                                        ...opciones.map(
+                                          (opcion) {
+                                            final valor = opcion['valor'] as int;
+                                            final etiqueta = opcion['etiqueta'] as String;
+                                            final color = opcion['color'] as Color;
+                                            final seleccionada = respuestaActual == valor;
+
+                                            return Container(
+                                              margin: const EdgeInsets.only(bottom: 4),
+                                              decoration: BoxDecoration(
+                                                color: seleccionada
+                                                    ? color.withValues(alpha: 0.15)
+                                                    : Colors.transparent,
+                                                borderRadius: BorderRadius.circular(10),
+                                                border: Border.all(
+                                                  color: seleccionada
+                                                      ? color
+                                                      : Colors.transparent,
+                                                ),
+                                              ),
+
+                                              child: RadioListTile<int>(
+                                                contentPadding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                ),
+                                                dense: true,
+                                                activeColor: color,
+
+                                                title: Text(
+                                                  etiqueta,
+                                                  style: TextStyle(
+                                                    color: seleccionada
+                                                        ? color
+                                                        : (isDark
+                                                            ? Colors.white
+                                                            : Colors.black87),
+                                                    fontWeight: seleccionada
+                                                        ? FontWeight.bold
+                                                        : FontWeight.normal,
+                                                  ),
+                                                ),
+
+                                                value: valor,
+                                                groupValue: respuestaActual,
+                                                onChanged: (valorSeleccionado) {
+                                                  if (valorSeleccionado == null) return;
+                                                  _guardarRespuesta(
+                                                    preguntaId,
+                                                    pregunta,
+                                                    sustancia,
+                                                    valorSeleccionado,
+                                                    etiqueta,
+                                                  );
+                                                },
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB( 20, 12, 20, 20, ),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(
+                        0xFF1E1E1E,
+                      )
+                    : Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    blurRadius: 10,
+                    offset:
+                        const Offset(0, -2),
+                    color:
+                        Colors.black.withValues(
+                      alpha: 0.08,
+                    ),
+                  ),
+                ],
+              ),
+
+              // ========================================================
+              // Botones para avanzar y retroceder
+              // ========================================================
+              child: Row(
+                children: [
+                  /*
+                    if (_bloqueActual > 0)
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _enviando
+                          ? null
+                          : _retrocederBloque,
+                        child:
+                          const Text(
+                          'Atrás',
+                        ),
+                      ),
+                    ),
+                  */
+                  if (_bloqueActual > 0)
+                    const SizedBox( width: 12,),
+
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed:
+                        _enviando ? null : _avanzarBloque,
+                      child: _enviando
+                        ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator( strokeWidth: 2, ),
+                        )
+                      : Text(
+                          esUltimoBloque
+                          ? 'Finalizar cuestionario'
+                          : 'Siguiente bloque',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 

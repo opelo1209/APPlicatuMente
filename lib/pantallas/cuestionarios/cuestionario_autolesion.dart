@@ -344,20 +344,34 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
     final textStyle = TextStyle(color: isDark ? Colors.white : Colors.black87);
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: isDark
+          ? const Color(0xFF121212)
+          : Colors.white,
+      
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black87),
-        title: Text(
-          'Cuestionario de Autolesión',
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+            
+        // ========================================================
+        // Título del módulo y contador de preguntas
+        // ========================================================
+        title:Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [ 
+            Text(
+              "Cuestionario de Ansiedad",
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ],
         ),
-        centerTitle: true,
       ),
+      
       body: _cargandoPreguntas
           ? const Center(child: CircularProgressIndicator(color: _teal))
           : _enviando
@@ -403,10 +417,10 @@ class _CuestionarioAutolesionState extends State<CuestionarioAutolesion> {
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: _q1Respuesta == true
-                                    ? Colors.white
-                                    : (isDark
-                                          ? Colors.white70
-                                          : Colors.black87),
+                                  ? Colors.white
+                                  : (isDark
+                                    ? Colors.white70
+                                    : Colors.black87),
                               ),
                             ),
                           ),

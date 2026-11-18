@@ -19,6 +19,7 @@ class _CuestionarioRelacionesState extends State<CuestionarioRelaciones> {
   final Map<String, Map<String, dynamic>> _respuestas = {};
   bool _enviando = false;
   bool _cargandoPreguntas = true;
+  bool _esperandoSiguiente = false;
   late List<Map<String, dynamic>> _preguntas = List<Map<String, dynamic>>.from(
     _defaultPreguntas,
   );
@@ -200,8 +201,7 @@ class _CuestionarioRelacionesState extends State<CuestionarioRelaciones> {
                   0,
               'tipo':
                   raw['tipo_respuesta']?.toString() ??
-                  base['tipo'] ??
-                  'binario',
+                  base['tipo'],
               'puntaje': raw['puntaje'] is int
                   ? raw['puntaje']
                   : int.tryParse(raw['puntaje']?.toString() ?? '') ?? 0,
@@ -222,23 +222,37 @@ class _CuestionarioRelacionesState extends State<CuestionarioRelaciones> {
   }
 
   // ── Lógica de respuesta ───────────────────────────────────────────────────
-  void _responder(int valor, String etiqueta) {
+  Future<void> _responder(int valor, String etiqueta) async {
+    if (_esperandoSiguiente || _enviando) return;
+
     final p = _preguntas[_currentIndex];
 
-    _respuestas[p['id'] as String] = {
-      'numero': p['numero'],
-      'bloque': p['bloque'],
-      'bloque_nombre': p['bloque_nombre'],
-      'id': p['id'],
-      'pregunta': p['pregunta'],
-      'tipo_respuesta': p['tipo'],
-      'puntaje_configurado': p['puntaje'] ?? 0,
-      'respuesta_valor': valor,
-      'respuesta_etiqueta': etiqueta,
-    };
+    setState(() {
+      _respuestas[p['id'] as String] = {
+        'numero': p['numero'],
+        'bloque': p['bloque'],
+        'bloque_nombre': p['bloque_nombre'],
+        'id': p['id'],
+        'pregunta': p['pregunta'],
+        'tipo_respuesta': p['tipo'],
+        'puntaje_configurado': p['puntaje'] ?? 0,
+        'respuesta_valor': valor,
+        'respuesta_etiqueta': etiqueta,
+      };
+
+      _esperandoSiguiente = true;
+    });
+
+    // Dejamos visible la respuesta seleccionada durante 1.5 segundos.
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
 
     if (_currentIndex < _preguntas.length - 1) {
-      setState(() => _currentIndex++);
+      setState(() {
+        _currentIndex++;
+        _esperandoSiguiente = false;
+      });
     } else {
       _finalizarYEnviar();
     }
@@ -308,19 +322,19 @@ class _CuestionarioRelacionesState extends State<CuestionarioRelaciones> {
     ).isDarkMode;
 
     //FALTA AJUSTAR ESTA ESCALA
-    String nivel = 'Mínimo';
+    String nivel = 'Te relaciones de una forma natural y sana con tu entorno\n¡Sigue así!';
     Color nivelColor = const Color(0xFF43A047);
     if (relaciones_sanasScore >= 14) {
-      nivel = 'Severo';
+      nivel = 'No esperes un momento mas, busca ayuda, nada cambiará si no actuas';
       nivelColor = const Color(0xFFE53935);
     } else if (relaciones_sanasScore >= 10) {
-      nivel = 'Moderadamente severo';
+      nivel = 'Pon atención a los signos de alerta, no permitas que se salda de control';
       nivelColor = const Color(0xFFFF7043);
     } else if (relaciones_sanasScore >= 5) {
-      nivel = 'Moderado';
+      nivel = 'Trabaja para generar un espacio sano';
       nivelColor = const Color(0xFFFDD835);
     } else if (relaciones_sanasScore >= 1) {
-      nivel = 'Leve';
+      nivel = 'No olvides que el respeto propio es lo sano';
       nivelColor = const Color(0xFF8BC34A);
     }
 
@@ -349,7 +363,7 @@ class _CuestionarioRelacionesState extends State<CuestionarioRelaciones> {
             ),
             const SizedBox(height: 16),
             _ScoreRow(
-              label: 'relaciones_sanas',
+              label: 'Relaciones sanas',
               //FALTA AJUSTAR ESTE PARÁMETRO
               score: '$relaciones_sanasScore / 21',
               extra: nivel,
@@ -423,67 +437,120 @@ class _CuestionarioRelacionesState extends State<CuestionarioRelaciones> {
     final pregunta = _preguntas[_currentIndex];
 
     return Scaffold(
+      backgroundColor: isDark
+          ? const Color(0xFF121212)
+          : Colors.white,
       appBar: AppBar(
-        title: Text(
-          'Pregunta ${_currentIndex + 1} de ${_preguntas.length}',
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: _currentIndex > 0
+            ? IconButton(
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+                onPressed: _esperandoSiguiente
+                    ? null
+                    : () => setState(() => _currentIndex--),
+              )
+            : null,
+
+        // ========================================================
+        // Título del módulo y contador de preguntas
+        // ========================================================
+        title:Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [ 
+            Text(
+              "Relaciones sanas",
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            Text(
+              'Pregunta ${_currentIndex + 1} de ${_preguntas.length}: ${pregunta['bloque_nombre']}',
+              style: TextStyle(
+                color: isDark ? Colors.white70 : Colors.black54,
+                fontWeight: FontWeight.normal,
+                fontSize: 13,
+              ),
+            ),
+          ],
         ),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                pregunta['bloque_nombre'],
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '¿Has experimentado alguno de los siguientes puntos?',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        pregunta['pregunta'],
-                        style: const TextStyle(
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+
+      body: Column(
+        children: [
+          // ========================================================
+          // Barra de progreso
+          // ========================================================
+          LinearProgressIndicator(
+            value: (_currentIndex + 1) / _preguntas.length,
+            backgroundColor:
+                isDark ? Colors.white12 : Colors.black12,
+            valueColor: const AlwaysStoppedAnimation<Color>(
+              Color(0xFF43A047),
+            ),
+            minHeight: 4,
+          ),
+          const SizedBox(height: 10),
+
+          // ========================================================
+          // Parte central, pregunta con scroll
+          // ========================================================
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24,24,24,0,),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '¿Has experimentado alguno de los siguientes puntos?',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 20),
+                  Text(
+                    pregunta['pregunta'],
+                    style: const TextStyle(
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              ..._likert3.map(
+            ),
+          ),
+
+          // ========================================================
+          // Respuestas
+          // ========================================================
+          Container(
+            padding: const EdgeInsets.fromLTRB(24,12,24,24,),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: _likert3.map(
                 (op) => _OptionButton(
                   label: op['etiqueta'] as String,
                   value: op['valor'] as int,
                   color: op['color'] as Color,
                   isDark: isDark,
                   isSelected:
-                      _respuestas[pregunta['id']]?['respuesta_valor'] ==
+                    _respuestas[pregunta['id']] ? ['respuesta_valor'] ==
                       op['valor'],
                   onTap: () => _responder(
                     op['valor'] as int,
                     op['etiqueta'] as String,
                   ),
                 ),
-              ),
-            ],
+              ).toList(),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

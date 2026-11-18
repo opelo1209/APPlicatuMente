@@ -167,7 +167,7 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               Text(
                 widget.instructionDescription,
                 textAlign: TextAlign.center,
@@ -269,41 +269,9 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
     return Column(
       children: [
         const SizedBox(height: 20),
-
-        // ── Barra de progreso ───────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: _currentIndex / _questions.length,
-                    minHeight: 5,
-                    backgroundColor: isDarkMode ? Colors.white12 : Colors.black12,
-                    valueColor: AlwaysStoppedAnimation<Color>(accentColor),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '${_currentIndex + 1} / ${_questions.length}',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDarkMode ? Colors.white54 : Colors.black38,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const Spacer(),
-
         // ── Stack de tarjetas ───────────────────────────────────────────
         SizedBox(
-          height: 460,
+          height: 430,
           child: Stack(
             alignment: Alignment.topCenter,
             clipBehavior: Clip.none,
@@ -357,7 +325,7 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
 
         // ── Botones manuales ─────────────────────────────────────────────
         Padding(
-          padding: const EdgeInsets.fromLTRB(32, 0, 32, 36),
+          padding: const EdgeInsets.fromLTRB(32, 0, 32, 24),
           child: Row(
             children: [
               Expanded(
@@ -415,7 +383,7 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
 
     return Container(
       width: cardWidth,
-      height: 460,
+      height: 430,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

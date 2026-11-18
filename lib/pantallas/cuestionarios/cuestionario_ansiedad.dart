@@ -19,6 +19,7 @@ class _CuestionarioAnsiedadState extends State<CuestionarioAnsiedad> {
   final Map<String, Map<String, dynamic>> _respuestas = {};
   bool _enviando = false;
   bool _cargandoPreguntas = true;
+  bool _esperandoSiguiente = false;
   late List<Map<String, dynamic>> _preguntas = List<Map<String, dynamic>>.from(
     _defaultPreguntas,
   );
@@ -175,22 +176,37 @@ class _CuestionarioAnsiedadState extends State<CuestionarioAnsiedad> {
   }
 
   // ── Lógica de respuesta ───────────────────────────────────────────────────
-  void _responder(int valor, String etiqueta) {
+  Future<void> _responder(int valor, String etiqueta) async {
+    // Evita que se pueda seleccionar otra respuesta durante la espera.
+    if (_esperandoSiguiente || _enviando) return;
+
     final p = _preguntas[_currentIndex];
 
-    _respuestas[p['id'] as String] = {
-      'numero': p['numero'],
-      'bloque': p['bloque'],
-      'id': p['id'],
-      'pregunta': p['pregunta'],
-      'tipo_respuesta': p['tipo'],
-      'puntaje_configurado': p['puntaje'] ?? 0,
-      'respuesta_valor': valor,
-      'respuesta_etiqueta': etiqueta,
-    };
+    setState(() {
+      _esperandoSiguiente = true;
+
+      _respuestas[p['id'] as String] = {
+        'numero': p['numero'],
+        'bloque': p['bloque'],
+        'id': p['id'],
+        'pregunta': p['pregunta'],
+        'tipo_respuesta': p['tipo'],
+        'puntaje_configurado': p['puntaje'] ?? 0,
+        'respuesta_valor': valor,
+        'respuesta_etiqueta': etiqueta,
+      };
+    });
+
+    // Esperar 2 segundos antes de mostrar la siguiente pregunta.
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
 
     if (_currentIndex < _preguntas.length - 1) {
-      setState(() => _currentIndex++);
+      setState(() {
+        _esperandoSiguiente = false;
+        _currentIndex++;
+      });
     } else {
       _finalizarYEnviar();
     }
@@ -301,7 +317,7 @@ class _CuestionarioAnsiedadState extends State<CuestionarioAnsiedad> {
             ),
             const SizedBox(height: 16),
             _ScoreRow(
-              label: 'GAD7',
+              label: 'Puntaje total',
               //FALTA AJUSTAR ESTE PARÁMETRO
               score: '$gad7Score / 27',
               extra: nivel,
@@ -349,21 +365,23 @@ class _CuestionarioAnsiedadState extends State<CuestionarioAnsiedad> {
       );
     }
 
-    // Mientras se envía (y en cada reintento) se avisa que está guardando, en
-    // vez de dejar la pantalla como si nada estuviera pasando.
     if (_enviando) {
       final esDark = Provider.of<ThemeProvider>(context).isDarkMode;
+
       return Scaffold(
-        backgroundColor: esDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(color: Color(0xFF5C6BC0)),
+              const CircularProgressIndicator(
+                color: Color(0xFF5C6BC0),
+              ),
               const SizedBox(height: 16),
               Text(
                 'Guardando respuestas...',
-                style: TextStyle(color: esDark ? Colors.white70 : Colors.black54),
+                style: TextStyle(
+                  color: esDark ? Colors.white70 : Colors.black54,
+                ),
               ),
             ],
           ),
@@ -372,46 +390,131 @@ class _CuestionarioAnsiedadState extends State<CuestionarioAnsiedad> {
     }
 
     final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
+    final bgColor =
+        isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA);
+
     final pregunta = _preguntas[_currentIndex];
 
     return Scaffold(
+      backgroundColor: isDark
+          ? const Color(0xFF121212)
+          : Colors.white,
       appBar: AppBar(
-        title: Text(
-          'Pregunta ${_currentIndex + 1} de ${_preguntas.length}',
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              pregunta['pregunta'],
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 40),
-
-            ..._likert4.map(
-              (op) => _OptionButton(
-                label: op['etiqueta'] as String,
-                value: op['valor'] as int,
-                color: op['color'] as Color,
-                isDark: isDark,
-                isSelected:
-                    _respuestas[pregunta['id']]?['respuesta_valor'] ==
-                    op['valor'],
-                onTap: () => _responder(
-                  op['valor'] as int,
-                  op['etiqueta'] as String,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: _currentIndex > 0
+            ? IconButton(
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: isDark ? Colors.white : Colors.black87,
                 ),
+                onPressed: _esperandoSiguiente
+                    ? null
+                    : () => setState(() => _currentIndex--),
+              )
+            : null,
+
+        // ========================================================
+        // Título del módulo y contador de preguntas
+        // ========================================================
+        title:Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [ 
+            Text(
+              "Ansiedad",
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ), 
+            Text(
+              'Pregunta ${_currentIndex + 1} de ${_preguntas.length}',
+              style: TextStyle(
+                color: isDark ? Colors.white70 : Colors.black54,
+                fontWeight: FontWeight.normal,
+                fontSize: 13,
               ),
             ),
           ],
         ),
+      ),
+
+      body: Column(
+        children: [
+          // ========================================================
+          // Barra de progreso
+          // ========================================================
+          LinearProgressIndicator(
+            value: (_currentIndex + 1) / _preguntas.length,
+            backgroundColor:
+                isDark ? Colors.white12 : Colors.black12,
+            valueColor: const AlwaysStoppedAnimation<Color>(
+              Color(0xFF43A047),
+            ),
+            minHeight: 4,
+          ),
+          
+          // ========================================================
+          // Parte central de la pregunta con scroll
+          // ========================================================
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24,24,24,0,),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  // ========================================================
+                  // Parte central, pregunta con scroll
+                  // ========================================================
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        pregunta['pregunta'] as String,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          height: 1.4,
+                          color: isDark
+                              ? Colors.white
+                              : Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ========================================================
+          // Las respuestas se quedan pegadas abajo
+          // ========================================================
+          Container(
+            padding: const EdgeInsets.fromLTRB(24,12,24,24,),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: _likert4.map(
+                (op) => _OptionButton(
+                  label: op['etiqueta'] as String,
+                  value: op['valor'] as int,
+                  color: op['color'] as Color,
+                  isDark: isDark,
+                  isSelected:
+                    _respuestas[pregunta['id']] ? ['respuesta_valor'] ==
+                      op['valor'],
+                  onTap: () => _responder(
+                    op['valor'] as int,
+                    op['etiqueta'] as String,
+                  ),
+                ),
+              ).toList(),
+            ),
+          ),
+
+        ],
       ),
     );
   }

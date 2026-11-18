@@ -28,6 +28,7 @@ class _CuestionarioState extends State<Cuestionario> {
   final Map<String, Map<String, dynamic>> _respuestas = {};
   bool _enviando = false;
   bool _cargandoPreguntas = true;
+  bool _esperandoSiguiente = false;
   late List<Map<String, dynamic>> _preguntas = List<Map<String, dynamic>>.from(
     _defaultPreguntas,
   );
@@ -265,27 +266,36 @@ class _CuestionarioState extends State<Cuestionario> {
   }
 
   // ── Lógica de respuesta ───────────────────────────────────────────────────
-  void _responder(int valor, String etiqueta) {
-    final p = _preguntas[_currentIndex];
-    _respuestas[p['id'] as String] = {
-      'numero': p['numero'],
-      'bloque': p['bloque'],
-      'id': p['id'],
-      'pregunta': p['pregunta'],
-      'tipo_respuesta': p['tipo'],
-      'puntaje_configurado': p['puntaje'] ?? 0,
-      'respuesta_valor': valor,
-      'respuesta_etiqueta': etiqueta,
-    };
+  Future<void> _responder(int valor, String etiqueta) async {
+    // Evita que se pueda seleccionar otra respuesta durante la espera.
+    if (_esperandoSiguiente || _enviando) return;
 
-    if (_currentIndex < 8) {
-      // Avanzar al siguiente de PHQ-9 Likert
-      setState(() => _currentIndex++);
-    } else {
-      // Llegamos al índice 8 (última pregunta Likert).
-      // Al responder, avanzamos a 9 y activamos la fase de swipe.
-      setState(() => _currentIndex++);
-    }
+    final p = _preguntas[_currentIndex];
+
+    setState(() {
+      _esperandoSiguiente = true;
+
+      _respuestas[p['id'] as String] = {
+        'numero': p['numero'],
+        'bloque': p['bloque'],
+        'id': p['id'],
+        'pregunta': p['pregunta'],
+        'tipo_respuesta': p['tipo'],
+        'puntaje_configurado': p['puntaje'] ?? 0,
+        'respuesta_valor': valor,
+        'respuesta_etiqueta': etiqueta,
+      };
+    });
+
+    // Esperar 2 segundos antes de mostrar la siguiente pregunta.
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+
+    setState(() {
+      _esperandoSiguiente = false;
+      _currentIndex++;
+    });
   }
 
   Future<void> _finalizarYEnviar() async {
@@ -526,7 +536,9 @@ class _CuestionarioState extends State<Cuestionario> {
           ? const Color(0xFF121212)
           : const Color(0xFFFAFAFA),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: isDark
+            ? const Color(0xFF121212)
+            : Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: Icon(
@@ -534,6 +546,37 @@ class _CuestionarioState extends State<Cuestionario> {
             color: isDark ? Colors.white : Colors.black87,
           ),
           onPressed: () => setState(() => _currentIndex = 8),
+        ),
+        title:Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [ 
+            Text(
+              "Suicidio",
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            Text(
+              'Pensamientos sobre morir',
+              style: TextStyle(
+                color: isDark ? Colors.white70 : Colors.black54,
+                fontWeight: FontWeight.normal,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+        centerTitle: true,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(3),
+          child: Container(
+            height: 3,
+            width: double.infinity,
+            color: const Color(0xFF43A047),
+          ),
         ),
       ),
       body: PasoIdentificacion(
@@ -603,151 +646,162 @@ class _CuestionarioState extends State<Cuestionario> {
         : const Color(0xFF43A047);
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: isDark
+          ? const Color(0xFF121212)
+          : Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: _currentIndex > 0
-            ? IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
-                onPressed: () => setState(() => _currentIndex--),
-              )
-            : null,
-        title: Text(
-          '$bloque  ·  ${_currentIndex + 1} / $total',
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-          ),
+          ? IconButton(
+            icon: Icon(
+              Icons.arrow_back,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+            onPressed: _esperandoSiguiente
+              ? null
+              : () => setState(() => _currentIndex--),
+          ) 
+        : null,
+
+        // ========================================================
+        // Título del módulo y contador de preguntas
+        // ========================================================
+        title:Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [ 
+            Text(
+              "Suicidio",
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            Text(
+              'Pregunta ${_currentIndex + 1} de $total: ${pregunta['bloque_nombre']}',
+              style: TextStyle(
+                color: isDark ? Colors.white70 : Colors.black54,
+                fontWeight: FontWeight.normal,
+                fontSize: 13,
+              ),
+            ),
+          ],
         ),
-        centerTitle: true,
       ),
+
       body: _enviando
-          ? Center(
+      ? Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: Color(0xFF43A047)),
+            const SizedBox(height: 16),
+            Text(
+              'Enviando respuestas...',
+              style: TextStyle(
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
+            ),
+          ],
+        ),
+      )
+      :Column(
+        children: [
+          // ========================================================
+          // Barra de progreso
+          // ========================================================
+          LinearProgressIndicator(
+            value: (_currentIndex + 1) / 17,
+            backgroundColor: 
+              isDark ? Colors.white12 : Colors.black12,
+            valueColor: const AlwaysStoppedAnimation<Color>(
+              Color(0xFF43A047),
+            ),
+            minHeight: 4,
+          ),
+
+          // ========================================================
+          // Parte central, pregunta con scroll
+          // ========================================================  
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const CircularProgressIndicator(color: Color(0xFF43A047)),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Enviando respuestas...',
-                    style: TextStyle(
-                      color: isDark ? Colors.white70 : Colors.black54,
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        pregunta['pregunta'] as String,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          height: 1.4,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-            )
-          : Column(
-              children: [
-                // Barra de progreso
-                LinearProgressIndicator(
-                  value: (_currentIndex + 1) / total,
-                  backgroundColor: isDark ? Colors.white12 : Colors.black12,
-                  valueColor: AlwaysStoppedAnimation<Color>(bloqueColor),
-                  minHeight: 4,
+            ),
+          ),
+
+          // ========================================================
+          // Respuestas
+          // ========================================================
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+            child: tipo == 'likert4'
+            ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: _likert4.map(
+                (op) => _OptionButton(
+                  label: op['etiqueta'] as String,
+                  value: op['valor'] as int,
+                  color: op['color'] as Color,
+                  isDark: isDark,
+                  isSelected:
+                    _respuestas[pregunta['id']]?['respuesta_valor'] ==
+                    op['valor'],
+                  onTap: () => _responder(
+                    op['valor'] as int,
+                    op['etiqueta'] as String,
+                  ),
                 ),
+              ).toList(),
+            )
+            : Row(
+              children: [
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Chip de bloque
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: bloqueColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text.rich(
-                            italicAcronyms(
-                              pregunta['bloque_nombre'] as String,
-                              TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: bloqueColor,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Pregunta ${pregunta['numero']}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isDark ? Colors.white38 : Colors.black38,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          pregunta['pregunta'] as String,
-                          style: TextStyle(
-                            fontSize: 21,
-                            fontWeight: FontWeight.bold,
-                            height: 1.4,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        // Opciones de respuesta
-                        if (tipo == 'likert4')
-                          ..._likert4.map(
-                            (op) => _OptionButton(
-                              label: op['etiqueta'] as String,
-                              value: op['valor'] as int,
-                              color: op['color'] as Color,
-                              isDark: isDark,
-                              isSelected:
-                                  _respuestas[pregunta['id']]?['respuesta_valor'] ==
-                                  op['valor'],
-                              onTap: () => _responder(
-                                op['valor'] as int,
-                                op['etiqueta'] as String,
-                              ),
-                            ),
-                          )
-                        else
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _BinaryButton(
-                                  label: 'No',
-                                  color: const Color(0xFF5C6BC0),
-                                  isDark: isDark,
-                                  isSelected:
-                                      _respuestas[pregunta['id']]?['respuesta_valor'] ==
-                                      0,
-                                  onTap: () => _responder(0, 'No'),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _BinaryButton(
-                                  label: 'Sí',
-                                  color: const Color(0xFF43A047),
-                                  isDark: isDark,
-                                  isSelected:
-                                      _respuestas[pregunta['id']]?['respuesta_valor'] ==
-                                      1,
-                                  onTap: () => _responder(1, 'Sí'),
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
+                  child: _BinaryButton(
+                    label: 'No',
+                    color: const Color(0xFF5C6BC0),
+                    isDark: isDark,
+                    isSelected:
+                      _respuestas[pregunta['id']]?['respuesta_valor'] == 0,
+                    onTap: () => _responder(0, 'No'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                
+                Expanded(
+                  child: _BinaryButton(
+                    label: 'Sí',
+                    color: const Color(0xFF43A047),
+                    isDark: isDark,
+                    isSelected:
+                        _respuestas[pregunta['id']]?['respuesta_valor'] == 1,
+                    onTap: () => _responder(1, 'Sí'),
                   ),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }
