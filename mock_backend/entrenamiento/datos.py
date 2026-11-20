@@ -79,6 +79,30 @@ def pliegues(ejemplos: Sequence[Ejemplo], k: int, semilla: int = 20261112) -> tu
     return tuple(tuple(sorted(g)) for g in grupos)
 
 
+def pliegues_estratificados(
+    ejemplos: Sequence[Ejemplo],
+    k: int,
+    semilla: int = 20261112,
+    repeticiones: int = 1,
+):
+    """Pliegues estratificados de verdad, con una semilla por repetición."""
+    if k < 2:
+        raise ValueError("se necesitan al menos 2 pliegues")
+    if repeticiones < 1:
+        raise ValueError("se necesita al menos 1 repetición")
+    corridas = []
+    for repeticion in range(repeticiones):
+        azar = random.Random(semilla + repeticion)
+        grupos: list[list[int]] = [[] for _ in range(k)]
+        for clase in CLASES:
+            indices = [i for i, e in enumerate(ejemplos) if e.etiqueta == clase]
+            azar.shuffle(indices)
+            for pos, i in enumerate(indices):
+                grupos[pos % k].append(i)
+        corridas.append(tuple(tuple(sorted(g)) for g in grupos))
+    return corridas[0] if repeticiones == 1 else tuple(corridas)
+
+
 def escribir_privado(ruta: Path, contenido: str) -> None:
     ruta = Path(ruta)
     ruta.write_text(contenido, encoding="utf-8")

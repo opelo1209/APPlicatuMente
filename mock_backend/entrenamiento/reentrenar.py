@@ -76,11 +76,11 @@ def _entrenar(ejemplos: Sequence[Ejemplo], epocas: int, tasa: float, lote: int, 
     return tokenizador, modelo
 
 
-def _predecir(tokenizador, modelo, textos: Sequence[str], dispositivo, lote: int = 32):
+def _predecir_probas(tokenizador, modelo, textos: Sequence[str], dispositivo, lote: int = 32):
     import torch
 
     modelo.eval()
-    clases, confianzas = [], []
+    filas = []
     preparados = _preparar(textos)
     with torch.no_grad():
         for inicio in range(0, len(preparados), lote):
@@ -88,9 +88,17 @@ def _predecir(tokenizador, modelo, textos: Sequence[str], dispositivo, lote: int
                                   max_length=MAX_TOKENS, return_tensors="pt").to(dispositivo)
             probas = torch.softmax(modelo(**entrada).logits, dim=-1)
             for fila in probas:
-                i = int(fila.argmax())
-                clases.append(_DE_ETIQUETA[modelo.config.id2label[i]])
-                confianzas.append(round(float(fila[i]), 4))
+                filas.append({
+                    _DE_ETIQUETA[modelo.config.id2label[i]]: round(float(fila[i]), 4)
+                    for i in range(len(fila))
+                })
+    return filas
+
+
+def _predecir(tokenizador, modelo, textos: Sequence[str], dispositivo, lote: int = 32):
+    filas = _predecir_probas(tokenizador, modelo, textos, dispositivo, lote)
+    clases = [max(fila, key=fila.get) for fila in filas]
+    confianzas = [max(fila.values()) for fila in filas]
     return clases, confianzas
 
 
