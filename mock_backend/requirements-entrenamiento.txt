@@ -4,5 +4,12 @@ pysentimiento==0.7.3
 torch>=2.2
 transformers>=4.40
 scikit-learn==1.5.2
-# Opcional, para `alterno --embeddings`:
-# sentence-transformers>=3.0
+# SBERT (experimentos_s10: sbert_logistica) y `alterno --embeddings`; 3.3.1 es compatible con transformers 4.46:
+sentence-transformers==3.3.1
+# Semana 10: VADER y traducción local (MarianMT) para corpus públicos.
+vaderSentiment==3.3.2
+sentencepiece>=0.2
+sacremoses>=0.1
+pandas>=2.0
+pyarrow>=14
+matplotlib>=3.8

@@ -29,6 +29,8 @@ class Ejemplo:
     texto: str
     etiqueta: str
     origen: str = ""
+    # Semana 10: traducción local al inglés, solo para VADER (léxico en inglés).
+    texto_en: str = ""
 
 
 def armar_conjunto(
@@ -104,9 +106,14 @@ def pliegues_estratificados(
 
 
 def escribir_privado(ruta: Path, contenido: str) -> None:
-    ruta = Path(ruta)
-    ruta.write_text(contenido, encoding="utf-8")
-    ruta.chmod(0o600)
+    """Crea el archivo ya con permisos 600 (sin ventana en que otro usuario
+    pueda leerlo) y corrige el modo si el archivo ya existía."""
+    import os
+
+    descriptor = os.open(Path(ruta), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    os.fchmod(descriptor, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as archivo:
+        archivo.write(contenido)
 
 
 def cargar_conjunto(ruta: Path) -> tuple[Ejemplo, ...]:

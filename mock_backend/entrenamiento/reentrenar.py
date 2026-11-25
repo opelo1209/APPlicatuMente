@@ -43,23 +43,63 @@ def _preparar(textos: Sequence[str]) -> list[str]:
     return [preprocess_tweet(t, lang="es") for t in textos]
 
 
-def _cargar(dispositivo):
+def _cargar(dispositivo, base: str = MODELO):
+    """``base`` permite partir de un checkpoint propio (Semana 10, ajuste
+    secuencial); por omisión es el modelo de producción."""
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-    tokenizador = AutoTokenizer.from_pretrained(MODELO)
-    modelo = AutoModelForSequenceClassification.from_pretrained(MODELO).to(dispositivo)
+    tokenizador = AutoTokenizer.from_pretrained(base)
+    modelo = AutoModelForSequenceClassification.from_pretrained(base).to(dispositivo)
     return tokenizador, modelo
 
 
-def _entrenar(ejemplos: Sequence[Ejemplo], epocas: int, tasa: float, lote: int, semilla: int, dispositivo):
+def pesos_por_clase(etiquetas: Sequence[str]) -> dict[str, float]:
+    """Peso inverso a la frecuencia, n / (k * n_c): una clase con pocos
+    ejemplos pesa más en la pérdida (Semana 10)."""
+    from collections import Counter
+
+    conteo = Counter(etiquetas)
+    total, k = len(etiquetas), len(conteo)
+    return {c: round(total / (k * n), 4) for c, n in conteo.items()}
+
+
+def congelar_capas(modelo, n_capas: int) -> int:
+    """Congela los embeddings y las ``n_capas`` capas inferiores del encoder
+    (Semana 10): el ajuste fino solo mueve las capas superiores y el
+    clasificador, para conservar lo que el modelo de producción ya sabe.
+    Devuelve cuántos parámetros quedan entrenables."""
+    if n_capas <= 0:
+        return sum(p.numel() for p in modelo.parameters() if p.requires_grad)
+    cuerpo = getattr(modelo, modelo.base_model_prefix)
+    capas = cuerpo.encoder.layer
+    if n_capas > len(capas):
+        raise ValueError(f"el modelo tiene {len(capas)} capas; se pidieron congelar {n_capas}")
+    for parametro in cuerpo.embeddings.parameters():
+        parametro.requires_grad = False
+    for capa in capas[:n_capas]:
+        for parametro in capa.parameters():
+            parametro.requires_grad = False
+    return sum(p.numel() for p in modelo.parameters() if p.requires_grad)
+
+
+def _entrenar(ejemplos: Sequence[Ejemplo], epocas: int, tasa: float, lote: int, semilla: int, dispositivo,
+              base: str = MODELO, pesos_clase: bool = False, congelar: int = 0):
     import torch
 
     torch.manual_seed(semilla)
-    tokenizador, modelo = _cargar(dispositivo)
+    tokenizador, modelo = _cargar(dispositivo, base)
     etiqueta_id = {modelo.config.id2label[i]: i for i in modelo.config.id2label}
     textos = _preparar([e.texto for e in ejemplos])
     objetivos = [etiqueta_id[_A_ETIQUETA[e.etiqueta]] for e in ejemplos]
-    optimizador = torch.optim.AdamW(modelo.parameters(), lr=tasa, weight_decay=0.01)
+    congelar_capas(modelo, congelar)
+    optimizador = torch.optim.AdamW([p for p in modelo.parameters() if p.requires_grad], lr=tasa, weight_decay=0.01)
+    perdida = None
+    if pesos_clase:
+        pesos = pesos_por_clase([e.etiqueta for e in ejemplos])
+        vector = [0.0] * len(etiqueta_id)
+        for clase, peso in pesos.items():
+            vector[etiqueta_id[_A_ETIQUETA[clase]]] = peso
+        perdida = torch.nn.CrossEntropyLoss(weight=torch.tensor(vector, device=dispositivo))
     azar = random.Random(semilla)
     modelo.train()
     for _ in range(epocas):
@@ -69,8 +109,9 @@ def _entrenar(ejemplos: Sequence[Ejemplo], epocas: int, tasa: float, lote: int, 
             idx = orden[inicio:inicio + lote]
             entrada = tokenizador([textos[i] for i in idx], padding=True, truncation=True,
                                   max_length=MAX_TOKENS, return_tensors="pt").to(dispositivo)
-            salida = modelo(**entrada, labels=torch.tensor([objetivos[i] for i in idx], device=dispositivo))
-            salida.loss.backward()
+            etiquetas_lote = torch.tensor([objetivos[i] for i in idx], device=dispositivo)
+            salida = modelo(**entrada, labels=etiquetas_lote)
+            (perdida(salida.logits, etiquetas_lote) if perdida is not None else salida.loss).backward()
             optimizador.step()
             optimizador.zero_grad()
     return tokenizador, modelo

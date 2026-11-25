@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Sequence
 
@@ -24,11 +25,16 @@ from .metricas_clases import reporte
 _POLARIDAD = {"POS": "positivo", "NEU": "neutro", "NEG": "negativo"}
 
 
-def predecir_original(textos: Sequence[str]) -> tuple[list[str], list[float]]:
-    """Clase y confianza del analizador tal como lo usa la app."""
+@lru_cache(maxsize=1)
+def _analizador_produccion():
     from pysentimiento import create_analyzer  # dependencia pesada: solo aqui
 
-    analizador = create_analyzer(task="sentiment", lang="es")
+    return create_analyzer(task="sentiment", lang="es")
+
+
+def predecir_original(textos: Sequence[str]) -> tuple[list[str], list[float]]:
+    """Clase y confianza del analizador tal como lo usa la app."""
+    analizador = _analizador_produccion()
     clases, confianzas = [], []
     for texto in textos:
         r = analizador.predict(texto)
