@@ -91,6 +91,12 @@ const List<EmocionOpcion> kEmociones = [
 List<EmocionOpcion> emocionesDe(Polaridad p) =>
     kEmociones.where((e) => e.polaridad == p).toList(growable: false);
 
+// Semana 10 (asesor, 25 nov): el analizador es una guía «por debajo del
+// agua». El estudiante no ve lo que leyó en su texto (ni en el resultado ni
+// en «Mi semana»); la lectura queda en el servidor para el tutor y el
+// administrador. Igual que MOSTRAR_ANALIZADOR_AL_ESTUDIANTE del backend.
+const bool kMostrarAnalizadorAlEstudiante = false;
+
 // Nombres de las 7 clases del analizador (pysentimiento), para mostrar.
 const Map<String, String> kClasesAnalizador = {
   'alegria': 'Alegría',

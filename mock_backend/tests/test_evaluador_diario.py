@@ -105,7 +105,9 @@ def test_concordancia_cuando_coinciden():
     assert r.concordancia == "coincide"
 
 
-def test_discrepancia_se_comunica_sin_corregir_al_estudiante():
+def test_discrepancia_queda_en_el_servidor_sin_corregir_al_estudiante():
+    # Semana 10 (asesor): el analizador trabaja «por debajo del agua». La
+    # discrepancia se registra, pero ya no se le dice «notamos tristeza».
     r = evaluar_entrada(
         entrada("positivo", ("alegria",), "todo bien, aunque me siento solo"),
         AnalizadorFalso("negativo", "tristeza"),
@@ -113,7 +115,8 @@ def test_discrepancia_se_comunica_sin_corregir_al_estudiante():
     assert r.concordancia == "difiere"
     # La autoevaluacion del estudiante NO se reemplaza por la del modelo.
     assert r.polaridad_registrada == "positivo"
-    assert "tristeza" in r.mensaje_concordancia.lower()
+    assert r.polaridad_guardada == "positivo"
+    assert "tristeza" not in r.mensaje_concordancia.lower()
 
 
 def test_analisis_con_poca_confianza_no_se_contradice():

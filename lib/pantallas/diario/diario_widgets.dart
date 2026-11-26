@@ -358,7 +358,7 @@ class DiarioGuardando extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     'Estamos guardando lo que marcaste. En un momento verás '
-                    'tu análisis.',
+                    'tu día.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: DiarioTexto.apoyo,

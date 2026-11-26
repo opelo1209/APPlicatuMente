@@ -397,7 +397,9 @@ def crear_router(
                     """,
                     (
                         user["id_usuario"],
-                        payload.polaridad,
+                        # Semana 10: negativa si el texto trajo riesgo alto
+                        # (nivel 1); si no, la que marco el estudiante.
+                        resultado.polaridad_guardada,
                         json.dumps(list(payload.emociones)),
                         payload.texto,
                         json.dumps(cuerpo, ensure_ascii=False),
@@ -441,7 +443,9 @@ def crear_router(
             "entradas": [
                 {
                     "fecha": f["fecha"].isoformat(),
-                    "polaridad": f["polaridad"],
+                    # Semana 10: el estudiante ve en su semana lo que el
+                    # marco; la etiqueta ajustada queda para tutor y admin.
+                    "polaridad": (f["resultado"] or {}).get("polaridad_registrada") or f["polaridad"],
                     "emociones": [buscar(c).nombre for c in f["emociones"]],
                     "accion": f["accion"],
                     # Semana 4 (asesor): la evolucion de lo que encontro el

@@ -5,8 +5,9 @@ PROTOTIPO (Semana 2): no esta conectado a ningun endpoint ni a produccion.
 Recorrido de una entrada (ver diagrama en el reporte de la Semana 2):
 
   1. El estudiante se autoevalua: polaridad del dia + emociones + texto
-     opcional. Su autoevaluacion es lo que se REGISTRA; el analizador nunca
-     la reemplaza.
+     opcional. Su autoevaluacion es lo que se REGISTRA, con UNA excepcion
+     (Semana 10, asesor): si el texto trae una senal de riesgo alto («me
+     siento mal y quiero morirme»), se guarda negativo y se avisa.
   2. Si escribio algo, el texto pasa por:
        a. el clasificador de riesgo por reglas (el mismo de Serena), SIEMPRE,
           aunque el analizador de sentimientos falle;
@@ -33,7 +34,7 @@ from .analizador_sentimiento import (
     AnalizadorSentimiento,
     ResultadoSentimiento,
 )
-from .clasificador_riesgo import ResultadoClasificacion, clasificar_mensaje, combinar_con_nivel_cssrs
+from .clasificador_riesgo import NIVEL_ALTO, ResultadoClasificacion, clasificar_mensaje, combinar_con_nivel_cssrs
 from .contexto_mensaje import analizar_contexto
 from .limites_serena import hechos_de_limites
 from .emociones_catalogo import (
@@ -64,6 +65,25 @@ MAX_CARACTERES_TEXTO = 5000
 # le dice al estudiante que su autoevaluacion difiere. Valor provisional:
 # se debe calibrar con la evaluacion del reporte.
 UMBRAL_CONFIANZA = 0.6
+# Semana 10 (asesor, 25 nov): el analizador es una guia «por debajo del
+# agua». Nivel 2: si el estudiante marco su dia como positivo y el analizador
+# lee el texto como negativo con al menos esta probabilidad, se registra en
+# silencio una segunda evaluacion (no cambia lo que marco ni lo que ve).
+# Con las 274 respuestas de REDCap etiquetadas por psicologia, el modelo de
+# produccion con 0.9 acierta el 76 % de las veces que se activa y nunca se
+# activo con una respuesta positiva (reporte S10, seccion de la regla).
+UMBRAL_SEGUNDA_EVALUACION = 0.9
+# Nivel 1: con una senal de riesgo alto en el texto, la etiqueta guardada es
+# negativa aunque el estudiante haya marcado otra cosa.
+AJUSTE_RIESGO = "riesgo"
+SEGUNDA_NEGATIVO = "negativo_probable"
+# Mientras sea False, el estudiante no ve lo que leyo el analizador (ni
+# «coincide» ni «notamos tristeza»): solo que su registro quedo guardado.
+MOSTRAR_ANALIZADOR_AL_ESTUDIANTE = False
+MENSAJE_RIESGO = (
+    "Gracias por contarlo. Lo que escribiste nos importa: si lo necesitas, "
+    "aquí tienes a quién llamar ahora."
+)
 # Tres dias negativos seguidos (hoy + 2 anteriores) cuentan como racha.
 DIAS_PREVIOS_PARA_RACHA = 2
 
@@ -159,6 +179,11 @@ class ResultadoDiario:
     mostrar_lineas_ayuda: bool
     lineas_ayuda: tuple[Mapping[str, str], ...]
     alerta_admin: Mapping[str, object] | None = field(default=None)
+    # Semana 10: la etiqueta que se GUARDA (negativa en el nivel 1) y, en el
+    # nivel 2, la segunda evaluacion silenciosa del analizador.
+    polaridad_guardada: str = ""
+    ajuste: str | None = None
+    segunda_evaluacion: str | None = None
 
     @property
     def accion(self) -> str:
@@ -274,8 +299,27 @@ META_METODO = "limite_metodo"
 _METAS_CON_AVISO = frozenset({META_AUTOLESION, META_METODO})
 
 
+def _ajuste_por_riesgo(entrada: EntradaDiario, riesgo_texto: ResultadoClasificacion, consulta: bool) -> str | None:
+    # Nivel 1. Solo cuenta lo que dice el TEXTO de hoy (no el C-SSRS, que
+    # marcaria todos los dias) y no en una consulta («vimos en clase...»).
+    if consulta or entrada.polaridad == POLARIDAD_NEGATIVA:
+        return None
+    return AJUSTE_RIESGO if riesgo_texto.nivel == NIVEL_ALTO else None
+
+
+def _segunda_evaluacion(entrada: EntradaDiario, analisis: ResultadoSentimiento | None, consulta: bool) -> str | None:
+    # Nivel 2. Solo cuando marco positivo: un dia que marco neutro o negativo
+    # se respeta siempre («mi dia fue el mismo de siempre»).
+    if consulta or analisis is None or entrada.polaridad != POLARIDAD_POSITIVA:
+        return None
+    if analisis.probabilidad(POLARIDAD_NEGATIVA) >= UMBRAL_SEGUNDA_EVALUACION:
+        return SEGUNDA_NEGATIVO
+    return None
+
+
 def evaluar_entrada(entrada: EntradaDiario, analizador: AnalizadorSentimiento) -> ResultadoDiario:
-    riesgo = combinar_con_nivel_cssrs(clasificar_mensaje(entrada.texto), entrada.nivel_cssrs)
+    riesgo_texto = clasificar_mensaje(entrada.texto)
+    riesgo = combinar_con_nivel_cssrs(riesgo_texto, entrada.nivel_cssrs)
     analisis, aviso = _analizar(entrada.texto, analizador)
     # Semana 4: se lee la frase completa. En una consulta la polaridad del
     # analizador describe el tema, no el dia.
@@ -284,6 +328,13 @@ def evaluar_entrada(entrada: EntradaDiario, analizador: AnalizadorSentimiento) -
     accion = decision.accion
 
     concordancia, mensaje = _concordancia(entrada, analisis, consulta)
+    ajuste = _ajuste_por_riesgo(entrada, riesgo_texto, consulta)
+    segunda = None if ajuste else _segunda_evaluacion(entrada, analisis, consulta)
+    if not MOSTRAR_ANALIZADOR_AL_ESTUDIANTE and concordancia != "sin_analisis" and not consulta:
+        # «Por debajo del agua»: la concordancia queda en el servidor.
+        mensaje = MENSAJE_GUARDADO
+    if ajuste:
+        mensaje = MENSAJE_RIESGO
     texto_negativo = (
         not consulta and _es_confiable(analisis) and analisis.polaridad == POLARIDAD_NEGATIVA  # type: ignore[union-attr]
     )
@@ -317,10 +368,17 @@ def evaluar_entrada(entrada: EntradaDiario, analizador: AnalizadorSentimiento) -
         consejos=_consejos(entrada, accion),
         ofrecer_serena=ofrecer_serena,
         mensaje_serena=mensaje_serena,
-        mostrar_lineas_ayuda=accion in (ACCION_CRISIS, ACCION_EXPLORAR, ACCION_SUGERIR_APOYO),
+        mostrar_lineas_ayuda=bool(ajuste) or accion in (ACCION_CRISIS, ACCION_EXPLORAR, ACCION_SUGERIR_APOYO),
         lineas_ayuda=tuple(MappingProxyType(l) for l in LINEAS_AYUDA),
         # Semana 4: la autolesion ya no es crisis, pero el administrador la ve.
-        alerta_admin=_alerta_admin(riesgo, decision) if accion == ACCION_CRISIS or decision.meta in _METAS_CON_AVISO else None,
+        alerta_admin=(
+            _alerta_admin(riesgo, decision)
+            if ajuste or accion == ACCION_CRISIS or decision.meta in _METAS_CON_AVISO
+            else None
+        ),
+        polaridad_guardada=POLARIDAD_NEGATIVA if ajuste else entrada.polaridad,
+        ajuste=ajuste,
+        segunda_evaluacion=segunda,
     )
 
 
@@ -339,6 +397,9 @@ def resultado_a_dict(r: ResultadoDiario, texto: str = "") -> dict[str, object]:
     return {
         "texto": texto,
         "polaridad_registrada": r.polaridad_registrada,
+        "polaridad_guardada": r.polaridad_guardada or r.polaridad_registrada,
+        "ajuste": r.ajuste,
+        "segunda_evaluacion": r.segunda_evaluacion,
         "emociones_registradas": [{"clave": c, "nombre": buscar(c).nombre} for c in r.emociones_registradas],
         "analisis": analisis,
         "aviso_analizador": r.aviso_analizador,

@@ -153,7 +153,7 @@ class _DiarioEntradaPantallaState extends State<DiarioEntradaPantalla> {
                   : null,
               icon: const Icon(Icons.auto_awesome_rounded),
               label: const Text(
-                'Guardar y ver mi análisis',
+                'Guardar mi día',
                 style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
               ),
             ),

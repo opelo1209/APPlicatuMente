@@ -75,9 +75,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Alegría'));
       await tester.pump();
-      await tester.ensureVisible(find.text('Guardar y ver mi análisis'));
+      await tester.ensureVisible(find.text('Guardar mi día'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Guardar y ver mi análisis'));
+      await tester.tap(find.text('Guardar mi día'));
 
       expect(guardado?.polaridad, Polaridad.positivo);
       expect(guardado?.emociones, ['alegria']);
@@ -92,9 +92,9 @@ void main() {
 
       await tester.tap(find.bySemanticsLabel('Día neutro'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Guardar y ver mi análisis'));
+      await tester.ensureVisible(find.text('Guardar mi día'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Guardar y ver mi análisis'));
+      await tester.tap(find.text('Guardar mi día'));
 
       expect(llamadas, 0);
     });
@@ -200,6 +200,7 @@ void main() {
           DiarioResultadoPantalla(
             resultado: ResultadoDiario.fromJson(json),
             onAbrirSerena: () {},
+            mostrarAnalizador: true,
           ),
         ),
       );
@@ -225,6 +226,7 @@ void main() {
               },
             ),
             onAbrirSerena: () {},
+            mostrarAnalizador: true,
           ),
         ),
       );

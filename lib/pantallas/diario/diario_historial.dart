@@ -126,7 +126,9 @@ class DiarioHistorialPantalla extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 18),
-          EvolucionAnalizador(dias: dias),
+          // Semana 10: la evolución del analizador ya no se le muestra al
+          // estudiante (ver kMostrarAnalizadorAlEstudiante).
+          if (kMostrarAnalizadorAlEstudiante) EvolucionAnalizador(dias: dias),
           if (_racha) ...[
             const SizedBox(height: 18),
             TarjetaSerena(

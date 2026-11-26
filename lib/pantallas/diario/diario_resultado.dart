@@ -18,9 +18,11 @@ class DiarioResultadoPantalla extends StatelessWidget {
     required this.onAbrirSerena,
     this.onLlamar,
     this.onVerHistorial,
+    this.mostrarAnalizador = kMostrarAnalizadorAlEstudiante,
   });
 
   final ResultadoDiario resultado;
+  final bool mostrarAnalizador;
   final VoidCallback onAbrirSerena;
   final ValueChanged<LineaAyuda>? onLlamar;
   final VoidCallback? onVerHistorial;
@@ -51,11 +53,13 @@ class DiarioResultadoPantalla extends StatelessWidget {
             ),
             const SizedBox(height: 14),
           ],
-          _Comparacion(resultado: r),
+          _Comparacion(resultado: r, mostrarAnalizador: mostrarAnalizador),
           if (r.mensajeConcordancia.isNotEmpty) ...[
             const SizedBox(height: 12),
             _MensajeConcordancia(
-              concordancia: r.concordancia,
+              // Sin el analizador a la vista, el mensaje es solo «quedó
+              // guardado»: no lleva la marca de coincide/difiere.
+              concordancia: mostrarAnalizador ? r.concordancia : 'guardado',
               mensaje: r.mensajeConcordancia,
             ),
           ],
@@ -100,8 +104,9 @@ class DiarioResultadoPantalla extends StatelessWidget {
 }
 
 class _Comparacion extends StatelessWidget {
-  const _Comparacion({required this.resultado});
+  const _Comparacion({required this.resultado, required this.mostrarAnalizador});
   final ResultadoDiario resultado;
+  final bool mostrarAnalizador;
 
   @override
   Widget build(BuildContext context) {
@@ -139,6 +144,7 @@ class _Comparacion extends StatelessWidget {
                 ),
               ),
             ),
+            if (analisis == null || mostrarAnalizador) ...[
             VerticalDivider(width: 24, color: c.borde),
             Expanded(
               child: analisis == null
@@ -163,6 +169,7 @@ class _Comparacion extends StatelessWidget {
                       ),
                     ),
             ),
+            ],
           ],
         ),
       ),
@@ -381,7 +388,7 @@ class _MensajeConcordancia extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final coincide = concordancia == 'coincide';
+    final coincide = concordancia == 'coincide' || concordancia == 'guardado';
     final c = DiarioColores.de(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
