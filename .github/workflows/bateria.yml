@@ -1,0 +1,56 @@
+name: Batería del analizador
+
+# Semana 5 (reunión con el asesor): repetir la batería de 60 frases contra la
+# app ya publicada, como un solo estudiante que escribe varias entradas.
+# Se corre a mano (Actions -> Batería del analizador -> Run workflow) y deja
+# el resultado y el tablero como artefacto descargable.
+#
+# Necesita los secretos BATERIA_USUARIO y BATERIA_CLAVE: una cuenta de
+# estudiante de PRUEBA, nunca la de un estudiante real (la batería escribe en
+# su diario).
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: URL de la API
+        default: https://ml.izt.uam.mx/aptm-prototipo-api
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  bateria:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mock_backend
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # El modo api solo habla HTTP: no necesita pysentimiento ni la base.
+      - name: Instalar dependencias
+        run: pip install httpx==0.28.1
+
+      - name: Correr la batería
+        env:
+          BATERIA_URL: ${{ inputs.url }}
+          BATERIA_USUARIO: ${{ secrets.BATERIA_USUARIO }}
+          BATERIA_CLAVE: ${{ secrets.BATERIA_CLAVE }}
+        run: |
+          python -m bateria.ejecutar api --salida bateria_resultado.json
+          python -m bateria.tablero bateria_resultado.json tablero_bateria.html
+
+      - name: Guardar resultado y tablero
+        uses: actions/upload-artifact@v4
+        with:
+          name: bateria-analizador
+          path: |
+            mock_backend/bateria_resultado.json
+            mock_backend/tablero_bateria.html

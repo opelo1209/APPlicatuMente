@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../cuestionarios/envio_cuestionario.dart';
 import 'peticiones.dart';
 
 class Auth {
@@ -50,6 +51,11 @@ class Auth {
 
   // Eliminar token (logout)
   Future<void> clearToken() async {
+    // Semana 4 (H1): último intento de enviar lo pendiente de quien sale;
+    // lo que no salga queda en SU cola (ver alCerrarSesion). Va antes de
+    // borrar el token y el id_usuario, que lo identifican.
+    await EnvioCuestionario.alCerrarSesion();
+    await _cerrarSesionEnServidor();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
     await prefs.remove('id_token');
@@ -58,6 +64,23 @@ class Auth {
     await prefs.remove('perfil_tipo');
     await prefs.remove('id_usuario');
     await prefs.remove('nombre_usuario');
+  }
+
+  /// Semana 4 (H2): el servidor borra el token. Si no hay red se sale
+  /// igual; el token vence solo (SESION_HORAS en el servidor).
+  Future<void> _cerrarSesionEnServidor() async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) return;
+    try {
+      await http
+          .post(
+            Uri.parse(Peticiones.logout),
+            headers: Peticiones.getAuthHeaders(token),
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint('No se pudo cerrar la sesión en el servidor: $e');
+    }
   }
 
   String _normalizeBase64(String value) {
@@ -102,8 +125,9 @@ class Auth {
         body: jsonEncode({'username': username, 'password': password}),
       );
 
+      // Semana 5: ya no se imprime la respuesta; traia el token de sesion y
+      // en la web debugPrint escribe en la consola del navegador.
       debugPrint('Login Status Code: ${response.statusCode}');
-      debugPrint('Login Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -114,12 +138,63 @@ class Auth {
       } else {
         return {
           'success': false,
-          'message': 'Credenciales incorrectas',
+          'message': mensajeDeLogin(response.statusCode, response.body),
           'error': response.body,
         };
       }
     } catch (e) {
       debugPrint('Error en login: $e');
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
+  // ACCESO RAPIDO DE LA DEMO (solo en el despliegue del prototipo)
+  // Entra con un clic a una cuenta de prueba ya sembrada, sin escribir
+  // usuario ni contrasena. Pide una clave que se teclea una sola vez.
+  /// Si la demo está activa y si pide clave. Un backend sin demo responde
+  /// (activo: false); uno con DEMO_SIN_CLAVE entra con un clic.
+  Future<({bool activo, bool requiereClave})> demoActivo() async {
+    try {
+      final response = await http.get(
+        Uri.parse(Peticiones.demoDisponibilidad),
+        headers: Peticiones.headers,
+      );
+      if (response.statusCode != 200) {
+        return (activo: false, requiereClave: true);
+      }
+      final data = jsonDecode(response.body);
+      return (
+        activo: data['activo'] == true,
+        requiereClave: data['requiere_clave'] != false,
+      );
+    } catch (e) {
+      debugPrint('No se pudo consultar el acceso demo: $e');
+      return (activo: false, requiereClave: true);
+    }
+  }
+
+  Future<Map<String, dynamic>> entrarDemo({
+    required String perfil,
+    required String clave,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(Peticiones.demoLogin),
+        headers: Peticiones.headers,
+        body: jsonEncode({'perfil': perfil, 'clave': clave}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        await _saveSessionData(data);
+        return {'success': true, 'data': data, 'message': 'Sesión iniciada'};
+      }
+      final detalle = response.statusCode == 403
+          ? 'Clave incorrecta'
+          : 'No se pudo entrar a la demo';
+      return {'success': false, 'message': detalle, 'error': response.body};
+    } catch (e) {
+      debugPrint('Error en el acceso demo: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -205,7 +280,10 @@ class Auth {
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message'] ?? 'Correo enviado'};
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Correo enviado',
+        };
       }
       return {
         'success': false,
@@ -229,7 +307,10 @@ class Auth {
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message'] ?? 'Contraseña actualizada'};
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Contraseña actualizada',
+        };
       }
       return {
         'success': false,
@@ -260,7 +341,10 @@ class Auth {
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message'] ?? 'Contraseña cambiada'};
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Contraseña cambiada',
+        };
       }
       return {
         'success': false,
@@ -385,4 +469,21 @@ class Auth {
       };
     }
   }
+}
+
+/// Semana 5 (H5, H6): el servidor explica los bloqueos (429) y las cuentas
+/// desactivadas (403); cualquier otro error sigue siendo «credenciales
+/// incorrectas», que no revela si la cuenta existe.
+String mensajeDeLogin(int codigo, String cuerpo) {
+  if (codigo == 429 || codigo == 403) {
+    try {
+      final detalle = (jsonDecode(cuerpo) as Map<String, dynamic>)['detail'];
+      if (detalle is String && detalle.isNotEmpty) return detalle;
+    } on FormatException {
+      // Respuesta sin JSON: se usa el mensaje general.
+    } on TypeError {
+      // JSON con otra forma: se usa el mensaje general.
+    }
+  }
+  return 'Credenciales incorrectas';
 }

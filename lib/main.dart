@@ -4,30 +4,44 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'pantallas/login.dart';
+import 'pantallas/restablecer_contrasena.dart';
+import 'pantallas/servicios/prototipo.dart';
 import 'pantallas/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  final isDarkMode = prefs.getBool('darkMode') ?? false;
 
   runApp(
     ChangeNotifierProvider(
-      create: (_) => ThemeProvider()..toogleTheme(isDarkMode),
-      child: const MyApp(),
+      create: (_) =>
+          ThemeProvider(modoOscuro: ThemeProvider.preferenciaGuardada(prefs)),
+      // Semana 8: el enlace del correo de recuperación abre directo la
+      // pantalla para poner la contraseña nueva.
+      child: MyApp(tokenRecuperacion: tokenDeEnlace(Uri.base)),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.tokenRecuperacion});
+
+  final String? tokenRecuperacion;
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'APTM',
+      title: kEsPrototipo ? 'APTM · PROTOTIPO' : 'APTM',
+      builder: kEsPrototipo
+          ? (context, child) => Banner(
+              message: 'PROTOTIPO',
+              location: BannerLocation.topStart,
+              color: const Color(0xFF6A4FB3),
+              child: child ?? const SizedBox.shrink(),
+            )
+          : null,
       theme: _buildLightTheme(),
       darkTheme: _buildDarkTheme(),
       themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
@@ -37,7 +51,9 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: const Login(),
+      home: tokenRecuperacion == null
+          ? const Login()
+          : RestablecerContrasena(token: tokenRecuperacion),
     );
   }
 

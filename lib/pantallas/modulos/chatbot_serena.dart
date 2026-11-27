@@ -1,10 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../diario/aviso_confianza.dart';
+import '../diario/diario_catalogo.dart' show LineaAyuda;
+import '../diario/diario_flujo.dart' show mostrarNumero;
+import '../diario/diario_widgets.dart' show TarjetaLineasAyuda;
 import '../modelos/mensaje_serena.dart';
 import '../servicios/personalizacion.dart';
+import '../servicios/prototipo.dart';
 import '../servicios/servicio_serena.dart';
 import '../theme_provider.dart';
+import 'envio_con_enter.dart';
+
+// PROTOTIPO Semana 5 (reunión con el asesor): la invitación a platicarlo con
+// un adulto va una sola vez, al abrir el chat, y no al final de cada
+// respuesta. «Te doy la bienvenida» en lugar de «bienvenido/bienvenida»: no se
+// supone el género de quien escribe.
+const String mensajeBienvenidaSerena =
+    '¡Hola! Te doy la bienvenida al chat 💚 Soy Serena, tu acompañante de '
+    'bienestar emocional.\n\n'
+    'Ten en mente que todo lo que platiquemos aquí también lo puedes platicar '
+    'con un adulto de confianza: tus papás, un maestro o un especialista.\n\n'
+    'Ahora sí, empecemos: ¿cómo te sientes hoy?';
 
 class ChatbotSerena extends StatefulWidget {
   const ChatbotSerena({super.key, this.accentColor});
@@ -21,15 +38,17 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
   final List<MensajeSerena> _mensajes = [];
 
   bool _cargando = false;
+  // PROTOTIPO Semana 3, fase 5: texto que ya llego mientras Serena termina.
+  String? _parcial;
+  // PROTOTIPO Semana 4 (reunión con el asesor): el chat nunca se corta. Tras
+  // una crisis, una franja fija deja las líneas de ayuda a la vista.
+  bool _huboCrisis = false;
   bool _conectado = false;
 
   static const Color _verde = Color(0xFF43A047);
 
   Color get _accentColor => widget.accentColor ?? _verde;
   Color get _accentDark => AppPersonalizacion.darken(_accentColor, 0.22);
-
-  static const String _mensajeBienvenida =
-      '¡Hola! Soy Serena, tu acompañante de bienestar emocional 💚\n¿Cómo te sientes hoy? Cuéntame, estoy aquí para escucharte.';
 
   static const List<String> _recomendaciones = [
     'Como calmar la ansiedad',
@@ -50,7 +69,9 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
     final texto = _recomendaciones[_recomendacionIdx % _recomendaciones.length];
     _recomendacionIdx++;
     _ctrl.text = texto;
-    _ctrl.selection = TextSelection.fromPosition(TextPosition(offset: texto.length));
+    _ctrl.selection = TextSelection.fromPosition(
+      TextPosition(offset: texto.length),
+    );
   }
 
   @override
@@ -71,9 +92,12 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
     if (!mounted) return;
     setState(() {
       _conectado = ok;
-      _mensajes.add(MensajeSerena(texto: _mensajeBienvenida, esUsuario: false));
+      _mensajes.add(
+        MensajeSerena(texto: mensajeBienvenidaSerena, esUsuario: false),
+      );
     });
     _irAlFinal();
+    await mostrarAvisoConfianzaSiHaceFalta(context);
   }
 
   void _irAlFinal() {
@@ -99,7 +123,18 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
     _ctrl.clear();
     _irAlFinal();
 
-    final resultado = await ServicioSerena.enviarMensaje(limpio);
+    // PROTOTIPO Semana 3, fase 5: el texto parcial (material aprobado u
+    // oracion ya revisada) se muestra en la burbuja de "escribiendo".
+    var resultado = <String, dynamic>{};
+    await for (final evento in ServicioSerena.enviarMensajeStream(limpio)) {
+      if (!mounted) return;
+      if (evento['evento'] == 'parcial') {
+        setState(() => _parcial = evento['texto']?.toString());
+        _irAlFinal();
+      } else {
+        resultado = evento;
+      }
+    }
     final fuentesRaw = resultado['fuentes'];
     final fuentes = <Map<String, String>>[];
 
@@ -109,21 +144,45 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
           fuentes.add({
             'titulo': item['titulo']?.toString() ?? '',
             'categoria': item['categoria']?.toString() ?? '',
+            'revision': item['revision']?.toString() ?? 'pendiente',
+            'revisor': item['revisor']?.toString() ?? '',
           });
         }
       }
     }
 
+    // Semana 4: las líneas de ayuda llegan aparte del texto.
+    final lineasRaw = resultado['lineas'];
+    final lineas = <LineaAyuda>[
+      if (lineasRaw is List)
+        for (final item in lineasRaw)
+          if (item is Map)
+            LineaAyuda(
+              item['nombre']?.toString() ?? '',
+              item['telefono']?.toString() ?? '',
+              item['horario']?.toString() ?? '',
+            ),
+    ];
+
     if (!mounted) return;
 
     final tipo = resultado['tipo']?.toString() ?? 'normal';
-    final respuesta = resultado['respuesta']?.toString() ?? 'Sin respuesta por ahora.';
+    final respuesta =
+        resultado['respuesta']?.toString() ?? 'Sin respuesta por ahora.';
 
     setState(() {
       _mensajes.add(
-        MensajeSerena(texto: respuesta, esUsuario: false, tipo: tipo, fuentes: fuentes),
+        MensajeSerena(
+          texto: respuesta,
+          esUsuario: false,
+          tipo: tipo,
+          fuentes: fuentes,
+          lineas: lineas,
+        ),
       );
       _cargando = false;
+      _parcial = null;
+      _huboCrisis = _huboCrisis || tipo == 'crisis';
     });
     _irAlFinal();
 
@@ -135,7 +194,10 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Nueva conversacion', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Nueva conversacion',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: const Text('Se borrara el historial actual.'),
         actions: [
           TextButton(
@@ -149,7 +211,13 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
               if (!mounted) return;
               setState(() {
                 _mensajes.clear();
-                _mensajes.add(MensajeSerena(texto: _mensajeBienvenida, esUsuario: false));
+                _huboCrisis = false;
+                _mensajes.add(
+                  MensajeSerena(
+                    texto: mensajeBienvenidaSerena,
+                    esUsuario: false,
+                  ),
+                );
                 _cargando = false;
               });
             },
@@ -213,40 +281,53 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
             Text(
               'Si estas pasando por un momento dificil, no tienes que estar solo.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[400] : Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
             ),
             const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _accentColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                icon: const Icon(Icons.phone_rounded, size: 18),
-                label: const Text(
-                  'Llamar al 800 290 0024',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                onPressed: () => Navigator.pop(ctx),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'SAPTEL · Gratis · 24 horas',
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.grey[500] : Colors.grey[400],
-              ),
+            // PROTOTIPO Semana 2: antes decía «Llamar al 800 290 0024» con la
+            // etiqueta SAPTEL, que no corresponde. Mismas líneas que el diario.
+            TarjetaLineasAyuda(
+              titulo: 'Habla ahora con alguien preparado',
+              onLlamar: (linea) => mostrarNumero(ctx, linea),
             ),
           ],
         ),
       ),
     );
   }
+
+  // PROTOTIPO Semana 3: (icono, etiqueta, color, fondo) del encabezado de
+  // cada tipo de respuesta; null = sin encabezado.
+  (IconData, String, Color, Color)? _encabezado(String tipo) => switch (tipo) {
+    'crisis' => (
+      Icons.favorite_rounded,
+      'Estoy aquí contigo',
+      const Color(0xFF7C5CBF),
+      const Color(0xFFEDE8FA),
+    ),
+    'limite' => (
+      Icons.block_rounded,
+      'Esto no lo puedo hacer',
+      const Color(0xFF1565C0),
+      const Color(0xFFE8F1FB),
+    ),
+    'bloqueada' => (
+      Icons.shield_outlined,
+      'Revisé mi respuesta por seguridad',
+      const Color(0xFF8D6E00),
+      const Color(0xFFFFF8E1),
+    ),
+    'explorar' => (
+      Icons.support_agent_rounded,
+      'Si lo necesitas, hay ayuda',
+      const Color(0xFF00796B),
+      const Color(0xFFE0F2F1),
+    ),
+    _ => null,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -257,11 +338,9 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
       children: [
         _header(isDark),
         Expanded(
-          child: Container(
-            color: bg,
-            child: _listaMensajes(isDark),
-          ),
+          child: Container(color: bg, child: _listaMensajes(isDark)),
         ),
+        if (_huboCrisis) _franjaLineas(isDark),
         _campoEntrada(isDark),
       ],
     );
@@ -289,7 +368,11 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                 backgroundColor: _accentColor,
                 child: const Text(
                   'S',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               Positioned(
@@ -347,15 +430,22 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
     );
   }
 
+  // Semana 8: los mensajes se pueden seleccionar y copiar (con el mouse en
+  // web o dejando el dedo presionado en el celular), para poder compartir
+  // lo que respondió Serena al revisarla.
   Widget _listaMensajes(bool isDark) {
-    return ListView.builder(
-      controller: _scroll,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      itemCount: _mensajes.length + (_cargando ? 1 : 0),
-      itemBuilder: (_, i) {
-        if (i == _mensajes.length) return _indicadorEscribiendo(isDark);
-        return _burbuja(_mensajes[i], isDark);
-      },
+    return SelectionArea(
+      child: ListView.builder(
+        controller: _scroll,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        itemCount: _mensajes.length + (_cargando ? 1 : 0),
+        itemBuilder: (_, i) {
+          if (i == _mensajes.length) {
+            return _indicadorEscribiendo(isDark, parcial: _parcial);
+          }
+          return _burbuja(_mensajes[i], isDark);
+        },
+      ),
     );
   }
 
@@ -382,7 +472,11 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
           ),
           child: Text(
             msg.texto,
-            style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.5),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              height: 1.5,
+            ),
           ),
         ),
       ),
@@ -400,7 +494,11 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
             backgroundColor: _accentColor,
             child: const Text(
               'S',
-              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -427,12 +525,23 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (msg.esCrisis) ...[
+                  // PROTOTIPO Semana 3: encabezado según cómo se decidió la
+                  // respuesta (crisis, límite o respuesta revisada por la
+                  // guardia), como los avisos de los asistentes comerciales.
+                  if (_encabezado(msg.tipo) case (
+                    final icono,
+                    final etiqueta,
+                    final color,
+                    final fondo,
+                  )) ...[
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF32324A) : const Color(0xFFEDE8FA),
+                        color: isDark ? const Color(0xFF32324A) : fondo,
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(18),
                           topRight: Radius.circular(18),
@@ -441,15 +550,15 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                       child: Row(
                         children: [
                           Icon(
-                            Icons.favorite_rounded,
+                            icono,
                             size: 12,
-                            color: isDark ? Colors.purple[200] : const Color(0xFF7C5CBF),
+                            color: isDark ? Colors.purple[200] : color,
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'Estoy aqui contigo',
+                            etiqueta,
                             style: TextStyle(
-                              color: isDark ? Colors.purple[200] : const Color(0xFF7C5CBF),
+                              color: isDark ? Colors.purple[200] : color,
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
                             ),
@@ -459,11 +568,16 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                     ),
                     Divider(
                       height: 1,
-                      color: isDark ? Colors.grey[700]! : const Color(0xFFD8C8F0),
+                      color: isDark
+                          ? Colors.grey[700]!
+                          : color.withValues(alpha: 0.25),
                     ),
                   ],
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     child: Text(
                       msg.texto,
                       style: TextStyle(
@@ -495,20 +609,180 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
                           for (final fuente in msg.fuentes)
                             Container(
                               margin: const EdgeInsets.only(top: 3),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: isDark ? Colors.grey[800] : const Color(0xFFF0F4FF),
+                                color: isDark
+                                    ? Colors.grey[800]
+                                    : const Color(0xFFF0F4FF),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: Text(
-                                '${fuente['titulo'] ?? ''}${(fuente['categoria'] ?? '').isNotEmpty ? ' - ${fuente['categoria']}' : ''}',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${fuente['titulo'] ?? ''}${(fuente['categoria'] ?? '').isNotEmpty ? ' - ${fuente['categoria']}' : ''}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: isDark
+                                          ? Colors.grey[400]
+                                          : Colors.grey[600],
+                                    ),
+                                  ),
+                                  _etiquetaRevision(fuente),
+                                ],
                               ),
                             ),
                         ],
+                      ),
+                    ),
+                  ],
+                  // Semana 4: tarjeta de líneas aparte del texto, como en
+                  // los asistentes comerciales. En crisis ya las muestra el
+                  // aviso que se abre encima del chat.
+                  if (msg.lineas.isNotEmpty && !msg.esCrisis)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                      child: TarjetaLineasAyuda(
+                        titulo: 'Si lo necesitas, puedes llamar',
+                        lineas: msg.lineas,
+                        onLlamar: (linea) => mostrarNumero(context, linea),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Cierre de la Semana 3: si psicología ya revisó el texto citado.
+  Widget _etiquetaRevision(Map<String, String> fuente) {
+    final revisor = fuente['revisor'] ?? '';
+    final (icono, texto, color) = switch (fuente['revision']) {
+      'aprobado' => (
+        Icons.verified,
+        revisor.isEmpty
+            ? 'Revisado por psicología'
+            : 'Revisado por psicología ($revisor)',
+        const Color(0xFF2E7D32),
+      ),
+      'corregido' => (
+        Icons.edit_note,
+        'Corregido por psicología',
+        const Color(0xFF2E7D32),
+      ),
+      'cambios' => (
+        Icons.rate_review_outlined,
+        'Con observaciones de psicología',
+        const Color(0xFFB26A00),
+      ),
+      _ => (
+        Icons.hourglass_empty,
+        'Pendiente de revisión clínica',
+        const Color(0xFF757575),
+      ),
+    };
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icono, size: 11, color: color),
+          const SizedBox(width: 3),
+          Flexible(
+            child: Text(
+              texto,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _indicadorEscribiendo(bool isDark, {String? parcial}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, right: 56),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: _accentColor,
+            child: const Text(
+              'S',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  topRight: Radius.circular(18),
+                  bottomLeft: Radius.circular(4),
+                  bottomRight: Radius.circular(18),
+                ),
+                boxShadow: isDark
+                    ? const []
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (parcial != null) ...[
+                    Text(
+                      parcial,
+                      style: TextStyle(
+                        fontSize: 15,
+                        height: 1.4,
+                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _PuntoEscribiendo(delayMs: 0, color: _accentColor),
+                      _PuntoEscribiendo(delayMs: 150, color: _accentColor),
+                      _PuntoEscribiendo(delayMs: 300, color: _accentColor),
+                    ],
+                  ),
+                  // PROTOTIPO Semana 3: la respuesta la redacta un modelo
+                  // local; en el servidor tarda unos 20 s (fase 4).
+                  if (kEsPrototipo) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      parcial == null
+                          ? 'Serena está pensando; en el prototipo puede tardar hasta medio minuto.'
+                          : 'Serena está terminando su respuesta…',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.grey[500] : Colors.grey[600],
                       ),
                     ),
                   ],
@@ -521,51 +795,43 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
     );
   }
 
-  Widget _indicadorEscribiendo(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12, right: 56),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          CircleAvatar(
-            radius: 14,
-            backgroundColor: _accentColor,
-            child: const Text(
-              'S',
-              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(18),
-                topRight: Radius.circular(18),
-                bottomLeft: Radius.circular(4),
-                bottomRight: Radius.circular(18),
+  // Semana 4: como la tarjeta fija de Gemini después de una crisis. No tapa
+  // la conversación ni impide escribir; abre las líneas con un toque.
+  Widget _franjaLineas(bool isDark) {
+    final fondo = isDark ? const Color(0xFF1F2A3A) : const Color(0xFFE8F1FB);
+    final texto = isDark ? const Color(0xFFBBD6F5) : const Color(0xFF0D47A1);
+    return Material(
+      color: fondo,
+      child: InkWell(
+        onTap: _mostrarBannerCrisis,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Icon(Icons.support_agent_rounded, color: texto, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Línea de la Vida 800 911 2000 · 24 horas, gratuita',
+                  style: TextStyle(
+                    color: texto,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
               ),
-              boxShadow: isDark
-                  ? const []
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _PuntoEscribiendo(delayMs: 0, color: _accentColor),
-                _PuntoEscribiendo(delayMs: 150, color: _accentColor),
-                _PuntoEscribiendo(delayMs: 300, color: _accentColor),
-              ],
-            ),
+              Text(
+                'Ver líneas',
+                style: TextStyle(
+                  color: texto,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -603,34 +869,43 @@ class _ChatbotSerenaState extends State<ChatbotSerena> {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: TextField(
-                controller: _ctrl,
-                enabled: !_cargando,
-                maxLines: 4,
-                minLines: 1,
-                textInputAction: TextInputAction.send,
-                onSubmitted: _enviar,
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black87,
-                  fontSize: 14,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Cuéntame cómo te sientes...',
-                  hintStyle: TextStyle(
-                    color: isDark ? Colors.grey[600] : Colors.grey[400],
+              child: EnvioConEnter(
+                onEnviar: () => _enviar(_ctrl.text),
+                child: TextField(
+                  controller: _ctrl,
+                  enabled: !_cargando,
+                  maxLines: 4,
+                  minLines: 1,
+                  // Semana 8: varias líneas (Shift+Enter); Enter envía.
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black87,
                     fontSize: 14,
                   ),
-                  filled: true,
-                  fillColor: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFF0F2F5),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
+                  decoration: InputDecoration(
+                    hintText: 'Cuéntame cómo te sientes...',
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.grey[600] : Colors.grey[400],
+                      fontSize: 14,
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? const Color(0xFF2C2C2C)
+                        : const Color(0xFFF0F2F5),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide(color: _accentColor, width: 1.5),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide(color: _accentColor, width: 1.5),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
               ),
             ),

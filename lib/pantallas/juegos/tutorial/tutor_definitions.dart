@@ -4,7 +4,7 @@ List<TutorStep> createTutorialSteps() {
   return [
     const TutorStep(
       id: 'welcome',
-      instruction: 'Bienvenido al TCG Salud Mental',
+      instruction: 'Te damos la bienvenida al TCG Salud Mental',
       detail:
           'Aprenderás lo básico en pocos pasos. Cada carta representa una '
           'herramienta de salud mental que puedes usar para vencer pensamientos negativos.',

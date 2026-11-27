@@ -1,0 +1,154 @@
+{
+ "nombre": "conversaciones_s6",
+ "version": 1,
+ "fecha": "2026-10-30",
+ "descripcion": "Semana 6: mensajes para comparar modelos de lenguaje dentro de Serena. Los 20 mensajes normales de la muestra de la Semana 3 (uno por conversacion), la conversacion de la captura del asesor (30 oct) y dos secuencias de bienestar. Todo inventado por el equipo; sin mensajes de estudiantes reales y sin crisis (las crisis usan textos fijos, no el modelo).",
+ "conversaciones": [
+  {
+   "id": "NO-01",
+   "mensajes": [
+    "me fue mal en el examen de química"
+   ]
+  },
+  {
+   "id": "NO-02",
+   "mensajes": [
+    "cómo puedo dormir mejor"
+   ]
+  },
+  {
+   "id": "NO-03",
+   "mensajes": [
+    "qué hago si me pongo nervioso al exponer"
+   ]
+  },
+  {
+   "id": "NO-04",
+   "mensajes": [
+    "me peleé con mi mejor amiga"
+   ]
+  },
+  {
+   "id": "NO-05",
+   "mensajes": [
+    "mis papás se la pasan peleando"
+   ]
+  },
+  {
+   "id": "NO-06",
+   "mensajes": [
+    "me siento solo en la escuela nueva"
+   ]
+  },
+  {
+   "id": "NO-07",
+   "mensajes": [
+    "cómo le hago para concentrarme al estudiar"
+   ]
+  },
+  {
+   "id": "NO-08",
+   "mensajes": [
+    "qué es la ansiedad"
+   ]
+  },
+  {
+   "id": "NO-09",
+   "mensajes": [
+    "hoy me fue muy bien, saqué 10"
+   ]
+  },
+  {
+   "id": "NO-10",
+   "mensajes": [
+    "me gusta alguien y no sé cómo decirle"
+   ]
+  },
+  {
+   "id": "NO-11",
+   "mensajes": [
+    "estoy estresado por los exámenes"
+   ]
+  },
+  {
+   "id": "NO-12",
+   "mensajes": [
+    "no me dejan salir con mis amigos"
+   ]
+  },
+  {
+   "id": "NO-13",
+   "mensajes": [
+    "mi perro se murió la semana pasada y estoy triste"
+   ]
+  },
+  {
+   "id": "NO-14",
+   "mensajes": [
+    "cómo ayudo a un amigo que está triste"
+   ]
+  },
+  {
+   "id": "NO-15",
+   "mensajes": [
+    "qué hago cuando me enojo mucho"
+   ]
+  },
+  {
+   "id": "NO-16",
+   "mensajes": [
+    "me da miedo hablar en público"
+   ]
+  },
+  {
+   "id": "NO-17",
+   "mensajes": [
+    "tengo mucha tarea y no sé por dónde empezar"
+   ]
+  },
+  {
+   "id": "NO-18",
+   "mensajes": [
+    "me hacen burla por mi forma de vestir"
+   ]
+  },
+  {
+   "id": "NO-19",
+   "mensajes": [
+    "mis amigos fuman y me presionan para que yo también"
+   ]
+  },
+  {
+   "id": "NO-20",
+   "mensajes": [
+    "cómo respiro para calmarme"
+   ]
+  },
+  {
+   "id": "CAP-ASESOR",
+   "mensajes": [
+    "Hola podemos platicas de la paleta de colores de sentimientos",
+    "Bien, pero quieor saber que tecnicas emocionales me recomiendas para sentirme mas feliz",
+    "No veo completo el mensaje",
+    "Y que conocimiento me puedes dar tu??"
+   ]
+  },
+  {
+   "id": "SEC-BIENESTAR",
+   "mensajes": [
+    "Hola Serena",
+    "¿Cómo puedo ser más feliz?",
+    "¿Qué cosas me ayudan a estar contento en la escuela?",
+    "Dame consejos para tener un buen día"
+   ]
+  },
+  {
+   "id": "SEC-TRISTEZA",
+   "mensajes": [
+    "Hoy me fue mal en el examen y me siento triste",
+    "Ya estoy mejor, ¿qué puedo hacer para ser más feliz?",
+    "Gracias, me ayudó platicar"
+   ]
+  }
+ ]
+}

@@ -16,6 +16,9 @@ class PasoIdentificacion extends StatefulWidget {
   final String leftMeaning;
   final Color accentColor;
   final String completionMessage;
+  // Semana 4: falso al volver de «Enviando…», para que las instrucciones no
+  // tapen el resultado.
+  final bool mostrarInstrucciones;
 
   const PasoIdentificacion({
     super.key,
@@ -32,6 +35,7 @@ class PasoIdentificacion extends StatefulWidget {
     this.leftMeaning = 'No me identifica',
     this.accentColor = const Color(0xFF43A047),
     this.completionMessage = 'Guardando y continuando...',
+    this.mostrarInstrucciones = true,
   });
 
   @override
@@ -84,6 +88,7 @@ class _PasoIdentificacionState extends State<PasoIdentificacion> {
   @override
   void initState() {
     super.initState();
+    if (!widget.mostrarInstrucciones) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _showInstructions();
     });

@@ -12,7 +12,12 @@ class Peticiones {
   // Endpoints
   static const String login = '$baseUrl/auth/login';
   static const String loginGoogle = '$baseUrl/auth/google';
+  static const String logout = '$baseUrl/auth/logout';
   static const String register = '$baseUrl/auth/register';
+  // Acceso rapido de la demo: 404 en un despliegue normal, por lo que el
+  // boton de la pantalla de acceso se oculta solo.
+  static const String demoDisponibilidad = '$baseUrl/auth/demo';
+  static const String demoLogin = '$baseUrl/auth/demo';
   static const String getUserMe = '$baseUrl/users/me';
   static const String getSessionContext = '$baseUrl/users/session';
   static const String syncUser = '$baseUrl/users/sync';
@@ -31,18 +36,53 @@ class Peticiones {
 
   // Serena chatbot
   static const String serenaChat = '$baseUrl/chat';
+  // PROTOTIPO Semana 3, fase 5: la misma respuesta en lineas JSON (NDJSON).
+  static const String serenaChatStream = '$baseUrl/chat/stream';
   static const String serenaHistorial = '$baseUrl/chat/historial';
   static const String serenaSalud = '$baseUrl/salud';
 
+  // PROTOTIPO Semana 2: diario, vinculación en dos sentidos y alertas.
+  static const String diarioEntradas = '$baseUrl/diario/entradas';
+  static const String vinculacionSolicitudes =
+      '$baseUrl/vinculacion/solicitudes';
+  static const String vinculacionEstudiante = '$baseUrl/vinculacion/estudiante';
+  static const String vinculacionTutor = '$baseUrl/vinculacion/tutor';
+  static const String vinculacionTutorSolicitudes =
+      '$baseUrl/vinculacion/tutor/solicitudes';
+  static String vinculacionRespuesta(int id) =>
+      '$baseUrl/vinculacion/solicitudes/$id/respuesta';
+  static String vinculacionConfirmar(int id) =>
+      '$baseUrl/vinculacion/solicitudes/$id/confirmar';
+  static const String adminAlertasRiesgo = '$baseUrl/admin/alertas-riesgo';
+  static String adminAtenderAlerta(int idAlerta) =>
+      '$baseUrl/admin/alertas-riesgo/$idAlerta/atendida';
+  static String adminResumenRiesgo(int idUsuario) =>
+      '$baseUrl/admin/resumen-riesgo/$idUsuario';
+  // Semana 5: cuentas (lista, reactivar y borrado completo).
+  static const String adminUsuarios = '$baseUrl/admin/usuarios';
+  static String adminUsuarioActivo(String perfil, int id) =>
+      '$baseUrl/admin/usuarios/$perfil/$id/activo';
+  static String adminBorrarUsuario(String perfil, int id) =>
+      '$baseUrl/admin/usuarios/$perfil/$id/borrar';
+  // Semana 8: código de recuperación de un solo uso.
+  static String adminCodigoRecuperacion(String perfil, int id) =>
+      '$baseUrl/admin/usuarios/$perfil/$id/codigo-recuperacion';
+
   // Password recovery
-  static const String passwordResetRequest = '$baseUrl/auth/password-reset-request';
-  static const String passwordResetConfirm = '$baseUrl/auth/password-reset-confirm';
+  static const String passwordResetRequest =
+      '$baseUrl/auth/password-reset-request';
+  static const String passwordResetConfirm =
+      '$baseUrl/auth/password-reset-confirm';
   static const String changePassword = '$baseUrl/auth/change-password';
 
   // Alertas para padres
   static const String padresAlertas = '$baseUrl/users/padres/alertas';
   static String padreAlertaVista(int idAlerta) =>
       '$baseUrl/users/padres/alertas/$idAlerta/vista';
+  // Semana 8 (pregunta 6 de la Dra.): resumen mensual del diario.
+  static String padresResumenMensual(String? mes) =>
+      '$baseUrl/users/padres/resumen-mensual'
+      '${mes == null ? '' : '?mes=${Uri.encodeQueryComponent(mes)}'}';
 
   // Análisis médico — endpoint externo
   static const String postCuestionario = '$baseUrl/users/cuestionario';

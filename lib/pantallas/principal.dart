@@ -7,6 +7,12 @@ import 'theme_provider.dart';
 import 'login.dart';
 import 'monitoreo_admin.dart';
 import 'admin/editor_cuestionarios_admin.dart';
+import 'admin/alertas_riesgo_admin.dart';
+import 'admin/cuentas_admin.dart';
+import 'diario/diario_flujo.dart';
+import 'vinculacion/vinculacion_estudiante.dart';
+import 'vinculacion/vinculacion_tutor.dart';
+import 'vinculacion/resumen_mensual_tutor.dart';
 import 'juegos/tcg_flame_screen.dart';
 import 'modulos/selector_modulo_crisis.dart';
 import 'modulos/chatbot_serena.dart';
@@ -19,6 +25,9 @@ import 'servicios/auth.dart';
 import 'servicios/boton_instalar_app.dart';
 import 'servicios/personalizacion.dart';
 import 'servicios/user.dart';
+
+// Semana 4: alertas a padres que se resaltan (niveles de Columbia).
+const _tiposDeRiesgo = {'riesgo_alto', 'riesgo_comunitario'};
 
 class Principal extends StatefulWidget {
   const Principal({super.key});
@@ -251,7 +260,8 @@ class _PrincipalState extends State<Principal>
         .whereType<Map>()
         .where(
           (alerta) =>
-              alerta['leida'] != true && alerta['tipo']?.toString() == 'riesgo_alto',
+              alerta['leida'] != true &&
+              _tiposDeRiesgo.contains(alerta['tipo']?.toString()),
         )
         .toList();
     if (highRiskAlerts.isEmpty) return;
@@ -728,9 +738,77 @@ class _PrincipalState extends State<Principal>
     );
   }
 
+  // PROTOTIPO Semana 2: «Platicar con Serena» desde el diario cierra las
+  // pantallas abiertas y cambia a la pestaña de Serena.
+  void _abrirSerena() {
+    Navigator.of(context).popUntil((ruta) => ruta.isFirst);
+    _onItemTapped(0);
+  }
+
   List<Widget> _homeCardsForRole(BuildContext context) {
     final cards = <Widget>[];
     final studentPalette = AppPersonalizacion.palette(_studentAccentColor);
+
+    // PROTOTIPO Semana 2: diario emocional con semáforo.
+    if (_can('can_use_diario')) {
+      cards.add(
+        _buildOptionCard(
+          context,
+          imagePath: 'assets/imagenes/quetzal_6.png',
+          title: "Mi diario",
+          subtitle: "¿Cómo estuvo tu día? Califícalo con el semáforo",
+          color: _studentAccentColor,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DiarioFlujo(
+                  onAbrirSerena: _abrirSerena,
+                  acento: _studentAccentColor,
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    if (_can('can_review_risk_alerts')) {
+      cards.add(
+        _buildOptionCard(
+          context,
+          imagePath: 'assets/imagenes/quetzal_4.png',
+          title: "Alertas de riesgo",
+          subtitle: "Diario y chat: tipo de señal, reglas y prueba de cada alerta",
+          color: const Color(0xFFC62828),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AlertasRiesgoAdmin()),
+            );
+          },
+        ),
+      );
+    }
+
+    // Semana 5: lista de cuentas, reactivar y borrado completo.
+    if (_can('can_review_risk_alerts')) {
+      cards.add(
+        _buildOptionCard(
+          context,
+          imagePath: 'assets/imagenes/quetzal_6.png',
+          title: "Cuentas",
+          subtitle: "Estudiantes y tutores: reactivar, desactivar o borrar",
+          color: const Color(0xFF37474F),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CuentasAdmin()),
+            );
+          },
+        ),
+      );
+    }
 
     if (_can('can_monitor_responses')) {
       cards.add(
@@ -812,6 +890,57 @@ class _PrincipalState extends State<Principal>
           color: const Color(0xFF42A5F5),
           badgeCount: _unreadAlerts,
           onTap: _showMailbox,
+        ),
+      );
+      // Semana 8 (pregunta 6 de la Dra.): resumen mensual del diario.
+      cards.add(
+        _buildOptionCard(
+          context,
+          imagePath: 'assets/imagenes/quetzal_2.png',
+          title: "Resumen del mes",
+          subtitle: "Días buenos, regulares y difíciles",
+          color: const Color(0xFF43A047),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ResumenMensualTutor()),
+          ),
+        ),
+      );
+    }
+
+    // PROTOTIPO Semana 2: vinculación en dos sentidos.
+    if (_can('can_link_tutor')) {
+      cards.add(
+        _buildOptionCard(
+          context,
+          imagePath: 'assets/imagenes/quetzal_1.png',
+          title: "Mi tutor",
+          subtitle: "Vincula a tu mamá, papá o tutor",
+          color: const Color(0xFFFB8C00),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const VinculacionEstudianteFlujo()),
+            );
+          },
+        ),
+      );
+    }
+
+    if (_can('can_manage_linked_students')) {
+      cards.add(
+        _buildOptionCard(
+          context,
+          imagePath: 'assets/imagenes/quetzal_6.png',
+          title: "Vincular a mi hijo",
+          subtitle: "Confirma o solicita la vinculación",
+          color: const Color(0xFF1565C0),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const VinculacionTutorFlujo()),
+            ).then((_) => _loadCurrentUser());
+          },
         ),
       );
     }
@@ -1078,6 +1207,11 @@ class _PrincipalState extends State<Principal>
                               tipoIcon = Icons.warning_amber_rounded;
                               tipoColor = const Color(0xFFE53935);
                               break;
+                            // Semana 4: intención (Columbia) -> comunitario.
+                            case 'riesgo_comunitario':
+                              tipoIcon = Icons.warning_amber_rounded;
+                              tipoColor = const Color(0xFFEF6C00);
+                              break;
                             case 'mensaje':
                               tipoIcon = Icons.chat_bubble_outline_rounded;
                               tipoColor = const Color(0xFF42A5F5);
@@ -1205,7 +1339,7 @@ class _PrincipalState extends State<Principal>
     final mensaje = alerta['mensaje']?.toString() ?? '';
     final recomendacion = alerta['recomendacion']?.toString() ?? '';
     final tipo = alerta['tipo']?.toString() ?? '';
-    final isRisk = tipo == 'riesgo_alto';
+    final isRisk = _tiposDeRiesgo.contains(tipo);
 
     showDialog(
       context: context,

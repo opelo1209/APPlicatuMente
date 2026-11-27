@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'niveles_columbia.dart';
 import 'package:provider/provider.dart';
 import 'package:aptm/text_utils.dart';
 import '../theme_provider.dart';
@@ -27,6 +28,7 @@ class _CuestionarioState extends State<Cuestionario> {
   int _currentIndex = 0;
   final Map<String, Map<String, dynamic>> _respuestas = {};
   bool _enviando = false;
+  bool _binariasRespondidas = false;
   bool _cargandoPreguntas = true;
   late List<Map<String, dynamic>> _preguntas = List<Map<String, dynamic>>.from(
     _defaultPreguntas,
@@ -351,7 +353,10 @@ class _CuestionarioState extends State<Cuestionario> {
     if (!mounted) return;
 
     while (!enviado) {
-      final esDark = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+      final esDark = Provider.of<ThemeProvider>(
+        context,
+        listen: false,
+      ).isDarkMode;
       final accion = await mostrarAvisoEnvioFallido(context, esDark: esDark);
       if (accion == AccionEnvioFallido.continuar) break;
 
@@ -374,7 +379,7 @@ class _CuestionarioState extends State<Cuestionario> {
   void _mostrarResultado(
     int phq9Score,
     int cssrsScore,
-    NivelCssrs nivelCssrs,
+    NivelColumbia nivelCssrs,
   ) {
     final isDark = Provider.of<ThemeProvider>(
       context,
@@ -436,6 +441,20 @@ class _CuestionarioState extends State<Cuestionario> {
               color: nivelCssrs.color,
               isDark: isDark,
             ),
+            // Semana 4: qué hacer según el nivel de Columbia. Semana 8: con
+            // el PHQ-9 de 10 o más también (pregunta 14d de la Dra.).
+            if (nivelAtencion(nivelCssrs, phq9: phq9Score) !=
+                NivelColumbia.sinRiesgo) ...[
+              const SizedBox(height: 14),
+              Text(
+                nivelAtencion(nivelCssrs, phq9: phq9Score).mensajeEstudiante,
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.4,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ],
           ],
         ),
         actions: [
@@ -538,6 +557,7 @@ class _CuestionarioState extends State<Cuestionario> {
       ),
       body: PasoIdentificacion(
         questions: binaryQuestions,
+        mostrarInstrucciones: !_binariasRespondidas,
         headerTitle: '',
         instructionTitle: 'Preguntas de Sí o No',
         instructionDescription:
@@ -550,6 +570,7 @@ class _CuestionarioState extends State<Cuestionario> {
         accentColor: const Color(0xFF5C6BC0),
         completionMessage: 'Procesando resultados...',
         onCompleted: (resultados) {
+          _binariasRespondidas = true;
           // Llenar _respuestas con los resultados del swipe
           for (int i = 9; i < _preguntas.length; i++) {
             final p = _preguntas[i];
@@ -902,53 +923,15 @@ class _BinaryButton extends StatelessWidget {
   }
 }
 
-enum NivelCssrs { sinRiesgo, ideacion, planeacion, planConcreto }
-
-extension NivelCssrsUi on NivelCssrs {
-  String get etiqueta {
-    switch (this) {
-      case NivelCssrs.sinRiesgo:
-        return 'Sin indicadores';
-      case NivelCssrs.ideacion:
-        return 'Ideación';
-      case NivelCssrs.planeacion:
-        return 'Riesgo alto: planeación';
-      case NivelCssrs.planConcreto:
-        return 'Riesgo alto: plan concreto';
-    }
-  }
-
-  Color get color {
-    switch (this) {
-      case NivelCssrs.sinRiesgo:
-        return const Color(0xFF43A047);
-      case NivelCssrs.ideacion:
-        return const Color(0xFFFDD835);
-      case NivelCssrs.planeacion:
-      case NivelCssrs.planConcreto:
-        return const Color(0xFFE53935);
-    }
-  }
-}
-
-// C-SSRS validado en población mexicana (Austria-Corrales et al., 2023): la
-// severidad la determina cuál dominio jerárquico se activa (ideación <
-// planeación < plan concreto), no la cantidad de reactivos marcados "Sí".
-// Cualquier respuesta afirmativa en planeación o plan concreto escala
-// directo a riesgo alto, sin importar cómo se respondan las demás preguntas.
-NivelCssrs nivelCssrsPorDominio(List<Map<String, dynamic>> cssrsReactivos) {
-  bool endosado(String id) => cssrsReactivos.any(
-    (r) => r['id'] == id && (r['respuesta_valor'] as int) > 0,
+// C-SSRS: la severidad la decide la pregunta más grave contestada con «sí»
+// (Austria-Corrales et al., 2023), no cuántas se marcaron. Semana 4: los
+// cortes son los que confirmó el asesor (niveles_columbia.dart).
+NivelColumbia nivelCssrsPorDominio(List<Map<String, dynamic>> cssrsReactivos) {
+  return nivelColumbia(
+    (id) => cssrsReactivos.any(
+      (r) => r['id'] == id && (r['respuesta_valor'] as int) > 0,
+    ),
   );
-
-  if (endosado('detalles_plan')) return NivelCssrs.planConcreto;
-  if (endosado('como_lo_haria') || endosado('intencion_llevarlo')) {
-    return NivelCssrs.planeacion;
-  }
-  if (endosado('desear_muerto') || endosado('idea_suicidarse')) {
-    return NivelCssrs.ideacion;
-  }
-  return NivelCssrs.sinRiesgo;
 }
 
 class _ScoreRow extends StatelessWidget {
